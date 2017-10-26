@@ -1,13 +1,13 @@
 {
-  "name": "turfhelper-lib-js",
-  "version": "17.2.9",
+  "name": "turf-google-maps",
+  "version": "0.8.0",
   "description": "A bridge to use Turf along with google Maps API",
   "scripts": {
-    "test": "grunt karma"
+    "test": "karma start"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/InstaGIS/turfhelper-lib-js.git"
+    "url": "git+https://github.com/HuasoFoundries/turf-google-maps.git"
   },
   "files": [
     "src",
@@ -22,38 +22,34 @@
   "author": "amenadiel@gmail.com",
   "license": "propietary",
   "bugs": {
-    "url": "https://github.com/InstaGIS/turfhelper-lib-js/issues"
+    "url": "https://github.com/HuasoFoundries/turf-google-maps/issues"
   },
-  "homepage": "https://github.com/InstaGIS/turfhelper-lib-js#readme",
+  "homepage": "https://github.com/HuasoFoundries/turf-google-maps#readme",
   "main": "dist/ig_turfhelper.min.js",
   "private": true,
-  "dependencies": {
-
-  },
+  "dependencies": {},
   "devDependencies": {
-    "grunt": "^1",
-    "grunt-karma": "^2",
-    "jspm": "^0.17.0-beta.41",
-    "karma": "^1",
-    "karma-phantomjs-launcher": "^1",
-    "phantomjs-prebuilt": "^2",
-    "qunitjs": "^1",
     "babel-eslint": "^7.2.3",
     "d3-queue": "^3.0.7",
     "documentation": "^5.2.2",
     "es6-module-loader": "^0.17.11",
     "eslint": "^4.5.0",
+    "jspm": "^0.17.0-beta.41",
+    "karma": "^1",
     "karma-mocha-reporter": "^2.2.3",
+    "karma-phantomjs-launcher": "^1",
     "karma-qunit": "^1.2.1",
     "karma-systemjs": "^0.16.0",
     "lodash": "^4",
+    "phantomjs-prebuilt": "^2",
     "progress": "^2.0.0",
+    "qunitjs": "^1",
     "systemjs": "^0.19.41",
     "systemjs-plugin-babel": "0.0.19"
   },
   "jspm": {
     "registry": "jspm",
-    "name": "turfhelper-lib-js",
+    "name": "turf-google-maps",
     "main": "ig_turfhelper.min.js",
     "directories": {
       "lib": "dist"

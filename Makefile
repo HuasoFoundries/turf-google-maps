@@ -11,26 +11,26 @@ version:
 
 install: 
 	npm install
-	jspm install
+	$$(npm bin)/jspm install
 
 test:
-	grunt karma
+	$$(npm bin)/karma start
 
 docs:
 	./generate_docs.js
 
 build_unminified:
-	jspm build src/ig_turfhelper.js dist/ig_turfhelper.js      --global-name turfHelper --global-deps '{"gmaps": "gmaps"}' --skip-source-maps
+	$$(npm bin)/jspm build src/ig_turfhelper.js dist/ig_turfhelper.js      --global-name turfHelper --global-deps '{"gmaps": "gmaps"}' --skip-source-maps
 
 build_esm:
-	jspm build src/ig_turfhelper.js dist/ig_turfhelper.esm.js --format esm --global-deps '{"gmaps": "gmaps"}' --skip-source-maps
+	$$(npm bin)/jspm build src/ig_turfhelper.js dist/ig_turfhelper.esm.js --format esm --global-deps '{"gmaps": "gmaps"}' --skip-source-maps
 
 
 build_minified:
-	jspm build src/ig_turfhelper.js dist/ig_turfhelper.min.js  --global-name turfHelper --global-deps '{"gmaps": "gmaps"}' -m
+	$$(npm bin)/jspm build src/ig_turfhelper.js dist/ig_turfhelper.min.js  --global-name turfHelper --global-deps '{"gmaps": "gmaps"}' -m
 
 build_utils:
-	jspm build src/components/utils.js dist/utils.min.js  --global-name turfUtils --global-deps '{"gmaps": "gmaps"}' -m
+	$$(npm bin)/jspm build src/components/utils.js dist/utils.min.js  --global-name turfUtils --global-deps '{"gmaps": "gmaps"}' -m
 
 build:  build_to_test test build_minified build_utils
 	
