@@ -1,4 +1,6 @@
-import turf_concave from '@turf/concave';
+import {
+	concave as turf_concave
+} from '../turf.js';
 
 
 import {
@@ -12,8 +14,8 @@ import {
  * @param  {string} units degrees, radians, miles, or kilometers
  * @return {Feature.<Polygon>}  a concave hull
  */
-export function concave(latLngArray, maxEdge, units) {
+export function concave(latLngArray, options) {
 
 	var FeatureCollection = arrayToFeaturePoints(latLngArray)
-	return turf_concave(FeatureCollection, maxEdge, units);
+	return turf_concave(FeatureCollection, options);
 };

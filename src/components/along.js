@@ -4,10 +4,10 @@ import {
 import {
 	toCoords
 } from './coords_to_latlng.js';
-import turf_along from '@turf/along';
-import turf_helpers from '@turf/helpers';
-
-var turf_linestring = turf_helpers.lineString;
+import {
+	along as turf_along,
+	lineString as turf_linestring
+} from '../turf.js';
 
 
 /**

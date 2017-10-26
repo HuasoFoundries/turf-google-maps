@@ -1,24 +1,36 @@
 #!/usr/bin/env node
 
-const fs = require('fs');
-const d3 = require('d3-queue');
+const Promise = require('bluebird');
+const fs = Promise.promisifyAll(require("fs"));
+
 const path = require('path');
 const ProgressBar = require('progress');
 const documentation = require('documentation');
 
-const q = d3.queue(1);
-const packages = path.join(__dirname, 'src/components') + path.sep;
+
+var folders = ['src/components'];
+var fileArray = [];
+
+folders.forEach(function (foldername) {
+    let folderpath = path.join(__dirname, foldername) + path.sep;
+    fs.readdirSync(folderpath).forEach(file => {
+        if (file.slice(-3) === '.js') {
+            fileArray.push({
+                path: folderpath + file,
+                filename: file.replace('.js', ''),
+                subfolder: foldername
+            });
+        }
+    });
+});
+
 const bar = new ProgressBar('progress [:bar] :rate/bps :percent :etas :name', {
     complete: '=',
     incomplete: ' ',
     width: 20,
-    total: fs.readdirSync(packages).length
+    total: fileArray.length
 });
 
-
-fs.readdirSync(packages).forEach(file => {
-    q.defer(generateDocs, packages + file);
-});
 
 const paths = {
     GeoJSON: 'http://geojson.org/geojson-spec.html#geojson-objects',
@@ -43,36 +55,48 @@ const paths = {
     'Wkt': 'https://github.com/arthur-e/Wicket'
 };
 
-function generateDocs(filename, callback) {
+function generateDocs(fileObj, callback) {
 
-    var name = filename.split('/').pop().replace('.js', '');
-
-    console.log();
     // Build Documentation
-    documentation.build(filename, {
+    documentation.build(fileObj.path, {
         shallow: true
     }).then(res => {
         return documentation.formats.md(res, {
             paths
-        })
+        });
     }).then(output => {
 
-        fs.writeFileSync(`${__dirname}/docs/${name}.md`, output);
-
-
-        bar.tick({
-            name: name
-        });
-        callback(null);
+        return fs.writeFileAsync(`${__dirname}/docs/${fileObj.filename}.md`, output);
+    }).then(function () {
         return;
 
-
     }).catch(function (err) {
-
-        bar.tick({
-            name: name
-        });
-        callback(err);
+        console.warn('error when parsing file ' + fileObj.filename);
+        console.error(err);
         return;
     });
 }
+
+Promise.reduce(fileArray, function (total, fileObj) {
+    return Promise.resolve()
+        .then(function () {
+            return generateDocs(fileObj);
+        })
+        .then(function () {
+            bar.interrupt('processing ' + fileObj.filename);
+            bar.tick({
+                name: fileObj.filename
+            });
+
+            return;
+        })
+        .delay(100)
+        .then(function () {
+            total++;
+
+            return total;
+        });
+}, 0).then(function (total) {
+    console.log();
+    console.log('Processed ' + total + ' files');
+});

@@ -1,4 +1,7 @@
- import turk_kinks from '@turf/kinks';
+ import {
+ 	kinks as turk_kinks
+ } from '../turf.js';
+
 
  import {
  	polygonToFeaturePolygon

@@ -60,7 +60,10 @@
             };
 
 
-            var result = turfHelper.concave(coords, 2, 'kilometers');
+            var result = turfHelper.concave(coords, {
+                maxEdge: 2,
+                units: 'kilometers'
+            });
 
             var simplified_result_geom = result.geometry.coordinates[0].map(function (point) {
                 return [Math.round(point[0] * 1000000000) / 1000000000, Math.round(point[1] * 1000000000) / 1000000000];
