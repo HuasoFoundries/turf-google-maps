@@ -1,0 +1,126 @@
+{
+  "name": "turfhelper-lib-js",
+  "version": "17.2.9",
+  "description": "A bridge to use Turf along with google Maps API",
+  "scripts": {
+    "test": "grunt karma"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/InstaGIS/turfhelper-lib-js.git"
+  },
+  "files": [
+    "src",
+    "dist"
+  ],
+  "keywords": [
+    "turf",
+    "google",
+    "maps",
+    "wicket"
+  ],
+  "author": "amenadiel@gmail.com",
+  "license": "propietary",
+  "bugs": {
+    "url": "https://github.com/InstaGIS/turfhelper-lib-js/issues"
+  },
+  "homepage": "https://github.com/InstaGIS/turfhelper-lib-js#readme",
+  "main": "dist/ig_turfhelper.min.js",
+  "private": true,
+  "dependencies": {
+
+  },
+  "devDependencies": {
+    "grunt": "^1",
+    "grunt-karma": "^2",
+    "jspm": "^0.17.0-beta.41",
+    "karma": "^1",
+    "karma-phantomjs-launcher": "^1",
+    "phantomjs-prebuilt": "^2",
+    "qunitjs": "^1",
+    "babel-eslint": "^7.2.3",
+    "d3-queue": "^3.0.7",
+    "documentation": "^5.2.2",
+    "es6-module-loader": "^0.17.11",
+    "eslint": "^4.5.0",
+    "karma-mocha-reporter": "^2.2.3",
+    "karma-qunit": "^1.2.1",
+    "karma-systemjs": "^0.16.0",
+    "lodash": "^4",
+    "progress": "^2.0.0",
+    "systemjs": "^0.19.41",
+    "systemjs-plugin-babel": "0.0.19"
+  },
+  "jspm": {
+    "registry": "jspm",
+    "name": "turfhelper-lib-js",
+    "main": "ig_turfhelper.min.js",
+    "directories": {
+      "lib": "dist"
+    },
+    "format": "amd",
+    "dependencies": {},
+    "devDependencies": {
+      "@turf/along": "npm:@turf/along@^4.6.0",
+      "@turf/buffer": "npm:@turf/buffer@^4.6.1",
+      "@turf/concave": "npm:@turf/concave@^4.6.0",
+      "@turf/helpers": "npm:@turf/helpers@^4.6.0",
+      "@turf/inside": "npm:@turf/inside@^4.6.0",
+      "@turf/kinks": "npm:@turf/kinks@^4.6.0",
+      "@turf/line-intersect": "npm:@turf/line-intersect@^4.6.0",
+      "@turf/line-slice": "npm:@turf/line-slice@^4.6.0",
+      "@turf/simplify": "npm:@turf/simplify@^4.6.0",
+      "@turf/truncate": "npm:@turf/truncate@^4.6.0",
+      "@turf/union": "npm:@turf/union@^4.6.0",
+      "@turf/unkink-polygon": "npm:@turf/unkink-polygon@^4.6.0",
+      "assert": "npm:jspm-nodelibs-assert@^0.2.0",
+      "buffer": "npm:jspm-nodelibs-buffer@^0.2.0",
+      "child_process": "npm:jspm-nodelibs-child_process@^0.2.0",
+      "constants": "npm:jspm-nodelibs-constants@^0.2.0",
+      "crypto": "npm:jspm-nodelibs-crypto@^0.2.0",
+      "events": "npm:jspm-nodelibs-events@^0.2.0",
+      "lodash-es": "npm:lodash-es@^4.14.2",
+      "os": "npm:jspm-nodelibs-os@^0.2.0",
+      "path": "npm:jspm-nodelibs-path@^0.2.0",
+      "process": "npm:jspm-nodelibs-process@^0.2.0",
+      "stream": "npm:jspm-nodelibs-stream@^0.2.0",
+      "string_decoder": "npm:jspm-nodelibs-string_decoder@^0.2.0",
+      "util": "npm:jspm-nodelibs-util@^0.2.0",
+      "vm": "npm:jspm-nodelibs-vm@^0.2.0"
+    },
+    "peerDependencies": {
+      "fs": "npm:jspm-nodelibs-fs@^0.2.0",
+      "plugin-babel": "npm:systemjs-plugin-babel@^0.0.25"
+    },
+    "overrides": {
+      "npm:debug@2.6.8": {
+        "main": "src/browser.js",
+        "jspmNodeConversion": false,
+        "format": "cjs",
+        "map": {
+          "./src/browser.js": {
+            "node": "./src/node.js"
+          },
+          "./node.js": {
+            "browser": "./src/browser.js"
+          },
+          "fs": "@node/fs",
+          "net": "@node/net",
+          "tty": "@node/tty",
+          "util": "@node/util"
+        }
+      },
+      "npm:inherits@2.0.3": {
+        "ignore": [
+          "test.js"
+        ]
+      },
+      "npm:pbkdf2@3.0.13": {
+        "main": "browser.js"
+      },
+      "npm:safe-buffer@5.1.1": {
+        "browser": "index.js"
+      }
+    }
+  }
+}
