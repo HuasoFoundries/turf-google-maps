@@ -28,11 +28,9 @@
     "url": "https://github.com/HuasoFoundries/turf-google-maps/issues"
   },
   "homepage": "https://github.com/HuasoFoundries/turf-google-maps#readme",
-
   "main": "dist/ig_turfhelper.js",
   "module": "dist/ig_turfhelper.esm.js",
   "jsnext:main": "dist/ig_turfhelper.esm.js",
-
   "dependencies": {},
   "devDependencies": {
     "@turf/along": "^5.0.4",
@@ -56,6 +54,7 @@
     "d3-queue": "^3.0.7",
     "documentation": "^5.2.2",
     "eslint": "^4.5.0",
+    "jspm": "^0.17.0-beta.47",
     "karma": "^1",
     "karma-mocha-reporter": "^2.2.3",
     "karma-phantomjs-launcher": "^1",
