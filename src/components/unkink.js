@@ -12,7 +12,5 @@ import {
 export function unkink(object) {
 
 	var polygonFeature = polygonToFeaturePolygon(object);
-	console.log(polygonFeature);
-
 	return turf_unkink(polygonFeature);
 };

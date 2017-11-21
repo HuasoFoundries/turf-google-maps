@@ -1,6 +1,6 @@
 {
   "name": "turf-google-maps",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "description": "A bridge to use Turf along with google Maps API",
   "scripts": {
     "test": "karma start"
@@ -51,6 +51,7 @@
     "babel-plugin-external-helpers": "^6.22.0",
     "babel-plugin-transform-es2015-arrow-functions": "^6.22.0",
     "babel-preset-env": "^1.6.1",
+    "chalk": "^2.3.0",
     "d3-queue": "^3.0.7",
     "documentation": "^5.2.2",
     "eslint": "^4.5.0",
@@ -71,6 +72,15 @@
     "rollup-plugin-commonjs": "^8.2.6",
     "rollup-plugin-node-resolve": "^3.0.0",
     "rollup-plugin-replace": "^2.0.0",
-    "rollup-plugin-uglify": "^2.0.1"
+    "rollup-plugin-uglify": "^2.0.1",
+    "slash": "^1.0.0"
+  },
+  "jspm": {
+    "name": "turf-google-maps",
+    "main": "ig_turfhelper.esm.js",
+    "dependencies": {},
+    "devDependencies": {
+      "plugin-babel": "npm:systemjs-plugin-babel@^0.0.25"
+    }
   }
 }

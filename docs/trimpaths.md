@@ -37,16 +37,6 @@ Takes two rings and finds their instersection points. If the rings are the same,
 
 Returns **[Object](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object)** an object containing
 
-## polylineToFeatureLinestring
-
-[polylineToFeatureLinestring description]
-
-**Parameters**
-
--   `polyline` **[Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[google.maps.LatLng](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/LatLng.md)>** [description]
-
-Returns **Feature.Polyline** [description]
-
 ## trimPaths
 
 Finds the [points](http://geojson.org/geojson-spec.html#point) where two [linestrings](http://geojson.org/geojson-spec.html#linestring) intersect each other

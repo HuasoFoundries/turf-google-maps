@@ -25,7 +25,7 @@ build_unminified:
 	$$(npm bin)/rollup -c
 
 build_minified:
-	$$(npm bin)/jspm build dist/ig_turfhelper.js dist/ig_turfhelper.min.js  --global-name turfHelper --global-deps '{"gmaps": "gmaps"}' -m
+	$$(npm bin)/jspm build dist/ig_turfhelper.js dist/ig_turfhelper.min.js  --global-name turfHelper  -m
 
 
 build_utils:

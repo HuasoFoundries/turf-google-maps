@@ -4,22 +4,15 @@ import alias from 'rollup-plugin-alias';
 import babel from 'rollup-plugin-babel';
 import replace from 'rollup-plugin-replace'
 import uglify from 'rollup-plugin-uglify';
+import verbose from './verbose.js'
 
-
-var input = "src/ig_turfhelper.js",
+var input = "node_modules/@turf/buffer/index.js",
 	output = [{
-			file: "dist/ig_turfhelper.js",
-			format: "umd",
-			name: 'turfHelper',
-			exports: 'named'
-		},
-		{
-			file: "dist/ig_turfhelper.esm.js",
-			format: "es"
-		}
-	],
+		file: "dist/buffer2.esm.js",
+		format: "es"
+	}],
 	plugins = [
-
+		verbose(),
 		commonjs({
 			include: ['node_modules/simplify-js/**', 'node_modules/rbush/**', 'node_modules/@turf/**', 'node_modules/quickselect/**']
 		}),
@@ -38,7 +31,6 @@ var input = "src/ig_turfhelper.js",
 			main: false
 		}),
 		babel()
-
 	];
 
 

@@ -39167,8 +39167,6 @@ function unkinkPolygon(geojson) {
 function unkink(object) {
 
   var polygonFeature = polygonToFeaturePolygon(object);
-  console.log(polygonFeature);
-
   return unkinkPolygon(polygonFeature);
 }
 
