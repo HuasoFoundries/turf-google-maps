@@ -27,7 +27,7 @@ from 'lodash-es/reduce.js';
 
 import {
     lineString as turf_linestring
-} from '@turf/turf';
+} from '@turf/helpers';
 
 
 var debug = console.debug.bind(console, '%c turfHelper' + ':', "color:#00CC00;font-weight:bold;"),

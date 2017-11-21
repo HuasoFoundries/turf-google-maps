@@ -1,6 +1,4 @@
-import {
-	union as turf_union
-} from '@turf/turf';
+import turf_union from '@turf/union';
 
 
 import {

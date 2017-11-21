@@ -1,6 +1,4 @@
-import {
-	unkinkPolygon as turf_unkink
-} from '@turf/turf';
+import turf_unkink from '@turf/unkink-polygon';
 
 import {
 	polygonToFeaturePolygon

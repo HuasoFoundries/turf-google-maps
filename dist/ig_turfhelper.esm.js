@@ -4,40 +4,6 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
   return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj;
 };
 
-
-
-
-
-
-
-
-
-
-
-var classCallCheck = function (instance, Constructor) {
-  if (!(instance instanceof Constructor)) {
-    throw new TypeError("Cannot call a class as a function");
-  }
-};
-
-var createClass = function () {
-  function defineProperties(target, props) {
-    for (var i = 0; i < props.length; i++) {
-      var descriptor = props[i];
-      descriptor.enumerable = descriptor.enumerable || false;
-      descriptor.configurable = true;
-      if ("value" in descriptor) descriptor.writable = true;
-      Object.defineProperty(target, descriptor.key, descriptor);
-    }
-  }
-
-  return function (Constructor, protoProps, staticProps) {
-    if (protoProps) defineProperties(Constructor.prototype, protoProps);
-    if (staticProps) defineProperties(Constructor, staticProps);
-    return Constructor;
-  };
-}();
-
 /** @license
  *
  *  Copyright (C) 2012 K. Arthur Endsley (kaendsle@mtu.edu)
@@ -2557,7 +2523,7 @@ function equalArrays(array, other, bitmask, customizer, equalFunc, stack) {
 }
 
 /** Built-in value references. */
-var Uint8Array = root.Uint8Array;
+var Uint8Array$1 = root.Uint8Array;
 
 /**
  * Converts `map` to its key-value pairs.
@@ -2642,7 +2608,7 @@ function equalByTag(object, other, tag, bitmask, customizer, equalFunc, stack) {
       other = other.buffer;
 
     case arrayBufferTag:
-      if (object.byteLength != other.byteLength || !equalFunc(new Uint8Array(object), new Uint8Array(other))) {
+      if (object.byteLength != other.byteLength || !equalFunc(new Uint8Array$1(object), new Uint8Array$1(other))) {
         return false;
       }
       return true;
@@ -4760,14 +4726,7 @@ function multiLineString(coordinates, properties, bbox, id) {
  *
  * //=multiPt
  */
-function multiPoint(coordinates, properties, bbox, id) {
-    if (!coordinates) throw new Error('No coordinates passed');
 
-    return feature({
-        type: 'MultiPoint',
-        coordinates: coordinates
-    }, properties, bbox, id);
-}
 
 /**
  * Creates a {@link Feature<MultiPolygon>} based on a
@@ -4974,6 +4933,682 @@ function isObject$2(input) {
 
 // Deprecated methods
 
+var debug = console.debug.bind(console, '%c turfHelper' + ':', "color:#00CC00;font-weight:bold;");
+var warn = console.debug.bind(console, '%c turfHelper' + ':', "color:orange;font-weight:bold;");
+
+/**
+ * Transforma un array de gmaps.LatLng en un Feature.Polygon
+ * @param  {Array.<google.maps.LatLng>} LatLngArray [description]
+ * @return {Feature.<Polygon>}             [description]
+ */
+function arrayToFeaturePolygon(LatLngArray) {
+
+    var vertices = toCoords(LatLngArray, true);
+
+    return {
+        type: "Feature",
+        properties: {},
+        geometry: {
+            type: "Polygon",
+
+            coordinates: [vertices]
+        }
+    };
+}
+
+/**
+ * Transforms a {@link google.maps.Marker} to a {@link Feature<Point>}
+ * @param  {google.maps.Marker} marker  - marker object to transform
+ * @return {Feature<Point>}    output Feature
+ */
+function markerToFeaturePoint(marker) {
+    if (!marker.getPosition || typeof marker.getPosition !== 'function') {
+        throw new Error('input object does not have a getPosition method');
+    }
+    var position = marker.getPosition(),
+        Feature = {
+        type: "Feature",
+        properties: {},
+        geometry: {
+            type: "Point",
+            coordinates: [position.lng(), position.lat()]
+        }
+    };
+
+    return Feature;
+}
+
+/**
+ * [polylineToFeatureLinestring description]
+ * @param  {Array.<google.maps.LatLng>|google.maps.Polyline} objeto array of positions or a google.maps.Polyline
+ * @return {Feature.<LineString>}          [description]
+ */
+function polylineToFeatureLinestring(objeto) {
+    var vertices;
+    if (objeto instanceof google.maps.Polyline) {
+        vertices = toCoords(objeto.getPath().getArray());
+    } else {
+        vertices = toCoords(objeto);
+    }
+
+    return lineString(vertices);
+}
+
+/**
+ * Receives an object and returns a GeoJson Feature of type Polygon
+ * @param  {google.maps.Polygon|Array.<google.maps.LatLng>|Feature.Polygon|Geometry} object object to transform into a Feature.Polygon
+ * @return {Feature.Polygon}        [description]
+ */
+function polygonToFeaturePolygon(object) {
+    var ring, polygonFeature;
+
+    if (object.type === 'Feature') {
+        polygonFeature = object;
+    } else if (object instanceof google.maps.Polygon) {
+
+        object = object.getPath().getArray();
+        ring = toCoords(object, true);
+        polygonFeature = arrayToFeaturePolygon(ring);
+    } else if (!!(object && object.constructor === Array)) {
+
+        ring = toCoords(object, true);
+        polygonFeature = arrayToFeaturePolygon(ring);
+    } else if (object.geometry) {
+
+        polygonFeature = {
+            type: "Feature",
+            properties: {},
+            geometry: object.geometry
+        };
+    } else {
+        throw new Error('object is not a Feature, google.maps.Polygon nor an array of google.maps.LatLng');
+    }
+
+    polygonFeature.properties = {};
+
+    return polygonFeature;
+}
+
+/**
+ * Transforma un array de gmaps.LatLng en un featurecollection geoJson
+ * donde cada Feature es un punto del array de entrada
+ * @param  {Array<google.maps.LatLng>|google.maps.MVCArray} latLngArray array de posiciones {@link google.maps.LatLng}
+ * @return {FeatureCollection}             geojson FeatureCollection
+ */
+function arrayToFeaturePoints(latLngArray) {
+
+    var FeatureCollection = {
+        "type": "FeatureCollection",
+        "features": []
+    };
+    latLngArray.forEach(function (latLng) {
+        var Feature = {
+            type: "Feature",
+            geometry: {
+                type: "Point",
+                coordinates: toCoords([latLng])[0]
+            }
+        };
+        FeatureCollection.features.push(Feature);
+    });
+
+    return FeatureCollection;
+}
+
+//http://en.wikipedia.org/wiki/Delaunay_triangulation
+//https://github.com/ironwallaby/delaunay
+/**
+ * Takes a set of {@link Point|points} and creates a
+ * [Triangulated Irregular Network](http://en.wikipedia.org/wiki/Triangulated_irregular_network),
+ * or a TIN for short, returned as a collection of Polygons. These are often used
+ * for developing elevation contour maps or stepped heat visualizations.
+ *
+ * If an optional z-value property is provided then it is added as properties called `a`, `b`,
+ * and `c` representing its value at each of the points that represent the corners of the
+ * triangle.
+ *
+ * @name tin
+ * @param {FeatureCollection<Point>} points input points
+ * @param {String} [z] name of the property from which to pull z values
+ * This is optional: if not given, then there will be no extra data added to the derived triangles.
+ * @returns {FeatureCollection<Polygon>} TIN output
+ * @example
+ * // generate some random point data
+ * var points = turf.randomPoint(30, {bbox: [50, 30, 70, 50]});
+ *
+ * // add a random property to each point between 0 and 9
+ * for (var i = 0; i < points.features.length; i++) {
+ *   points.features[i].properties.z = ~~(Math.random() * 9);
+ * }
+ * var tin = turf.tin(points, 'z');
+ *
+ * //addToMap
+ * var addToMap = [tin, points]
+ * for (var i = 0; i < tin.features.length; i++) {
+ *   var properties  = tin.features[i].properties;
+ *   properties.fill = '#' + properties.a + properties.b + properties.c;
+ * }
+ */
+function tin(points, z) {
+    if (points.type !== 'FeatureCollection') throw new Error('points must be a FeatureCollection');
+    //break down points
+    var isPointZ = false;
+    return featureCollection(triangulate(points.features.map(function (p) {
+        var point$$1 = {
+            x: p.geometry.coordinates[0],
+            y: p.geometry.coordinates[1]
+        };
+        if (z) {
+            point$$1.z = p.properties[z];
+        } else if (p.geometry.coordinates.length === 3) {
+            isPointZ = true;
+            point$$1.z = p.geometry.coordinates[2];
+        }
+        return point$$1;
+    })).map(function (triangle) {
+
+        var a = [triangle.a.x, triangle.a.y];
+        var b = [triangle.b.x, triangle.b.y];
+        var c = [triangle.c.x, triangle.c.y];
+        var properties = {};
+
+        // Add z coordinates to triangle points if user passed
+        // them in that way otherwise add it as a property.
+        if (isPointZ) {
+            a.push(triangle.a.z);
+            b.push(triangle.b.z);
+            c.push(triangle.c.z);
+        } else {
+            properties = {
+                a: triangle.a.z,
+                b: triangle.b.z,
+                c: triangle.c.z
+            };
+        }
+
+        return polygon([[a, b, c, a]], properties);
+    }));
+}
+
+function Triangle(a, b, c) {
+    this.a = a;
+    this.b = b;
+    this.c = c;
+
+    var A = b.x - a.x,
+        B = b.y - a.y,
+        C = c.x - a.x,
+        D = c.y - a.y,
+        E = A * (a.x + b.x) + B * (a.y + b.y),
+        F = C * (a.x + c.x) + D * (a.y + c.y),
+        G = 2 * (A * (c.y - b.y) - B * (c.x - b.x)),
+        dx,
+        dy;
+
+    // If the points of the triangle are collinear, then just find the
+    // extremes and use the midpoint as the center of the circumcircle.
+    this.x = (D * E - B * F) / G;
+    this.y = (A * F - C * E) / G;
+    dx = this.x - a.x;
+    dy = this.y - a.y;
+    this.r = dx * dx + dy * dy;
+}
+
+function byX(a, b) {
+    return b.x - a.x;
+}
+
+function dedup(edges) {
+    var j = edges.length,
+        a,
+        b,
+        i,
+        m,
+        n;
+
+    outer: while (j) {
+        b = edges[--j];
+        a = edges[--j];
+        i = j;
+        while (i) {
+            n = edges[--i];
+            m = edges[--i];
+            if (a === m && b === n || a === n && b === m) {
+                edges.splice(j, 2);
+                edges.splice(i, 2);
+                j -= 2;
+                continue outer;
+            }
+        }
+    }
+}
+
+function triangulate(vertices) {
+    // Bail if there aren't enough vertices to form any triangles.
+    if (vertices.length < 3) return [];
+
+    // Ensure the vertex array is in order of descending X coordinate
+    // (which is needed to ensure a subquadratic runtime), and then find
+    // the bounding box around the points.
+    vertices.sort(byX);
+
+    var i = vertices.length - 1,
+        xmin = vertices[i].x,
+        xmax = vertices[0].x,
+        ymin = vertices[i].y,
+        ymax = ymin,
+        epsilon = 1e-12;
+
+    var a, b, c, A, B, G;
+
+    while (i--) {
+        if (vertices[i].y < ymin) ymin = vertices[i].y;
+        if (vertices[i].y > ymax) ymax = vertices[i].y;
+    }
+
+    //Find a supertriangle, which is a triangle that surrounds all the
+    //vertices. This is used like something of a sentinel value to remove
+    //cases in the main algorithm, and is removed before we return any
+    // results.
+
+    // Once found, put it in the "open" list. (The "open" list is for
+    // triangles who may still need to be considered; the "closed" list is
+    // for triangles which do not.)
+    var dx = xmax - xmin,
+        dy = ymax - ymin,
+        dmax = dx > dy ? dx : dy,
+        xmid = (xmax + xmin) * 0.5,
+        ymid = (ymax + ymin) * 0.5,
+        open = [new Triangle({
+        x: xmid - 20 * dmax,
+        y: ymid - dmax,
+        __sentinel: true
+    }, {
+        x: xmid,
+        y: ymid + 20 * dmax,
+        __sentinel: true
+    }, {
+        x: xmid + 20 * dmax,
+        y: ymid - dmax,
+        __sentinel: true
+    })],
+        closed = [],
+        edges = [],
+        j;
+
+    // Incrementally add each vertex to the mesh.
+    i = vertices.length;
+    while (i--) {
+        // For each open triangle, check to see if the current point is
+        // inside it's circumcircle. If it is, remove the triangle and add
+        // it's edges to an edge list.
+        edges.length = 0;
+        j = open.length;
+        while (j--) {
+            // If this point is to the right of this triangle's circumcircle,
+            // then this triangle should never get checked again. Remove it
+            // from the open list, add it to the closed list, and skip.
+            dx = vertices[i].x - open[j].x;
+            if (dx > 0 && dx * dx > open[j].r) {
+                closed.push(open[j]);
+                open.splice(j, 1);
+                continue;
+            }
+
+            // If not, skip this triangle.
+            dy = vertices[i].y - open[j].y;
+            if (dx * dx + dy * dy > open[j].r) continue;
+
+            // Remove the triangle and add it's edges to the edge list.
+            edges.push(open[j].a, open[j].b, open[j].b, open[j].c, open[j].c, open[j].a);
+            open.splice(j, 1);
+        }
+
+        // Remove any doubled edges.
+        dedup(edges);
+
+        // Add a new triangle for each edge.
+        j = edges.length;
+        while (j) {
+            b = edges[--j];
+            a = edges[--j];
+            c = vertices[i];
+            // Avoid adding colinear triangles (which have error-prone
+            // circumcircles)
+            A = b.x - a.x;
+            B = b.y - a.y;
+            G = 2 * (A * (c.y - b.y) - B * (c.x - b.x));
+            if (Math.abs(G) > epsilon) {
+                open.push(new Triangle(a, b, c));
+            }
+        }
+    }
+
+    // Copy any remaining open triangles to the closed list, and then
+    // remove any triangles that share a vertex with the supertriangle.
+    Array.prototype.push.apply(closed, open);
+
+    i = closed.length;
+    while (i--) {
+        if (closed[i].a.__sentinel || closed[i].b.__sentinel || closed[i].c.__sentinel) closed.splice(i, 1);
+    }return closed;
+}
+
+/**
+ * Returns a cloned copy of the passed GeoJSON Object, including possible 'Foreign Members'.
+ * ~3-5x faster than the common JSON.parse + JSON.stringify combo method.
+ *
+ * @name clone
+ * @param {GeoJSON} geojson GeoJSON Object
+ * @returns {GeoJSON} cloned GeoJSON Object
+ * @example
+ * var line = turf.lineString([[-74, 40], [-78, 42], [-82, 35]], {color: 'red'});
+ *
+ * var lineCloned = turf.clone(line);
+ */
+function clone(geojson) {
+    if (!geojson) throw new Error('geojson is required');
+
+    switch (geojson.type) {
+        case 'Feature':
+            return cloneFeature(geojson);
+        case 'FeatureCollection':
+            return cloneFeatureCollection(geojson);
+        case 'Point':
+        case 'LineString':
+        case 'Polygon':
+        case 'MultiPoint':
+        case 'MultiLineString':
+        case 'MultiPolygon':
+        case 'GeometryCollection':
+            return cloneGeometry(geojson);
+        default:
+            throw new Error('unknown GeoJSON type');
+    }
+}
+
+/**
+ * Clone Feature
+ *
+ * @private
+ * @param {Feature<any>} geojson GeoJSON Feature
+ * @returns {Feature<any>} cloned Feature
+ */
+function cloneFeature(geojson) {
+    var cloned = { type: 'Feature' };
+    // Preserve Foreign Members
+    Object.keys(geojson).forEach(function (key) {
+        switch (key) {
+            case 'type':
+            case 'properties':
+            case 'geometry':
+                return;
+            default:
+                cloned[key] = geojson[key];
+        }
+    });
+    // Add properties & geometry last
+    cloned.properties = cloneProperties(geojson.properties);
+    cloned.geometry = cloneGeometry(geojson.geometry);
+    return cloned;
+}
+
+/**
+ * Clone Properties
+ *
+ * @private
+ * @param {Object} properties GeoJSON Properties
+ * @returns {Object} cloned Properties
+ */
+function cloneProperties(properties) {
+    var cloned = {};
+    if (!properties) return cloned;
+    Object.keys(properties).forEach(function (key) {
+        var value = properties[key];
+        if ((typeof value === 'undefined' ? 'undefined' : _typeof(value)) === 'object') {
+            // handle Array
+            if (value.length) cloned[key] = value.map(function (item) {
+                return item;
+            });
+            // handle Object
+            cloned[key] = cloneProperties(value);
+        } else cloned[key] = value;
+    });
+    return cloned;
+}
+
+/**
+ * Clone Feature Collection
+ *
+ * @private
+ * @param {FeatureCollection<any>} geojson GeoJSON Feature Collection
+ * @returns {FeatureCollection<any>} cloned Feature Collection
+ */
+function cloneFeatureCollection(geojson) {
+    var cloned = { type: 'FeatureCollection' };
+
+    // Preserve Foreign Members
+    Object.keys(geojson).forEach(function (key) {
+        switch (key) {
+            case 'type':
+            case 'features':
+                return;
+            default:
+                cloned[key] = geojson[key];
+        }
+    });
+    // Add features
+    cloned.features = geojson.features.map(function (feature) {
+        return cloneFeature(feature);
+    });
+    return cloned;
+}
+
+/**
+ * Clone Geometry
+ *
+ * @private
+ * @param {Geometry<any>} geometry GeoJSON Geometry
+ * @returns {Geometry<any>} cloned Geometry
+ */
+function cloneGeometry(geometry) {
+    var geom = { type: geometry.type };
+    if (geometry.bbox) geom.bbox = geometry.bbox;
+
+    if (geometry.type === 'GeometryCollection') {
+        geom.geometries = geometry.geometries.map(function (geom) {
+            return cloneGeometry(geom);
+        });
+        return geom;
+    }
+    geom.coordinates = deepSlice(geometry.coordinates);
+    return geom;
+}
+
+/**
+ * Deep Slice coordinates
+ *
+ * @private
+ * @param {Coordinates} coords Coordinates
+ * @returns {Coordinates} all coordinates sliced
+ */
+function deepSlice(coords) {
+    if (_typeof(coords[0]) !== 'object') {
+        return coords.slice();
+    }
+    return coords.map(function (coord) {
+        return deepSlice(coord);
+    });
+}
+
+/**
+ * Unwrap a coordinate from a Point Feature, Geometry or a single coordinate.
+ *
+ * @name getCoord
+ * @param {Array<number>|Geometry<Point>|Feature<Point>} obj Object
+ * @returns {Array<number>} coordinates
+ * @example
+ * var pt = turf.point([10, 10]);
+ *
+ * var coord = turf.getCoord(pt);
+ * //= [10, 10]
+ */
+function getCoord(obj) {
+    if (!obj) throw new Error('obj is required');
+
+    var coordinates = getCoords(obj);
+
+    // getCoord() must contain at least two numbers (Point)
+    if (coordinates.length > 1 && isNumber(coordinates[0]) && isNumber(coordinates[1])) {
+        return coordinates;
+    } else {
+        throw new Error('Coordinate is not a valid Point');
+    }
+}
+
+/**
+ * Unwrap coordinates from a Feature, Geometry Object or an Array of numbers
+ *
+ * @name getCoords
+ * @param {Array<number>|Geometry|Feature} obj Object
+ * @returns {Array<number>} coordinates
+ * @example
+ * var poly = turf.polygon([[[119.32, -8.7], [119.55, -8.69], [119.51, -8.54], [119.32, -8.7]]]);
+ *
+ * var coord = turf.getCoords(poly);
+ * //= [[[119.32, -8.7], [119.55, -8.69], [119.51, -8.54], [119.32, -8.7]]]
+ */
+function getCoords(obj) {
+    if (!obj) throw new Error('obj is required');
+    var coordinates;
+
+    // Array of numbers
+    if (obj.length) {
+        coordinates = obj;
+
+        // Geometry Object
+    } else if (obj.coordinates) {
+        coordinates = obj.coordinates;
+
+        // Feature
+    } else if (obj.geometry && obj.geometry.coordinates) {
+        coordinates = obj.geometry.coordinates;
+    }
+    // Checks if coordinates contains a number
+    if (coordinates) {
+        containsNumber(coordinates);
+        return coordinates;
+    }
+    throw new Error('No valid coordinates');
+}
+
+/**
+ * Checks if coordinates contains a number
+ *
+ * @name containsNumber
+ * @param {Array<any>} coordinates GeoJSON Coordinates
+ * @returns {boolean} true if Array contains a number
+ */
+function containsNumber(coordinates) {
+    if (coordinates.length > 1 && isNumber(coordinates[0]) && isNumber(coordinates[1])) {
+        return true;
+    }
+
+    if (Array.isArray(coordinates[0]) && coordinates[0].length) {
+        return containsNumber(coordinates[0]);
+    }
+    throw new Error('coordinates must only contain numbers');
+}
+
+/**
+ * Enforce expectations about types of GeoJSON objects for Turf.
+ *
+ * @name geojsonType
+ * @param {GeoJSON} value any GeoJSON object
+ * @param {string} type expected GeoJSON type
+ * @param {string} name name of calling function
+ * @throws {Error} if value is not the expected type.
+ */
+
+
+/**
+ * Enforce expectations about types of {@link Feature} inputs for Turf.
+ * Internally this uses {@link geojsonType} to judge geometry types.
+ *
+ * @name featureOf
+ * @param {Feature} feature a feature with an expected geometry type
+ * @param {string} type expected GeoJSON type
+ * @param {string} name name of calling function
+ * @throws {Error} error if value is not the expected type.
+ */
+
+
+/**
+ * Enforce expectations about types of {@link FeatureCollection} inputs for Turf.
+ * Internally this uses {@link geojsonType} to judge geometry types.
+ *
+ * @name collectionOf
+ * @param {FeatureCollection} featureCollection a FeatureCollection for which features will be judged
+ * @param {string} type expected GeoJSON type
+ * @param {string} name name of calling function
+ * @throws {Error} if value is not the expected type.
+ */
+
+
+/**
+ * Get Geometry from Feature or Geometry Object
+ *
+ * @param {Feature|Geometry} geojson GeoJSON Feature or Geometry Object
+ * @returns {Geometry|null} GeoJSON Geometry Object
+ * @throws {Error} if geojson is not a Feature or Geometry Object
+ * @example
+ * var point = {
+ *   "type": "Feature",
+ *   "properties": {},
+ *   "geometry": {
+ *     "type": "Point",
+ *     "coordinates": [110, 40]
+ *   }
+ * }
+ * var geom = turf.getGeom(point)
+ * //={"type": "Point", "coordinates": [110, 40]}
+ */
+
+
+/**
+ * Get Geometry Type from Feature or Geometry Object
+ *
+ * @throws {Error} **DEPRECATED** in v5.0.0 in favor of getType
+ */
+
+
+/**
+ * Get GeoJSON object's type, Geometry type is prioritize.
+ *
+ * @param {GeoJSON} geojson GeoJSON object
+ * @param {string} [name] name of the variable to display in error message
+ * @returns {string} GeoJSON type
+ * @example
+ * var point = {
+ *   "type": "Feature",
+ *   "properties": {},
+ *   "geometry": {
+ *     "type": "Point",
+ *     "coordinates": [110, 40]
+ *   }
+ * }
+ * var geom = turf.getType(point)
+ * //="Point"
+ */
+function getType(geojson, name) {
+    if (!geojson) throw new Error((name || 'geojson') + ' is required');
+    // GeoJSON Feature & GeometryCollection
+    if (geojson.geometry && geojson.geometry.type) return geojson.geometry.type;
+    // GeoJSON Geometry & FeatureCollection
+    if (geojson.type) return geojson.type;
+    throw new Error((name || 'geojson') + ' is invalid');
+}
+
 /**
  * Callback for coordEach
  *
@@ -5150,13 +5785,7 @@ function coordEach(geojson, callback, excludeWrapCoord) {
  *   return currentCoord;
  * });
  */
-function coordReduce(geojson, callback, initialValue, excludeWrapCoord) {
-    var previousValue = initialValue;
-    coordEach(geojson, function (currentCoord, coordIndex, featureIndex, featureSubIndex) {
-        if (coordIndex === 0 && initialValue === undefined) previousValue = currentCoord;else previousValue = callback(previousValue, currentCoord, coordIndex, featureIndex, featureSubIndex);
-    }, excludeWrapCoord);
-    return previousValue;
-}
+
 
 /**
  * Callback for propEach
@@ -5796,713 +6425,6 @@ function lineReduce(geojson, callback, initialValue) {
         if (featureIndex === 0 && initialValue === undefined) previousValue = currentLine;else previousValue = callback(previousValue, currentLine, featureIndex, featureSubIndex, lineIndex);
     });
     return previousValue;
-}
-
-/**
- * Takes a set of features, calculates the bbox of all input features, and returns a bounding box.
- *
- * @name bbox
- * @param {FeatureCollection|Feature<any>} geojson input features
- * @returns {Array<number>} bbox extent in [minX, minY, maxX, maxY] order
- * @example
- * var line = turf.lineString([[-74, 40], [-78, 42], [-82, 35]]);
- * var bbox = turf.bbox(line);
- * var bboxPolygon = turf.bboxPolygon(bbox);
- *
- * //addToMap
- * var addToMap = [line, bboxPolygon]
- */
-function bbox(geojson) {
-    var BBox = [Infinity, Infinity, -Infinity, -Infinity];
-    coordEach(geojson, function (coord) {
-        if (BBox[0] > coord[0]) BBox[0] = coord[0];
-        if (BBox[1] > coord[1]) BBox[1] = coord[1];
-        if (BBox[2] < coord[0]) BBox[2] = coord[0];
-        if (BBox[3] < coord[1]) BBox[3] = coord[1];
-    });
-    return BBox;
-}
-
-/**
- * Unwrap a coordinate from a Point Feature, Geometry or a single coordinate.
- *
- * @name getCoord
- * @param {Array<number>|Geometry<Point>|Feature<Point>} obj Object
- * @returns {Array<number>} coordinates
- * @example
- * var pt = turf.point([10, 10]);
- *
- * var coord = turf.getCoord(pt);
- * //= [10, 10]
- */
-function getCoord(obj) {
-    if (!obj) throw new Error('obj is required');
-
-    var coordinates = getCoords(obj);
-
-    // getCoord() must contain at least two numbers (Point)
-    if (coordinates.length > 1 && isNumber(coordinates[0]) && isNumber(coordinates[1])) {
-        return coordinates;
-    } else {
-        throw new Error('Coordinate is not a valid Point');
-    }
-}
-
-/**
- * Unwrap coordinates from a Feature, Geometry Object or an Array of numbers
- *
- * @name getCoords
- * @param {Array<number>|Geometry|Feature} obj Object
- * @returns {Array<number>} coordinates
- * @example
- * var poly = turf.polygon([[[119.32, -8.7], [119.55, -8.69], [119.51, -8.54], [119.32, -8.7]]]);
- *
- * var coord = turf.getCoords(poly);
- * //= [[[119.32, -8.7], [119.55, -8.69], [119.51, -8.54], [119.32, -8.7]]]
- */
-function getCoords(obj) {
-    if (!obj) throw new Error('obj is required');
-    var coordinates;
-
-    // Array of numbers
-    if (obj.length) {
-        coordinates = obj;
-
-        // Geometry Object
-    } else if (obj.coordinates) {
-        coordinates = obj.coordinates;
-
-        // Feature
-    } else if (obj.geometry && obj.geometry.coordinates) {
-        coordinates = obj.geometry.coordinates;
-    }
-    // Checks if coordinates contains a number
-    if (coordinates) {
-        containsNumber(coordinates);
-        return coordinates;
-    }
-    throw new Error('No valid coordinates');
-}
-
-/**
- * Checks if coordinates contains a number
- *
- * @name containsNumber
- * @param {Array<any>} coordinates GeoJSON Coordinates
- * @returns {boolean} true if Array contains a number
- */
-function containsNumber(coordinates) {
-    if (coordinates.length > 1 && isNumber(coordinates[0]) && isNumber(coordinates[1])) {
-        return true;
-    }
-
-    if (Array.isArray(coordinates[0]) && coordinates[0].length) {
-        return containsNumber(coordinates[0]);
-    }
-    throw new Error('coordinates must only contain numbers');
-}
-
-/**
- * Enforce expectations about types of GeoJSON objects for Turf.
- *
- * @name geojsonType
- * @param {GeoJSON} value any GeoJSON object
- * @param {string} type expected GeoJSON type
- * @param {string} name name of calling function
- * @throws {Error} if value is not the expected type.
- */
-
-
-/**
- * Enforce expectations about types of {@link Feature} inputs for Turf.
- * Internally this uses {@link geojsonType} to judge geometry types.
- *
- * @name featureOf
- * @param {Feature} feature a feature with an expected geometry type
- * @param {string} type expected GeoJSON type
- * @param {string} name name of calling function
- * @throws {Error} error if value is not the expected type.
- */
-function featureOf(feature$$1, type, name) {
-    if (!feature$$1) throw new Error('No feature passed');
-    if (!name) throw new Error('.featureOf() requires a name');
-    if (!feature$$1 || feature$$1.type !== 'Feature' || !feature$$1.geometry) {
-        throw new Error('Invalid input to ' + name + ', Feature with geometry required');
-    }
-    if (!feature$$1.geometry || feature$$1.geometry.type !== type) {
-        throw new Error('Invalid input to ' + name + ': must be a ' + type + ', given ' + feature$$1.geometry.type);
-    }
-}
-
-/**
- * Enforce expectations about types of {@link FeatureCollection} inputs for Turf.
- * Internally this uses {@link geojsonType} to judge geometry types.
- *
- * @name collectionOf
- * @param {FeatureCollection} featureCollection a FeatureCollection for which features will be judged
- * @param {string} type expected GeoJSON type
- * @param {string} name name of calling function
- * @throws {Error} if value is not the expected type.
- */
-
-
-/**
- * Get Geometry from Feature or Geometry Object
- *
- * @param {Feature|Geometry} geojson GeoJSON Feature or Geometry Object
- * @returns {Geometry|null} GeoJSON Geometry Object
- * @throws {Error} if geojson is not a Feature or Geometry Object
- * @example
- * var point = {
- *   "type": "Feature",
- *   "properties": {},
- *   "geometry": {
- *     "type": "Point",
- *     "coordinates": [110, 40]
- *   }
- * }
- * var geom = turf.getGeom(point)
- * //={"type": "Point", "coordinates": [110, 40]}
- */
-
-
-/**
- * Get Geometry Type from Feature or Geometry Object
- *
- * @throws {Error} **DEPRECATED** in v5.0.0 in favor of getType
- */
-
-
-/**
- * Get GeoJSON object's type, Geometry type is prioritize.
- *
- * @param {GeoJSON} geojson GeoJSON object
- * @param {string} [name] name of the variable to display in error message
- * @returns {string} GeoJSON type
- * @example
- * var point = {
- *   "type": "Feature",
- *   "properties": {},
- *   "geometry": {
- *     "type": "Point",
- *     "coordinates": [110, 40]
- *   }
- * }
- * var geom = turf.getType(point)
- * //="Point"
- */
-function getType(geojson, name) {
-    if (!geojson) throw new Error((name || 'geojson') + ' is required');
-    // GeoJSON Feature & GeometryCollection
-    if (geojson.geometry && geojson.geometry.type) return geojson.geometry.type;
-    // GeoJSON Geometry & FeatureCollection
-    if (geojson.type) return geojson.type;
-    throw new Error((name || 'geojson') + ' is invalid');
-}
-
-/**
- * @license GNU Affero General Public License.
- * Copyright (c) 2015, 2015 Ronny Lorenz <ronny@tbi.univie.ac.at>
- * v. 1.2.0
- * https://github.com/RaumZeit/MarchingSquares.js
- */
-
-/**
- * Compute the isocontour(s) of a scalar 2D field given
- * a certain threshold by applying the Marching Squares
- * Algorithm. The function returns a list of path coordinates
- */
-
-var concaveman = require('concaveman');
-
-// http://en.wikipedia.org/wiki/Even%E2%80%93odd_rule
-// modified from: https://github.com/substack/point-in-polygon/blob/master/index.js
-// which was modified from http://www.ecse.rpi.edu/Homepages/wrf/Research/Short_Notes/pnpoly.html
-
-/**
- * Takes a {@link Point} and a {@link Polygon} or {@link MultiPolygon} and determines if the point resides inside the polygon. The polygon can
- * be convex or concave. The function accounts for holes.
- *
- * @name booleanPointInPolygon
- * @param {Feature<Point>} point input point
- * @param {Feature<Polygon|MultiPolygon>} polygon input polygon or multipolygon
- * @param {Object} [options={}] Optional parameters
- * @param {boolean} [options.ignoreBoundary=false] True if polygon boundary should be ignored when determining if the point is inside the polygon otherwise false.
- * @returns {boolean} `true` if the Point is inside the Polygon; `false` if the Point is not inside the Polygon
- * @example
- * var pt = turf.point([-77, 44]);
- * var poly = turf.polygon([[
- *   [-81, 41],
- *   [-81, 47],
- *   [-72, 47],
- *   [-72, 41],
- *   [-81, 41]
- * ]]);
- *
- * turf.booleanPointInPolygon(pt, poly);
- * //= true
- */
-function booleanPointInPolygon(point, polygon, options) {
-    // Optional parameters
-    options = options || {};
-    if ((typeof options === 'undefined' ? 'undefined' : _typeof(options)) !== 'object') throw new Error('options is invalid');
-    var ignoreBoundary = options.ignoreBoundary;
-
-    // validation
-    if (!point) throw new Error('point is required');
-    if (!polygon) throw new Error('polygon is required');
-
-    var pt = getCoord(point);
-    var polys = getCoords(polygon);
-    var type = polygon.geometry ? polygon.geometry.type : polygon.type;
-    var bbox = polygon.bbox;
-
-    // Quick elimination if point is not inside bbox
-    if (bbox && inBBox(pt, bbox) === false) return false;
-
-    // normalize to multipolygon
-    if (type === 'Polygon') polys = [polys];
-
-    for (var i = 0, insidePoly = false; i < polys.length && !insidePoly; i++) {
-        // check if it is in the outer ring first
-        if (inRing(pt, polys[i][0], ignoreBoundary)) {
-            var inHole = false;
-            var k = 1;
-            // check for the point in any of the holes
-            while (k < polys[i].length && !inHole) {
-                if (inRing(pt, polys[i][k], !ignoreBoundary)) {
-                    inHole = true;
-                }
-                k++;
-            }
-            if (!inHole) insidePoly = true;
-        }
-    }
-    return insidePoly;
-}
-
-/**
- * inRing
- *
- * @private
- * @param {Array<number>} pt [x,y]
- * @param {Array<Array<number>>} ring [[x,y], [x,y],..]
- * @param {boolean} ignoreBoundary ignoreBoundary
- * @returns {boolean} inRing
- */
-function inRing(pt, ring, ignoreBoundary) {
-    var isInside = false;
-    if (ring[0][0] === ring[ring.length - 1][0] && ring[0][1] === ring[ring.length - 1][1]) ring = ring.slice(0, ring.length - 1);
-
-    for (var i = 0, j = ring.length - 1; i < ring.length; j = i++) {
-        var xi = ring[i][0],
-            yi = ring[i][1];
-        var xj = ring[j][0],
-            yj = ring[j][1];
-        var onBoundary = pt[1] * (xi - xj) + yi * (xj - pt[0]) + yj * (pt[0] - xi) === 0 && (xi - pt[0]) * (xj - pt[0]) <= 0 && (yi - pt[1]) * (yj - pt[1]) <= 0;
-        if (onBoundary) return !ignoreBoundary;
-        var intersect = yi > pt[1] !== yj > pt[1] && pt[0] < (xj - xi) * (pt[1] - yi) / (yj - yi) + xi;
-        if (intersect) isInside = !isInside;
-    }
-    return isInside;
-}
-
-/**
- * inBBox
- *
- * @private
- * @param {Array<number>} pt point [x,y]
- * @param {Array<number>} bbox BBox [west, south, east, north]
- * @returns {boolean} true/false if point is inside BBox
- */
-function inBBox(pt, bbox) {
-    return bbox[0] <= pt[0] && bbox[1] <= pt[1] && bbox[2] >= pt[0] && bbox[3] >= pt[1];
-}
-
-//http://en.wikipedia.org/wiki/Delaunay_triangulation
-//https://github.com/ironwallaby/delaunay
-/**
- * Takes a set of {@link Point|points} and creates a
- * [Triangulated Irregular Network](http://en.wikipedia.org/wiki/Triangulated_irregular_network),
- * or a TIN for short, returned as a collection of Polygons. These are often used
- * for developing elevation contour maps or stepped heat visualizations.
- *
- * If an optional z-value property is provided then it is added as properties called `a`, `b`,
- * and `c` representing its value at each of the points that represent the corners of the
- * triangle.
- *
- * @name tin
- * @param {FeatureCollection<Point>} points input points
- * @param {String} [z] name of the property from which to pull z values
- * This is optional: if not given, then there will be no extra data added to the derived triangles.
- * @returns {FeatureCollection<Polygon>} TIN output
- * @example
- * // generate some random point data
- * var points = turf.randomPoint(30, {bbox: [50, 30, 70, 50]});
- *
- * // add a random property to each point between 0 and 9
- * for (var i = 0; i < points.features.length; i++) {
- *   points.features[i].properties.z = ~~(Math.random() * 9);
- * }
- * var tin = turf.tin(points, 'z');
- *
- * //addToMap
- * var addToMap = [tin, points]
- * for (var i = 0; i < tin.features.length; i++) {
- *   var properties  = tin.features[i].properties;
- *   properties.fill = '#' + properties.a + properties.b + properties.c;
- * }
- */
-function tin(points, z) {
-    if (points.type !== 'FeatureCollection') throw new Error('points must be a FeatureCollection');
-    //break down points
-    var isPointZ = false;
-    return featureCollection(triangulate(points.features.map(function (p) {
-        var point$$1 = {
-            x: p.geometry.coordinates[0],
-            y: p.geometry.coordinates[1]
-        };
-        if (z) {
-            point$$1.z = p.properties[z];
-        } else if (p.geometry.coordinates.length === 3) {
-            isPointZ = true;
-            point$$1.z = p.geometry.coordinates[2];
-        }
-        return point$$1;
-    })).map(function (triangle) {
-
-        var a = [triangle.a.x, triangle.a.y];
-        var b = [triangle.b.x, triangle.b.y];
-        var c = [triangle.c.x, triangle.c.y];
-        var properties = {};
-
-        // Add z coordinates to triangle points if user passed
-        // them in that way otherwise add it as a property.
-        if (isPointZ) {
-            a.push(triangle.a.z);
-            b.push(triangle.b.z);
-            c.push(triangle.c.z);
-        } else {
-            properties = {
-                a: triangle.a.z,
-                b: triangle.b.z,
-                c: triangle.c.z
-            };
-        }
-
-        return polygon([[a, b, c, a]], properties);
-    }));
-}
-
-function Triangle(a, b, c) {
-    this.a = a;
-    this.b = b;
-    this.c = c;
-
-    var A = b.x - a.x,
-        B = b.y - a.y,
-        C = c.x - a.x,
-        D = c.y - a.y,
-        E = A * (a.x + b.x) + B * (a.y + b.y),
-        F = C * (a.x + c.x) + D * (a.y + c.y),
-        G = 2 * (A * (c.y - b.y) - B * (c.x - b.x)),
-        dx,
-        dy;
-
-    // If the points of the triangle are collinear, then just find the
-    // extremes and use the midpoint as the center of the circumcircle.
-    this.x = (D * E - B * F) / G;
-    this.y = (A * F - C * E) / G;
-    dx = this.x - a.x;
-    dy = this.y - a.y;
-    this.r = dx * dx + dy * dy;
-}
-
-function byX(a, b) {
-    return b.x - a.x;
-}
-
-function dedup(edges) {
-    var j = edges.length,
-        a,
-        b,
-        i,
-        m,
-        n;
-
-    outer: while (j) {
-        b = edges[--j];
-        a = edges[--j];
-        i = j;
-        while (i) {
-            n = edges[--i];
-            m = edges[--i];
-            if (a === m && b === n || a === n && b === m) {
-                edges.splice(j, 2);
-                edges.splice(i, 2);
-                j -= 2;
-                continue outer;
-            }
-        }
-    }
-}
-
-function triangulate(vertices) {
-    // Bail if there aren't enough vertices to form any triangles.
-    if (vertices.length < 3) return [];
-
-    // Ensure the vertex array is in order of descending X coordinate
-    // (which is needed to ensure a subquadratic runtime), and then find
-    // the bounding box around the points.
-    vertices.sort(byX);
-
-    var i = vertices.length - 1,
-        xmin = vertices[i].x,
-        xmax = vertices[0].x,
-        ymin = vertices[i].y,
-        ymax = ymin,
-        epsilon = 1e-12;
-
-    var a, b, c, A, B, G;
-
-    while (i--) {
-        if (vertices[i].y < ymin) ymin = vertices[i].y;
-        if (vertices[i].y > ymax) ymax = vertices[i].y;
-    }
-
-    //Find a supertriangle, which is a triangle that surrounds all the
-    //vertices. This is used like something of a sentinel value to remove
-    //cases in the main algorithm, and is removed before we return any
-    // results.
-
-    // Once found, put it in the "open" list. (The "open" list is for
-    // triangles who may still need to be considered; the "closed" list is
-    // for triangles which do not.)
-    var dx = xmax - xmin,
-        dy = ymax - ymin,
-        dmax = dx > dy ? dx : dy,
-        xmid = (xmax + xmin) * 0.5,
-        ymid = (ymax + ymin) * 0.5,
-        open = [new Triangle({
-        x: xmid - 20 * dmax,
-        y: ymid - dmax,
-        __sentinel: true
-    }, {
-        x: xmid,
-        y: ymid + 20 * dmax,
-        __sentinel: true
-    }, {
-        x: xmid + 20 * dmax,
-        y: ymid - dmax,
-        __sentinel: true
-    })],
-        closed = [],
-        edges = [],
-        j;
-
-    // Incrementally add each vertex to the mesh.
-    i = vertices.length;
-    while (i--) {
-        // For each open triangle, check to see if the current point is
-        // inside it's circumcircle. If it is, remove the triangle and add
-        // it's edges to an edge list.
-        edges.length = 0;
-        j = open.length;
-        while (j--) {
-            // If this point is to the right of this triangle's circumcircle,
-            // then this triangle should never get checked again. Remove it
-            // from the open list, add it to the closed list, and skip.
-            dx = vertices[i].x - open[j].x;
-            if (dx > 0 && dx * dx > open[j].r) {
-                closed.push(open[j]);
-                open.splice(j, 1);
-                continue;
-            }
-
-            // If not, skip this triangle.
-            dy = vertices[i].y - open[j].y;
-            if (dx * dx + dy * dy > open[j].r) continue;
-
-            // Remove the triangle and add it's edges to the edge list.
-            edges.push(open[j].a, open[j].b, open[j].b, open[j].c, open[j].c, open[j].a);
-            open.splice(j, 1);
-        }
-
-        // Remove any doubled edges.
-        dedup(edges);
-
-        // Add a new triangle for each edge.
-        j = edges.length;
-        while (j) {
-            b = edges[--j];
-            a = edges[--j];
-            c = vertices[i];
-            // Avoid adding colinear triangles (which have error-prone
-            // circumcircles)
-            A = b.x - a.x;
-            B = b.y - a.y;
-            G = 2 * (A * (c.y - b.y) - B * (c.x - b.x));
-            if (Math.abs(G) > epsilon) {
-                open.push(new Triangle(a, b, c));
-            }
-        }
-    }
-
-    // Copy any remaining open triangles to the closed list, and then
-    // remove any triangles that share a vertex with the supertriangle.
-    Array.prototype.push.apply(closed, open);
-
-    i = closed.length;
-    while (i--) {
-        if (closed[i].a.__sentinel || closed[i].b.__sentinel || closed[i].c.__sentinel) closed.splice(i, 1);
-    }return closed;
-}
-
-/**
- * Returns a cloned copy of the passed GeoJSON Object, including possible 'Foreign Members'.
- * ~3-5x faster than the common JSON.parse + JSON.stringify combo method.
- *
- * @name clone
- * @param {GeoJSON} geojson GeoJSON Object
- * @returns {GeoJSON} cloned GeoJSON Object
- * @example
- * var line = turf.lineString([[-74, 40], [-78, 42], [-82, 35]], {color: 'red'});
- *
- * var lineCloned = turf.clone(line);
- */
-function clone(geojson) {
-    if (!geojson) throw new Error('geojson is required');
-
-    switch (geojson.type) {
-        case 'Feature':
-            return cloneFeature(geojson);
-        case 'FeatureCollection':
-            return cloneFeatureCollection(geojson);
-        case 'Point':
-        case 'LineString':
-        case 'Polygon':
-        case 'MultiPoint':
-        case 'MultiLineString':
-        case 'MultiPolygon':
-        case 'GeometryCollection':
-            return cloneGeometry(geojson);
-        default:
-            throw new Error('unknown GeoJSON type');
-    }
-}
-
-/**
- * Clone Feature
- *
- * @private
- * @param {Feature<any>} geojson GeoJSON Feature
- * @returns {Feature<any>} cloned Feature
- */
-function cloneFeature(geojson) {
-    var cloned = { type: 'Feature' };
-    // Preserve Foreign Members
-    Object.keys(geojson).forEach(function (key) {
-        switch (key) {
-            case 'type':
-            case 'properties':
-            case 'geometry':
-                return;
-            default:
-                cloned[key] = geojson[key];
-        }
-    });
-    // Add properties & geometry last
-    cloned.properties = cloneProperties(geojson.properties);
-    cloned.geometry = cloneGeometry(geojson.geometry);
-    return cloned;
-}
-
-/**
- * Clone Properties
- *
- * @private
- * @param {Object} properties GeoJSON Properties
- * @returns {Object} cloned Properties
- */
-function cloneProperties(properties) {
-    var cloned = {};
-    if (!properties) return cloned;
-    Object.keys(properties).forEach(function (key) {
-        var value = properties[key];
-        if ((typeof value === 'undefined' ? 'undefined' : _typeof(value)) === 'object') {
-            // handle Array
-            if (value.length) cloned[key] = value.map(function (item) {
-                return item;
-            });
-            // handle Object
-            cloned[key] = cloneProperties(value);
-        } else cloned[key] = value;
-    });
-    return cloned;
-}
-
-/**
- * Clone Feature Collection
- *
- * @private
- * @param {FeatureCollection<any>} geojson GeoJSON Feature Collection
- * @returns {FeatureCollection<any>} cloned Feature Collection
- */
-function cloneFeatureCollection(geojson) {
-    var cloned = { type: 'FeatureCollection' };
-
-    // Preserve Foreign Members
-    Object.keys(geojson).forEach(function (key) {
-        switch (key) {
-            case 'type':
-            case 'features':
-                return;
-            default:
-                cloned[key] = geojson[key];
-        }
-    });
-    // Add features
-    cloned.features = geojson.features.map(function (feature) {
-        return cloneFeature(feature);
-    });
-    return cloned;
-}
-
-/**
- * Clone Geometry
- *
- * @private
- * @param {Geometry<any>} geometry GeoJSON Geometry
- * @returns {Geometry<any>} cloned Geometry
- */
-function cloneGeometry(geometry) {
-    var geom = { type: geometry.type };
-    if (geometry.bbox) geom.bbox = geometry.bbox;
-
-    if (geometry.type === 'GeometryCollection') {
-        geom.geometries = geometry.geometries.map(function (geom) {
-            return cloneGeometry(geom);
-        });
-        return geom;
-    }
-    geom.coordinates = deepSlice(geometry.coordinates);
-    return geom;
-}
-
-/**
- * Deep Slice coordinates
- *
- * @private
- * @param {Coordinates} coords Coordinates
- * @returns {Coordinates} all coordinates sliced
- */
-function deepSlice(coords) {
-    if (_typeof(coords[0]) !== 'object') {
-        return coords.slice();
-    }
-    return coords.map(function (coord) {
-        return deepSlice(coord);
-    });
 }
 
 /**
@@ -7924,7 +7846,7 @@ function distance(from, to, options) {
  * //addToMap
  * var addToMap = [points, hull]
  */
-function concave(points, options) {
+function concave$1(points, options) {
     // Optional parameters
     options = options || {};
     if (!isObject$2(options)) throw new Error('options is invalid');
@@ -7984,7 +7906,154 @@ function removeDuplicates(points) {
     return featureCollection(cleaned);
 }
 
-var rbush = require('rbush');
+/**
+ * Takes a set of points and returns a concave hull polygon. Internally, this uses turf-tin to generate geometries.
+ * @param  {Array<google.maps.LatLng>|Array<google.maps.LatLngLiteral>|google.maps.MVCArray} latLngArray array of google positions
+ * @param  {number} maxEdge the size of an edge necessary for part of the hull to become concave (in miles)
+ * @param  {string} units degrees, radians, miles, or kilometers
+ * @return {Feature.<Polygon>}  a concave hull
+ */
+function concave(latLngArray, maxEdge, units) {
+
+  var FeatureCollection = arrayToFeaturePoints(latLngArray);
+  return concave$1(FeatureCollection, {
+    maxEdge: maxEdge,
+    units: units
+  });
+}
+
+function createCommonjsModule(fn, module) {
+	return module = { exports: {} }, fn(module, module.exports), module.exports;
+}
+
+var simplify$1 = createCommonjsModule(function (module) {
+    /*
+     (c) 2013, Vladimir Agafonkin
+     Simplify.js, a high-performance JS polyline simplification library
+     mourner.github.io/simplify-js
+    */
+
+    (function () {
+        function getSqDist(p1, p2) {
+
+            var dx = p1.x - p2.x,
+                dy = p1.y - p2.y;
+
+            return dx * dx + dy * dy;
+        }
+
+        // square distance from a point to a segment
+        function getSqSegDist(p, p1, p2) {
+
+            var x = p1.x,
+                y = p1.y,
+                dx = p2.x - x,
+                dy = p2.y - y;
+
+            if (dx !== 0 || dy !== 0) {
+
+                var t = ((p.x - x) * dx + (p.y - y) * dy) / (dx * dx + dy * dy);
+
+                if (t > 1) {
+                    x = p2.x;
+                    y = p2.y;
+                } else if (t > 0) {
+                    x += dx * t;
+                    y += dy * t;
+                }
+            }
+
+            dx = p.x - x;
+            dy = p.y - y;
+
+            return dx * dx + dy * dy;
+        }
+        // rest of the code doesn't care about point format
+
+        // basic distance-based simplification
+        function simplifyRadialDist(points, sqTolerance) {
+
+            var prevPoint = points[0],
+                newPoints = [prevPoint],
+                point;
+
+            for (var i = 1, len = points.length; i < len; i++) {
+                point = points[i];
+
+                if (getSqDist(point, prevPoint) > sqTolerance) {
+                    newPoints.push(point);
+                    prevPoint = point;
+                }
+            }
+
+            if (prevPoint !== point) newPoints.push(point);
+
+            return newPoints;
+        }
+
+        // simplification using optimized Douglas-Peucker algorithm with recursion elimination
+        function simplifyDouglasPeucker(points, sqTolerance) {
+
+            var len = points.length,
+                MarkerArray = typeof Uint8Array !== 'undefined' ? Uint8Array : Array,
+                markers = new MarkerArray(len),
+                first = 0,
+                last = len - 1,
+                stack = [],
+                newPoints = [],
+                i,
+                maxSqDist,
+                sqDist,
+                index;
+
+            markers[first] = markers[last] = 1;
+
+            while (last) {
+
+                maxSqDist = 0;
+
+                for (i = first + 1; i < last; i++) {
+                    sqDist = getSqSegDist(points[i], points[first], points[last]);
+
+                    if (sqDist > maxSqDist) {
+                        index = i;
+                        maxSqDist = sqDist;
+                    }
+                }
+
+                if (maxSqDist > sqTolerance) {
+                    markers[index] = 1;
+                    stack.push(first, index, index, last);
+                }
+
+                last = stack.pop();
+                first = stack.pop();
+            }
+
+            for (i = 0; i < len; i++) {
+                if (markers[i]) newPoints.push(points[i]);
+            }
+
+            return newPoints;
+        }
+
+        // both algorithms combined for awesome performance
+        function simplify(points, tolerance, highestQuality) {
+
+            var sqTolerance = tolerance !== undefined ? tolerance * tolerance : 1;
+
+            points = highestQuality ? points : simplifyRadialDist(points, sqTolerance);
+            points = simplifyDouglasPeucker(points, sqTolerance);
+
+            return points;
+        }
+
+        // export as AMD module / Node module / browser or worker variable
+        if (typeof undefined === 'function' && undefined.amd) undefined(function () {
+            return simplify;
+        });else module.exports = simplify;
+    })();
+});
 
 /**
  * Removes redundant coordinates from any GeoJSON Geometry.
@@ -8133,7 +8202,6 @@ function isPointOnLineSegment(start, end, point$$1) {
     if (cross !== 0) return false;else if (Math.abs(dxl) >= Math.abs(dyl)) return dxl > 0 ? startX <= x && x <= endX : endX <= x && x <= startX;else return dyl > 0 ? startY <= y && y <= endY : endY <= y && y <= startY;
 }
 
-var simplifyJS = require('simplify-js');
 /**
  * Takes a {@link GeoJSON} object and returns a simplified version. Internally uses
  * [simplify-js](http://mourner.github.io/simplify-js/) to perform simplification.
@@ -8243,8 +8311,12 @@ function simplifyGeom(geometry$$1, tolerance, highQuality) {
  * @returns {Array<Array<number>>} simplified coords
  */
 function simplifyLine(coordinates, tolerance, highQuality) {
-    return simplifyJS(coordinates.map(function (coord) {
-        return { x: coord[0], y: coord[1], z: coord[2] };
+    return simplify$1(coordinates.map(function (coord) {
+        return {
+            x: coord[0],
+            y: coord[1],
+            z: coord[2]
+        };
     }), tolerance, highQuality).map(function (coords) {
         return coords.z ? [coords.x, coords.y, coords.z] : [coords.x, coords.y];
     });
@@ -8262,18 +8334,21 @@ function simplifyLine(coordinates, tolerance, highQuality) {
 function simplifyPolygon(coordinates, tolerance, highQuality) {
     return coordinates.map(function (ring) {
         var pts = ring.map(function (coord) {
-            return { x: coord[0], y: coord[1] };
+            return {
+                x: coord[0],
+                y: coord[1]
+            };
         });
         if (pts.length < 4) {
             throw new Error('invalid polygon');
         }
-        var simpleRing = simplifyJS(pts, tolerance, highQuality).map(function (coords) {
+        var simpleRing = simplify$1(pts, tolerance, highQuality).map(function (coords) {
             return [coords.x, coords.y];
         });
         //remove 1 percent of tolerance until enough points to make a triangle
         while (!checkValidity(simpleRing)) {
             tolerance -= tolerance * 0.01;
-            simpleRing = simplifyJS(pts, tolerance, highQuality).map(function (coords) {
+            simpleRing = simplify$1(pts, tolerance, highQuality).map(function (coords) {
                 return [coords.x, coords.y];
             });
         }
@@ -8297,125 +8372,70 @@ function checkValidity(ring) {
     return !(ring.length === 3 && ring[2][0] === ring[0][0] && ring[2][1] === ring[0][1]);
 }
 
-/* eslint-disable */
-
 /**
-  * BezierSpline
-  * https://github.com/leszekr/bezier-spline-js
-  *
-  * @private
-  * @copyright
-  * Copyright (c) 2013 Leszek Rybicki
-  *
-  * Permission is hereby granted, free of charge, to any person obtaining a copy
-  * of this software and associated documentation files (the "Software"), to deal
-  * in the Software without restriction, including without limitation the rights
-  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-  * copies of the Software, and to permit persons to whom the Software is
-  * furnished to do so, subject to the following conditions:
-  *
-  * The above copyright notice and this permission notice shall be included in all
-  * copies or substantial portions of the Software.
-  *
-  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-  * SOFTWARE.
-  */
-
-// http://stackoverflow.com/questions/11935175/sampling-a-random-subset-from-an-array
-
-/**
- * Takes a bbox and returns an equivalent {@link Polygon|polygon}.
- *
- * @name bboxPolygon
- * @param {Array<number>} bbox extent in [minX, minY, maxX, maxY] order
- * @returns {Feature<Polygon>} a Polygon representation of the bounding box
- * @example
- * var bbox = [0, 0, 10, 10];
- *
- * var poly = turf.bboxPolygon(bbox);
- *
- * //addToMap
- * var addToMap = [poly]
+ * Simplifies an array of coordinates
+ * @param  {Array.<google.maps.LatLng>|Array.<google.maps.LatLngLiteral>} coordArray Array of coordinates
+ * @param  {number} tolerance   [description]
+ * @param  {boolean} highQuality [description]
+ * @return {Array.<Number>}  Array de coordenadas [lng,lat]
  */
-function bboxPolygon(bbox) {
-    var lowLeft = [bbox[0], bbox[1]];
-    var topLeft = [bbox[0], bbox[3]];
-    var topRight = [bbox[2], bbox[3]];
-    var lowRight = [bbox[2], bbox[1]];
+function simplifyPointArray(coordArray, tolerance, highQuality) {
+	tolerance = tolerance || 0.00001;
+	highQuality = highQuality || false;
+	var Feature = lineString(toCoords(coordArray));
 
-    return polygon([[lowLeft, lowRight, topRight, topLeft, lowLeft]]);
+	var simplifiedgeom = simplify(Feature, tolerance, highQuality);
+
+	//debug('simplifyPointArray', 'geometry is', Feature.geometry, 'simplifiedgeom is', simplifiedgeom);
+
+	return simplifiedgeom.geometry.coordinates;
 }
 
 /**
- * Takes any number of features and returns a rectangular {@link Polygon} that encompasses all vertices.
- *
- * @name envelope
- * @param {GeoJSON} geojson input features
- * @returns {Feature<Polygon>} a rectangular Polygon feature that encompasses all vertices
- * @example
- * var features = turf.featureCollection([
- *   turf.point([-75.343, 39.984], {"name": "Location A"}),
- *   turf.point([-75.833, 39.284], {"name": "Location B"}),
- *   turf.point([-75.534, 39.123], {"name": "Location C"})
- * ]);
- *
- * var enveloped = turf.envelope(features);
- *
- * //addToMap
- * var addToMap = [features, enveloped];
+ * Simplified a Feature, google.maps.Polygon or google.maps.Polyline
+ * @param  {google.maps.Polygon|google.maps.Polyline|Array.<google.maps.LatLng>|Feature.<Polygon>|Feature.<LineString>} object feature to be simplified
+ * @param  {string} output either 'feature', 'geometry' or 'object' (google maps). Case insensitive. Defaults to feature
+ * @param  {mumber} tolerance   simplification tolerance
+ * @param  {boolean} highQuality [description]
+ * @return {Feature|Geometry} whether or not to spend more time to create a higher-quality simplification with a different algorithm
  */
-function envelope(geojson) {
-  return bboxPolygon(bbox(geojson));
-}
+function simplifyFeature(object, output, tolerance, highQuality) {
 
-//http://en.wikipedia.org/wiki/Haversine_formula
-//http://www.movable-type.co.uk/scripts/latlong.html
-/**
- * Takes a {@link Point} and calculates the location of a destination point given a distance in degrees, radians, miles, or kilometers; and bearing in degrees. This uses the [Haversine formula](http://en.wikipedia.org/wiki/Haversine_formula) to account for global curvature.
- *
- * @name destination
- * @param {Geometry|Feature<Point>|Array<number>} origin starting point
- * @param {number} distance distance from the origin point
- * @param {number} bearing ranging from -180 to 180
- * @param {Object} [options={}] Optional parameters
- * @param {string} [options.units='kilometers'] miles, kilometers, degrees, or radians
- * @returns {Feature<Point>} destination point
- * @example
- * var point = turf.point([-75.343, 39.984]);
- * var distance = 50;
- * var bearing = 90;
- * var options = {units: 'miles'};
- *
- * var destination = turf.destination(point, distance, bearing, options);
- *
- * //addToMap
- * var addToMap = [point, destination]
- * destination.properties['marker-color'] = '#f00';
- * point.properties['marker-color'] = '#0f0';
- */
-function destination(origin, distance, bearing, options) {
-    // Optional parameters
-    options = options || {};
-    if (!isObject$2(options)) throw new Error('options is invalid');
-    var units = options.units;
+	output = (output || 'feature').toLowerCase();
 
-    // Handle input
-    var coordinates1 = getCoord(origin);
-    var longitude1 = degreesToRadians(coordinates1[0]);
-    var latitude1 = degreesToRadians(coordinates1[1]);
-    var bearing_rad = degreesToRadians(bearing);
-    var radians = lengthToRadians(distance, units);
+	var Feature;
+	if (object instanceof google.maps.Polyline || object instanceof google.maps.Polygon) {
+		var geometry$$1 = Wicket$1().fromObject(object).toJson();
+		Feature = {
+			type: "Feature",
+			properties: {},
+			geometry: geometry$$1
+		};
+	} else if (object.type && object.type === 'Feature' && object.geometry) {
+		Feature = object;
+	} else {
+		Feature = polygonToFeaturePolygon(object);
+	}
 
-    // Main
-    var latitude2 = Math.asin(Math.sin(latitude1) * Math.cos(radians) + Math.cos(latitude1) * Math.sin(radians) * Math.cos(bearing_rad));
-    var longitude2 = longitude1 + Math.atan2(Math.sin(bearing_rad) * Math.sin(radians) * Math.cos(latitude1), Math.cos(radians) - Math.sin(latitude1) * Math.sin(latitude2));
+	if (Feature.geometry.type === 'MultiPolygon') {
+		Feature.geometry.type = 'Polygon';
+		Feature.geometry.coordinates = Feature.geometry.coordinates[0];
+	}
+	var simplifiedgeom = simplify(Feature, tolerance, highQuality);
 
-    return point([radiansToDegrees(longitude2), radiansToDegrees(latitude2)]);
+	if (simplifiedgeom && simplifiedgeom.geometry) {
+		//debug('Simplified Feature', Feature, 'simplifiedgeom', simplifiedgeom);
+		Feature = simplifiedgeom;
+	} else {
+		warn('Cannot simplify  Feature', Feature);
+	}
+	if (output === 'geometry') {
+		return Feature.geometry;
+	} else if (output === 'object') {
+		return Wicket$1().fromJson(Feature.geometry).toObject();
+	} else {
+		return Feature;
+	}
 }
 
 //http://en.wikipedia.org/wiki/Haversine_formula
@@ -8479,35 +8499,121 @@ function calculateFinalBearing(start, end) {
     return bear;
 }
 
+//http://en.wikipedia.org/wiki/Haversine_formula
+//http://www.movable-type.co.uk/scripts/latlong.html
 /**
- * Takes a {@link Feature} or {@link FeatureCollection} and returns the absolute center point of all features.
+ * Takes a {@link Point} and calculates the location of a destination point given a distance in degrees, radians, miles, or kilometers; and bearing in degrees. This uses the [Haversine formula](http://en.wikipedia.org/wiki/Haversine_formula) to account for global curvature.
  *
- * @name center
- * @param {GeoJSON} geojson GeoJSON to be centered
- * @param {Object} [properties={}] an Object that is used as the {@link Feature}'s properties
- * @returns {Feature<Point>} a Point feature at the absolute center point of all input features
+ * @name destination
+ * @param {Geometry|Feature<Point>|Array<number>} origin starting point
+ * @param {number} distance distance from the origin point
+ * @param {number} bearing ranging from -180 to 180
+ * @param {Object} [options={}] Optional parameters
+ * @param {string} [options.units='kilometers'] miles, kilometers, degrees, or radians
+ * @returns {Feature<Point>} destination point
  * @example
- * var features = turf.featureCollection([
- *   turf.point( [-97.522259, 35.4691]),
- *   turf.point( [-97.502754, 35.463455]),
- *   turf.point( [-97.508269, 35.463245])
- * ]);
+ * var point = turf.point([-75.343, 39.984]);
+ * var distance = 50;
+ * var bearing = 90;
+ * var options = {units: 'miles'};
  *
- * var center = turf.center(features);
+ * var destination = turf.destination(point, distance, bearing, options);
  *
  * //addToMap
- * var addToMap = [features, center]
- * center.properties['marker-size'] = 'large';
- * center.properties['marker-color'] = '#000';
+ * var addToMap = [point, destination]
+ * destination.properties['marker-color'] = '#f00';
+ * point.properties['marker-color'] = '#0f0';
  */
-function center(geojson, properties) {
-  var ext = bbox(geojson);
-  var x = (ext[0] + ext[2]) / 2;
-  var y = (ext[1] + ext[3]) / 2;
-  return point([x, y], properties);
+function destination(origin, distance, bearing, options) {
+    // Optional parameters
+    options = options || {};
+    if (!isObject$2(options)) throw new Error('options is invalid');
+    var units = options.units;
+
+    // Handle input
+    var coordinates1 = getCoord(origin);
+    var longitude1 = degreesToRadians(coordinates1[0]);
+    var latitude1 = degreesToRadians(coordinates1[1]);
+    var bearing_rad = degreesToRadians(bearing);
+    var radians = lengthToRadians(distance, units);
+
+    // Main
+    var latitude2 = Math.asin(Math.sin(latitude1) * Math.cos(radians) + Math.cos(latitude1) * Math.sin(radians) * Math.cos(bearing_rad));
+    var longitude2 = longitude1 + Math.atan2(Math.sin(bearing_rad) * Math.sin(radians) * Math.cos(latitude1), Math.cos(radians) - Math.sin(latitude1) * Math.sin(latitude2));
+
+    return point([radiansToDegrees(longitude2), radiansToDegrees(latitude2)]);
 }
 
-var earcut = require('earcut');
+/**
+ * Takes a {@link LineString|line} and returns a {@link Point|point} at a specified distance along the line.
+ *
+ * @name along
+ * @param {Feature<LineString>} line input line
+ * @param {number} distance distance along the line
+ * @param {Object} [options] Optional parameters
+ * @param {string} [options.units="kilometers"] can be degrees, radians, miles, or kilometers
+ * @returns {Feature<Point>} Point `distance` `units` along the line
+ * @example
+ * var line = turf.lineString([[-83, 30], [-84, 36], [-78, 41]]);
+ * var options = {units: 'miles'};
+ *
+ * var along = turf.along(line, 200, options);
+ *
+ * //addToMap
+ * var addToMap = [along, line]
+ */
+function along$1(line, distance$$1, options) {
+    // Optional parameters
+    options = options || {};
+    if (!isObject$2(options)) throw new Error('options is invalid');
+
+    // Validation
+    var coords;
+    if (line.type === 'Feature') coords = line.geometry.coordinates;else if (line.type === 'LineString') coords = line.coordinates;else throw new Error('input must be a LineString Feature or Geometry');
+    if (!isNumber(distance$$1)) throw new Error('distance must be a number');
+
+    var travelled = 0;
+    for (var i = 0; i < coords.length; i++) {
+        if (distance$$1 >= travelled && i === coords.length - 1) break;else if (travelled >= distance$$1) {
+            var overshot = distance$$1 - travelled;
+            if (!overshot) return point(coords[i]);else {
+                var direction = bearing(coords[i], coords[i - 1]) - 180;
+                var interpolated = destination(coords[i], overshot, direction, options);
+                return interpolated;
+            }
+        } else {
+            travelled += distance(coords[i], coords[i + 1], options);
+        }
+    }
+    return point(coords[coords.length - 1]);
+}
+
+/**
+ * Takes a linestring and returns a {@link Point|point} at a specified distance along the line.
+ * @param  {google.maps.Polyline|Array.<google.maps.LatLng>|Array.<google.maps.LatLngLiteral>|Feature<LineString>} object input object
+ * @param  {Number} distance    [description]
+ * @param  {string} units can be degrees, radians, miles, or kilometers. Defaults to kilometers
+ * @return {Feature.<Point>} Point distance units along the line
+ */
+function along(object, distance, units) {
+	var Feature;
+
+	if (object instanceof google.maps.Polyline) {
+		var geometry$$1 = Wicket$1().fromObject(object).toJson();
+		Feature = {
+			type: "Feature",
+			properties: {},
+			geometry: geometry$$1
+		};
+	} else if (object.type && object.type === 'Feature' && object.geometry) {
+		Feature = object;
+	} else {
+		var arrayCoords = toCoords(object);
+		Feature = lineString(arrayCoords);
+	}
+
+	return along$1(Feature, distance, units);
+}
 
 var extend = function (target, source) {
   for (var key in source) {
@@ -35352,13 +35458,2350 @@ extend(LengthIndexedLine.prototype, {
 	}
 });
 
-// depend on jsts for now http://bjornharrtell.github.io/jsts/
+/**
+ * Takes two or more {@link Polygon|polygons} and returns a combined polygon. If the input polygons are not contiguous, this function returns a {@link MultiPolygon} feature.
+ *
+ * @name union
+ * @param {...Feature<Polygon>} A polygon to combine
+ * @returns {Feature<(Polygon|MultiPolygon)>} a combined {@link Polygon} or {@link MultiPolygon} feature
+ * @example
+ * var poly1 = turf.polygon([[
+ *     [-82.574787, 35.594087],
+ *     [-82.574787, 35.615581],
+ *     [-82.545261, 35.615581],
+ *     [-82.545261, 35.594087],
+ *     [-82.574787, 35.594087]
+ * ]], {"fill": "#0f0"});
+ * var poly2 = turf.polygon([[
+ *     [-82.560024, 35.585153],
+ *     [-82.560024, 35.602602],
+ *     [-82.52964, 35.602602],
+ *     [-82.52964, 35.585153],
+ *     [-82.560024, 35.585153]
+ * ]], {"fill": "#00f"});
+ *
+ * var union = turf.union(poly1, poly2);
+ *
+ * //addToMap
+ * var addToMap = [poly1, poly2, union];
+ */
+function union$1() {
+    var reader = new GeoJSONReader();
+    var result = reader.read(JSON.stringify(arguments[0].geometry));
 
-function quickselect(arr, k, left, right, compare) {
-    quickselectStep(arr, k, left || 0, right || arr.length - 1, compare || defaultCompare);
+    for (var i = 1; i < arguments.length; i++) {
+        result = UnionOp.union(result, reader.read(JSON.stringify(arguments[i].geometry)));
+    }
+
+    var writer = new GeoJSONWriter();
+    result = writer.write(result);
+
+    return {
+        type: 'Feature',
+        geometry: result,
+        properties: arguments[0].properties
+    };
 }
 
-function quickselectStep(arr, k, left, right, compare) {
+/**
+ * Superpone dos Feature.<Polygon>
+ * @param  {google.maps.Polygon|Array.<google.maps.LatLng>|Feature.Polygon} poly1 object to transform into a Feature.Polygon
+ * @param  {google.maps.Polygon|Array.<google.maps.LatLng>|Feature.Polygon} poly1 object to transform into a Feature.Polygon
+ * @return {Feature.<Polygon>|Feature.<MultiPolygon>}  result of the union. If inputs are disjoint, returns a Feature.Multipolygon
+ */
+function union(poly1, poly2) {
+  var featurePolygon1 = polygonToFeaturePolygon(poly1),
+      featurePolygon2 = polygonToFeaturePolygon(poly2),
+      FeatureUnion = union$1(featurePolygon1, featurePolygon2);
+  return FeatureUnion;
+}
+
+/**
+ * Takes a set of features, calculates the bbox of all input features, and returns a bounding box.
+ *
+ * @name bbox
+ * @param {FeatureCollection|Feature<any>} geojson input features
+ * @returns {Array<number>} bbox extent in [minX, minY, maxX, maxY] order
+ * @example
+ * var line = turf.lineString([[-74, 40], [-78, 42], [-82, 35]]);
+ * var bbox = turf.bbox(line);
+ * var bboxPolygon = turf.bboxPolygon(bbox);
+ *
+ * //addToMap
+ * var addToMap = [line, bboxPolygon]
+ */
+function bbox$1(geojson) {
+    var BBox = [Infinity, Infinity, -Infinity, -Infinity];
+    coordEach(geojson, function (coord) {
+        if (BBox[0] > coord[0]) BBox[0] = coord[0];
+        if (BBox[1] > coord[1]) BBox[1] = coord[1];
+        if (BBox[2] < coord[0]) BBox[2] = coord[0];
+        if (BBox[3] < coord[1]) BBox[3] = coord[1];
+    });
+    return BBox;
+}
+
+/**
+ * Takes a {@link Feature} or {@link FeatureCollection} and returns the absolute center point of all features.
+ *
+ * @name center
+ * @param {GeoJSON} geojson GeoJSON to be centered
+ * @param {Object} [properties={}] an Object that is used as the {@link Feature}'s properties
+ * @returns {Feature<Point>} a Point feature at the absolute center point of all input features
+ * @example
+ * var features = turf.featureCollection([
+ *   turf.point( [-97.522259, 35.4691]),
+ *   turf.point( [-97.502754, 35.463455]),
+ *   turf.point( [-97.508269, 35.463245])
+ * ]);
+ *
+ * var center = turf.center(features);
+ *
+ * //addToMap
+ * var addToMap = [features, center]
+ * center.properties['marker-size'] = 'large';
+ * center.properties['marker-color'] = '#000';
+ */
+function center(geojson, properties) {
+  var ext = bbox$1(geojson);
+  var x = (ext[0] + ext[2]) / 2;
+  var y = (ext[1] + ext[3]) / 2;
+  return point([x, y], properties);
+}
+
+/**
+ * Converts a WGS84 GeoJSON object into Mercator (EPSG:900913) projection
+ *
+ * @name toMercator
+ * @param {GeoJSON|Position} geojson WGS84 GeoJSON object
+ * @param {Object} [options] Optional parameters
+ * @param {boolean} [options.mutate=false] allows GeoJSON input to be mutated (significant performance increase if true)
+ * @returns {GeoJSON} true/false
+ * @example
+ * var pt = turf.point([-71,41]);
+ * var converted = turf.toMercator(pt);
+ *
+ * //addToMap
+ * var addToMap = [pt, converted];
+ */
+function toMercator(geojson, options) {
+    return convert(geojson, 'mercator', options);
+}
+
+/**
+ * Converts a Mercator (EPSG:900913) GeoJSON object into WGS84 projection
+ *
+ * @name toWgs84
+ * @param {GeoJSON|Position} geojson Mercator GeoJSON object
+ * @param {Object} [options] Optional parameters
+ * @param {boolean} [options.mutate=false] allows GeoJSON input to be mutated (significant performance increase if true)
+ * @returns {GeoJSON} true/false
+ * @example
+ * var pt = turf.point([-7903683.846322424, 5012341.663847514]);
+ * var converted = turf.toWgs84(pt);
+ *
+ * //addToMap
+ * var addToMap = [pt, converted];
+ */
+function toWgs84(geojson, options) {
+    return convert(geojson, 'wgs84', options);
+}
+
+/**
+ * Converts a GeoJSON coordinates to the defined `projection`
+ *
+ * @private
+ * @param {GeoJSON} geojson GeoJSON Feature or Geometry
+ * @param {string} projection defines the projection system to convert the coordinates to
+ * @param {Object} [options] Optional parameters
+ * @param {boolean} [options.mutate=false] allows GeoJSON input to be mutated (significant performance increase if true)
+ * @returns {GeoJSON} true/false
+ */
+function convert(geojson, projection, options) {
+    // Optional parameters
+    options = options || {};
+    if (!isObject$2(options)) throw new Error('options is invalid');
+    var mutate = options.mutate;
+
+    // Validation
+    if (!geojson) throw new Error('geojson is required');
+
+    // Handle Position
+    if (Array.isArray(geojson) && isNumber(geojson[0])) geojson = projection === 'mercator' ? convertToMercator(geojson) : convertToWgs84(geojson);
+
+    // Handle GeoJSON
+    else {
+            // Handle possible data mutation
+            if (mutate !== true) geojson = clone(geojson);
+
+            coordEach(geojson, function (coord) {
+                var newCoord = projection === 'mercator' ? convertToMercator(coord) : convertToWgs84(coord);
+                coord[0] = newCoord[0];
+                coord[1] = newCoord[1];
+            });
+        }
+    return geojson;
+}
+
+/**
+ * Convert lon/lat values to 900913 x/y.
+ * (from https://github.com/mapbox/sphericalmercator)
+ *
+ * @private
+ * @param {Array<number>} lonLat WGS84 point
+ * @returns {Array<number>} Mercator [x, y] point
+ */
+function convertToMercator(lonLat) {
+    var D2R = Math.PI / 180,
+
+    // 900913 properties
+    A = 6378137.0,
+        MAXEXTENT = 20037508.342789244;
+
+    // compensate longitudes passing the 180th meridian
+    // from https://github.com/proj4js/proj4js/blob/master/lib/common/adjust_lon.js
+    var adjusted = Math.abs(lonLat[0]) <= 180 ? lonLat[0] : lonLat[0] - sign(lonLat[0]) * 360;
+    var xy = [A * adjusted * D2R, A * Math.log(Math.tan(Math.PI * 0.25 + 0.5 * lonLat[1] * D2R))];
+
+    // if xy value is beyond maxextent (e.g. poles), return maxextent
+    if (xy[0] > MAXEXTENT) xy[0] = MAXEXTENT;
+    if (xy[0] < -MAXEXTENT) xy[0] = -MAXEXTENT;
+    if (xy[1] > MAXEXTENT) xy[1] = MAXEXTENT;
+    if (xy[1] < -MAXEXTENT) xy[1] = -MAXEXTENT;
+
+    return xy;
+}
+
+/**
+ * Convert 900913 x/y values to lon/lat.
+ * (from https://github.com/mapbox/sphericalmercator)
+ *
+ * @private
+ * @param {Array<number>} xy Mercator [x, y] point
+ * @returns {Array<number>} WGS84 [lon, lat] point
+ */
+function convertToWgs84(xy) {
+    // 900913 properties.
+    var R2D = 180 / Math.PI;
+    var A = 6378137.0;
+
+    return [xy[0] * R2D / A, (Math.PI * 0.5 - 2.0 * Math.atan(Math.exp(-xy[1] / A))) * R2D];
+}
+
+/**
+ * Returns the sign of the input, or zero
+ *
+ * @private
+ * @param {number} x input
+ * @returns {number} -1|0|1 output
+ */
+function sign(x) {
+    return x < 0 ? -1 : x > 0 ? 1 : 0;
+}
+
+// Adds floating point numbers with twice the normal precision.
+// Reference: J. R. Shewchuk, Adaptive Precision Floating-Point Arithmetic and
+// Fast Robust Geometric Predicates, Discrete & Computational Geometry 18(3)
+// 305–363 (1997).
+// Code adapted from GeographicLib by Charles F. F. Karney,
+// http://geographiclib.sourceforge.net/
+
+var adder = function () {
+  return new Adder();
+};
+
+function Adder() {
+  this.reset();
+}
+
+Adder.prototype = {
+  constructor: Adder,
+  reset: function reset() {
+    this.s = // rounded value
+    this.t = 0; // exact error
+  },
+  add: function add(y) {
+    _add(temp, y, this.t);
+    _add(this, temp.s, this.s);
+    if (this.s) this.t += temp.t;else this.s = temp.t;
+  },
+  valueOf: function valueOf() {
+    return this.s;
+  }
+};
+
+var temp = new Adder();
+
+function _add(adder, a, b) {
+  var x = adder.s = a + b,
+      bv = x - a,
+      av = x - bv;
+  adder.t = a - av + (b - bv);
+}
+
+var epsilon = 1e-6;
+
+var pi = Math.PI;
+var halfPi = pi / 2;
+var quarterPi = pi / 4;
+var tau = pi * 2;
+
+var degrees = 180 / pi;
+var radians = pi / 180;
+
+var abs = Math.abs;
+var atan = Math.atan;
+var atan2 = Math.atan2;
+var cos = Math.cos;
+
+var exp = Math.exp;
+
+var log = Math.log;
+
+var sin = Math.sin;
+
+var sqrt = Math.sqrt;
+var tan = Math.tan;
+
+function acos(x) {
+  return x > 1 ? 0 : x < -1 ? pi : Math.acos(x);
+}
+
+function asin(x) {
+  return x > 1 ? halfPi : x < -1 ? -halfPi : Math.asin(x);
+}
+
+function noop() {}
+
+function streamGeometry(geometry, stream) {
+  if (geometry && streamGeometryType.hasOwnProperty(geometry.type)) {
+    streamGeometryType[geometry.type](geometry, stream);
+  }
+}
+
+var streamObjectType = {
+  Feature: function Feature(object, stream) {
+    streamGeometry(object.geometry, stream);
+  },
+  FeatureCollection: function FeatureCollection(object, stream) {
+    var features = object.features,
+        i = -1,
+        n = features.length;
+    while (++i < n) {
+      streamGeometry(features[i].geometry, stream);
+    }
+  }
+};
+
+var streamGeometryType = {
+  Sphere: function Sphere(object, stream) {
+    stream.sphere();
+  },
+  Point: function Point(object, stream) {
+    object = object.coordinates;
+    stream.point(object[0], object[1], object[2]);
+  },
+  MultiPoint: function MultiPoint(object, stream) {
+    var coordinates = object.coordinates,
+        i = -1,
+        n = coordinates.length;
+    while (++i < n) {
+      object = coordinates[i], stream.point(object[0], object[1], object[2]);
+    }
+  },
+  LineString: function LineString(object, stream) {
+    streamLine(object.coordinates, stream, 0);
+  },
+  MultiLineString: function MultiLineString(object, stream) {
+    var coordinates = object.coordinates,
+        i = -1,
+        n = coordinates.length;
+    while (++i < n) {
+      streamLine(coordinates[i], stream, 0);
+    }
+  },
+  Polygon: function Polygon(object, stream) {
+    streamPolygon(object.coordinates, stream);
+  },
+  MultiPolygon: function MultiPolygon(object, stream) {
+    var coordinates = object.coordinates,
+        i = -1,
+        n = coordinates.length;
+    while (++i < n) {
+      streamPolygon(coordinates[i], stream);
+    }
+  },
+  GeometryCollection: function GeometryCollection(object, stream) {
+    var geometries = object.geometries,
+        i = -1,
+        n = geometries.length;
+    while (++i < n) {
+      streamGeometry(geometries[i], stream);
+    }
+  }
+};
+
+function streamLine(coordinates, stream, closed) {
+  var i = -1,
+      n = coordinates.length - closed,
+      coordinate;
+  stream.lineStart();
+  while (++i < n) {
+    coordinate = coordinates[i], stream.point(coordinate[0], coordinate[1], coordinate[2]);
+  }stream.lineEnd();
+}
+
+function streamPolygon(coordinates, stream) {
+  var i = -1,
+      n = coordinates.length;
+  stream.polygonStart();
+  while (++i < n) {
+    streamLine(coordinates[i], stream, 1);
+  }stream.polygonEnd();
+}
+
+var geoStream = function (object, stream) {
+  if (object && streamObjectType.hasOwnProperty(object.type)) {
+    streamObjectType[object.type](object, stream);
+  } else {
+    streamGeometry(object, stream);
+  }
+};
+
+var areaRingSum = adder();
+
+var areaSum = adder();
+
+function spherical(cartesian) {
+  return [atan2(cartesian[1], cartesian[0]), asin(cartesian[2])];
+}
+
+function cartesian(spherical) {
+  var lambda = spherical[0],
+      phi = spherical[1],
+      cosPhi = cos(phi);
+  return [cosPhi * cos(lambda), cosPhi * sin(lambda), sin(phi)];
+}
+
+function cartesianDot(a, b) {
+  return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+}
+
+function cartesianCross(a, b) {
+  return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+}
+
+// TODO return a
+function cartesianAddInPlace(a, b) {
+  a[0] += b[0], a[1] += b[1], a[2] += b[2];
+}
+
+function cartesianScale(vector, k) {
+  return [vector[0] * k, vector[1] * k, vector[2] * k];
+}
+
+// TODO return d
+function cartesianNormalizeInPlace(d) {
+  var l = sqrt(d[0] * d[0] + d[1] * d[1] + d[2] * d[2]);
+  d[0] /= l, d[1] /= l, d[2] /= l;
+}
+
+var deltaSum = adder();
+
+var compose = function (a, b) {
+
+  function compose(x, y) {
+    return x = a(x, y), b(x[0], x[1]);
+  }
+
+  if (a.invert && b.invert) compose.invert = function (x, y) {
+    return x = b.invert(x, y), x && a.invert(x[0], x[1]);
+  };
+
+  return compose;
+};
+
+function rotationIdentity(lambda, phi) {
+  return [lambda > pi ? lambda - tau : lambda < -pi ? lambda + tau : lambda, phi];
+}
+
+rotationIdentity.invert = rotationIdentity;
+
+function rotateRadians(deltaLambda, deltaPhi, deltaGamma) {
+  return (deltaLambda %= tau) ? deltaPhi || deltaGamma ? compose(rotationLambda(deltaLambda), rotationPhiGamma(deltaPhi, deltaGamma)) : rotationLambda(deltaLambda) : deltaPhi || deltaGamma ? rotationPhiGamma(deltaPhi, deltaGamma) : rotationIdentity;
+}
+
+function forwardRotationLambda(deltaLambda) {
+  return function (lambda, phi) {
+    return lambda += deltaLambda, [lambda > pi ? lambda - tau : lambda < -pi ? lambda + tau : lambda, phi];
+  };
+}
+
+function rotationLambda(deltaLambda) {
+  var rotation = forwardRotationLambda(deltaLambda);
+  rotation.invert = forwardRotationLambda(-deltaLambda);
+  return rotation;
+}
+
+function rotationPhiGamma(deltaPhi, deltaGamma) {
+  var cosDeltaPhi = cos(deltaPhi),
+      sinDeltaPhi = sin(deltaPhi),
+      cosDeltaGamma = cos(deltaGamma),
+      sinDeltaGamma = sin(deltaGamma);
+
+  function rotation(lambda, phi) {
+    var cosPhi = cos(phi),
+        x = cos(lambda) * cosPhi,
+        y = sin(lambda) * cosPhi,
+        z = sin(phi),
+        k = z * cosDeltaPhi + x * sinDeltaPhi;
+    return [atan2(y * cosDeltaGamma - k * sinDeltaGamma, x * cosDeltaPhi - z * sinDeltaPhi), asin(k * cosDeltaGamma + y * sinDeltaGamma)];
+  }
+
+  rotation.invert = function (lambda, phi) {
+    var cosPhi = cos(phi),
+        x = cos(lambda) * cosPhi,
+        y = sin(lambda) * cosPhi,
+        z = sin(phi),
+        k = z * cosDeltaGamma - y * sinDeltaGamma;
+    return [atan2(y * cosDeltaGamma + z * sinDeltaGamma, x * cosDeltaPhi + k * sinDeltaPhi), asin(k * cosDeltaPhi - x * sinDeltaPhi)];
+  };
+
+  return rotation;
+}
+
+var rotation = function (rotate) {
+  rotate = rotateRadians(rotate[0] * radians, rotate[1] * radians, rotate.length > 2 ? rotate[2] * radians : 0);
+
+  function forward(coordinates) {
+    coordinates = rotate(coordinates[0] * radians, coordinates[1] * radians);
+    return coordinates[0] *= degrees, coordinates[1] *= degrees, coordinates;
+  }
+
+  forward.invert = function (coordinates) {
+    coordinates = rotate.invert(coordinates[0] * radians, coordinates[1] * radians);
+    return coordinates[0] *= degrees, coordinates[1] *= degrees, coordinates;
+  };
+
+  return forward;
+};
+
+// Generates a circle centered at [0°, 0°], with a given radius and precision.
+function circleStream(stream, radius, delta, direction, t0, t1) {
+  if (!delta) return;
+  var cosRadius = cos(radius),
+      sinRadius = sin(radius),
+      step = direction * delta;
+  if (t0 == null) {
+    t0 = radius + direction * tau;
+    t1 = radius - step / 2;
+  } else {
+    t0 = circleRadius(cosRadius, t0);
+    t1 = circleRadius(cosRadius, t1);
+    if (direction > 0 ? t0 < t1 : t0 > t1) t0 += direction * tau;
+  }
+  for (var point, t = t0; direction > 0 ? t > t1 : t < t1; t -= step) {
+    point = spherical([cosRadius, -sinRadius * cos(t), -sinRadius * sin(t)]);
+    stream.point(point[0], point[1]);
+  }
+}
+
+// Returns the signed angle of a cartesian point relative to [cosRadius, 0, 0].
+function circleRadius(cosRadius, point) {
+  point = cartesian(point), point[0] -= cosRadius;
+  cartesianNormalizeInPlace(point);
+  var radius = acos(-point[1]);
+  return ((-point[2] < 0 ? -radius : radius) + tau - epsilon) % tau;
+}
+
+var clipBuffer = function () {
+  var lines = [],
+      line;
+  return {
+    point: function point(x, y) {
+      line.push([x, y]);
+    },
+    lineStart: function lineStart() {
+      lines.push(line = []);
+    },
+    lineEnd: noop,
+    rejoin: function rejoin() {
+      if (lines.length > 1) lines.push(lines.pop().concat(lines.shift()));
+    },
+    result: function result() {
+      var result = lines;
+      lines = [];
+      line = null;
+      return result;
+    }
+  };
+};
+
+var clipLine = function (a, b, x0, y0, x1, y1) {
+  var ax = a[0],
+      ay = a[1],
+      bx = b[0],
+      by = b[1],
+      t0 = 0,
+      t1 = 1,
+      dx = bx - ax,
+      dy = by - ay,
+      r;
+
+  r = x0 - ax;
+  if (!dx && r > 0) return;
+  r /= dx;
+  if (dx < 0) {
+    if (r < t0) return;
+    if (r < t1) t1 = r;
+  } else if (dx > 0) {
+    if (r > t1) return;
+    if (r > t0) t0 = r;
+  }
+
+  r = x1 - ax;
+  if (!dx && r < 0) return;
+  r /= dx;
+  if (dx < 0) {
+    if (r > t1) return;
+    if (r > t0) t0 = r;
+  } else if (dx > 0) {
+    if (r < t0) return;
+    if (r < t1) t1 = r;
+  }
+
+  r = y0 - ay;
+  if (!dy && r > 0) return;
+  r /= dy;
+  if (dy < 0) {
+    if (r < t0) return;
+    if (r < t1) t1 = r;
+  } else if (dy > 0) {
+    if (r > t1) return;
+    if (r > t0) t0 = r;
+  }
+
+  r = y1 - ay;
+  if (!dy && r < 0) return;
+  r /= dy;
+  if (dy < 0) {
+    if (r > t1) return;
+    if (r > t0) t0 = r;
+  } else if (dy > 0) {
+    if (r < t0) return;
+    if (r < t1) t1 = r;
+  }
+
+  if (t0 > 0) a[0] = ax + t0 * dx, a[1] = ay + t0 * dy;
+  if (t1 < 1) b[0] = ax + t1 * dx, b[1] = ay + t1 * dy;
+  return true;
+};
+
+var pointEqual = function (a, b) {
+  return abs(a[0] - b[0]) < epsilon && abs(a[1] - b[1]) < epsilon;
+};
+
+function Intersection(point, points, other, entry) {
+  this.x = point;
+  this.z = points;
+  this.o = other; // another intersection
+  this.e = entry; // is an entry?
+  this.v = false; // visited
+  this.n = this.p = null; // next & previous
+}
+
+// A generalized polygon clipping algorithm: given a polygon that has been cut
+// into its visible line segments, and rejoins the segments by interpolating
+// along the clip edge.
+var clipPolygon = function (segments, compareIntersection, startInside, interpolate, stream) {
+  var subject = [],
+      clip = [],
+      i,
+      n;
+
+  segments.forEach(function (segment) {
+    if ((n = segment.length - 1) <= 0) return;
+    var n,
+        p0 = segment[0],
+        p1 = segment[n],
+        x;
+
+    // If the first and last points of a segment are coincident, then treat as a
+    // closed ring. TODO if all rings are closed, then the winding order of the
+    // exterior ring should be checked.
+    if (pointEqual(p0, p1)) {
+      stream.lineStart();
+      for (i = 0; i < n; ++i) {
+        stream.point((p0 = segment[i])[0], p0[1]);
+      }stream.lineEnd();
+      return;
+    }
+
+    subject.push(x = new Intersection(p0, segment, null, true));
+    clip.push(x.o = new Intersection(p0, null, x, false));
+    subject.push(x = new Intersection(p1, segment, null, false));
+    clip.push(x.o = new Intersection(p1, null, x, true));
+  });
+
+  if (!subject.length) return;
+
+  clip.sort(compareIntersection);
+  link(subject);
+  link(clip);
+
+  for (i = 0, n = clip.length; i < n; ++i) {
+    clip[i].e = startInside = !startInside;
+  }
+
+  var start = subject[0],
+      points,
+      point;
+
+  while (1) {
+    // Find first unvisited intersection.
+    var current = start,
+        isSubject = true;
+    while (current.v) {
+      if ((current = current.n) === start) return;
+    }points = current.z;
+    stream.lineStart();
+    do {
+      current.v = current.o.v = true;
+      if (current.e) {
+        if (isSubject) {
+          for (i = 0, n = points.length; i < n; ++i) {
+            stream.point((point = points[i])[0], point[1]);
+          }
+        } else {
+          interpolate(current.x, current.n.x, 1, stream);
+        }
+        current = current.n;
+      } else {
+        if (isSubject) {
+          points = current.p.z;
+          for (i = points.length - 1; i >= 0; --i) {
+            stream.point((point = points[i])[0], point[1]);
+          }
+        } else {
+          interpolate(current.x, current.p.x, -1, stream);
+        }
+        current = current.p;
+      }
+      current = current.o;
+      points = current.z;
+      isSubject = !isSubject;
+    } while (!current.v);
+    stream.lineEnd();
+  }
+};
+
+function link(array) {
+  if (!(n = array.length)) return;
+  var n,
+      i = 0,
+      a = array[0],
+      b;
+  while (++i < n) {
+    a.n = b = array[i];
+    b.p = a;
+    a = b;
+  }
+  a.n = b = array[0];
+  b.p = a;
+}
+
+var ascending = function (a, b) {
+  return a < b ? -1 : a > b ? 1 : a >= b ? 0 : NaN;
+};
+
+var bisector = function (compare) {
+  if (compare.length === 1) compare = ascendingComparator(compare);
+  return {
+    left: function left(a, x, lo, hi) {
+      if (lo == null) lo = 0;
+      if (hi == null) hi = a.length;
+      while (lo < hi) {
+        var mid = lo + hi >>> 1;
+        if (compare(a[mid], x) < 0) lo = mid + 1;else hi = mid;
+      }
+      return lo;
+    },
+    right: function right(a, x, lo, hi) {
+      if (lo == null) lo = 0;
+      if (hi == null) hi = a.length;
+      while (lo < hi) {
+        var mid = lo + hi >>> 1;
+        if (compare(a[mid], x) > 0) hi = mid;else lo = mid + 1;
+      }
+      return lo;
+    }
+  };
+};
+
+function ascendingComparator(f) {
+  return function (d, x) {
+    return ascending(f(d), x);
+  };
+}
+
+var ascendingBisect = bisector(ascending);
+
+var merge$1 = function (arrays) {
+  var n = arrays.length,
+      m,
+      i = -1,
+      j = 0,
+      merged,
+      array;
+
+  while (++i < n) {
+    j += arrays[i].length;
+  }merged = new Array(j);
+
+  while (--n >= 0) {
+    array = arrays[n];
+    m = array.length;
+    while (--m >= 0) {
+      merged[--j] = array[m];
+    }
+  }
+
+  return merged;
+};
+
+var clipMax = 1e9;
+var clipMin = -clipMax;
+
+// TODO Use d3-polygon’s polygonContains here for the ring check?
+// TODO Eliminate duplicate buffering in clipBuffer and polygon.push?
+
+function clipExtent(x0, y0, x1, y1) {
+
+  function visible(x, y) {
+    return x0 <= x && x <= x1 && y0 <= y && y <= y1;
+  }
+
+  function interpolate(from, to, direction, stream) {
+    var a = 0,
+        a1 = 0;
+    if (from == null || (a = corner(from, direction)) !== (a1 = corner(to, direction)) || comparePoint(from, to) < 0 ^ direction > 0) {
+      do {
+        stream.point(a === 0 || a === 3 ? x0 : x1, a > 1 ? y1 : y0);
+      } while ((a = (a + direction + 4) % 4) !== a1);
+    } else {
+      stream.point(to[0], to[1]);
+    }
+  }
+
+  function corner(p, direction) {
+    return abs(p[0] - x0) < epsilon ? direction > 0 ? 0 : 3 : abs(p[0] - x1) < epsilon ? direction > 0 ? 2 : 1 : abs(p[1] - y0) < epsilon ? direction > 0 ? 1 : 0 : direction > 0 ? 3 : 2; // abs(p[1] - y1) < epsilon
+  }
+
+  function compareIntersection(a, b) {
+    return comparePoint(a.x, b.x);
+  }
+
+  function comparePoint(a, b) {
+    var ca = corner(a, 1),
+        cb = corner(b, 1);
+    return ca !== cb ? ca - cb : ca === 0 ? b[1] - a[1] : ca === 1 ? a[0] - b[0] : ca === 2 ? a[1] - b[1] : b[0] - a[0];
+  }
+
+  return function (stream) {
+    var activeStream = stream,
+        bufferStream = clipBuffer(),
+        segments,
+        polygon,
+        ring,
+        x__,
+        y__,
+        v__,
+        // first point
+    x_,
+        y_,
+        v_,
+        // previous point
+    first,
+        clean;
+
+    var clipStream = {
+      point: point,
+      lineStart: lineStart,
+      lineEnd: lineEnd,
+      polygonStart: polygonStart,
+      polygonEnd: polygonEnd
+    };
+
+    function point(x, y) {
+      if (visible(x, y)) activeStream.point(x, y);
+    }
+
+    function polygonInside() {
+      var winding = 0;
+
+      for (var i = 0, n = polygon.length; i < n; ++i) {
+        for (var ring = polygon[i], j = 1, m = ring.length, point = ring[0], a0, a1, b0 = point[0], b1 = point[1]; j < m; ++j) {
+          a0 = b0, a1 = b1, point = ring[j], b0 = point[0], b1 = point[1];
+          if (a1 <= y1) {
+            if (b1 > y1 && (b0 - a0) * (y1 - a1) > (b1 - a1) * (x0 - a0)) ++winding;
+          } else {
+            if (b1 <= y1 && (b0 - a0) * (y1 - a1) < (b1 - a1) * (x0 - a0)) --winding;
+          }
+        }
+      }
+
+      return winding;
+    }
+
+    // Buffer geometry within a polygon and then clip it en masse.
+    function polygonStart() {
+      activeStream = bufferStream, segments = [], polygon = [], clean = true;
+    }
+
+    function polygonEnd() {
+      var startInside = polygonInside(),
+          cleanInside = clean && startInside,
+          visible = (segments = merge$1(segments)).length;
+      if (cleanInside || visible) {
+        stream.polygonStart();
+        if (cleanInside) {
+          stream.lineStart();
+          interpolate(null, null, 1, stream);
+          stream.lineEnd();
+        }
+        if (visible) {
+          clipPolygon(segments, compareIntersection, startInside, interpolate, stream);
+        }
+        stream.polygonEnd();
+      }
+      activeStream = stream, segments = polygon = ring = null;
+    }
+
+    function lineStart() {
+      clipStream.point = linePoint;
+      if (polygon) polygon.push(ring = []);
+      first = true;
+      v_ = false;
+      x_ = y_ = NaN;
+    }
+
+    // TODO rather than special-case polygons, simply handle them separately.
+    // Ideally, coincident intersection points should be jittered to avoid
+    // clipping issues.
+    function lineEnd() {
+      if (segments) {
+        linePoint(x__, y__);
+        if (v__ && v_) bufferStream.rejoin();
+        segments.push(bufferStream.result());
+      }
+      clipStream.point = point;
+      if (v_) activeStream.lineEnd();
+    }
+
+    function linePoint(x, y) {
+      var v = visible(x, y);
+      if (polygon) ring.push([x, y]);
+      if (first) {
+        x__ = x, y__ = y, v__ = v;
+        first = false;
+        if (v) {
+          activeStream.lineStart();
+          activeStream.point(x, y);
+        }
+      } else {
+        if (v && v_) activeStream.point(x, y);else {
+          var a = [x_ = Math.max(clipMin, Math.min(clipMax, x_)), y_ = Math.max(clipMin, Math.min(clipMax, y_))],
+              b = [x = Math.max(clipMin, Math.min(clipMax, x)), y = Math.max(clipMin, Math.min(clipMax, y))];
+          if (clipLine(a, b, x0, y0, x1, y1)) {
+            if (!v_) {
+              activeStream.lineStart();
+              activeStream.point(a[0], a[1]);
+            }
+            activeStream.point(b[0], b[1]);
+            if (!v) activeStream.lineEnd();
+            clean = false;
+          } else if (v) {
+            activeStream.lineStart();
+            activeStream.point(x, y);
+            clean = false;
+          }
+        }
+      }
+      x_ = x, y_ = y, v_ = v;
+    }
+
+    return clipStream;
+  };
+}
+
+var sum$1 = adder();
+
+var polygonContains = function (polygon, point) {
+  var lambda = point[0],
+      phi = point[1],
+      normal = [sin(lambda), -cos(lambda), 0],
+      angle = 0,
+      winding = 0;
+
+  sum$1.reset();
+
+  for (var i = 0, n = polygon.length; i < n; ++i) {
+    if (!(m = (ring = polygon[i]).length)) continue;
+    var ring,
+        m,
+        point0 = ring[m - 1],
+        lambda0 = point0[0],
+        phi0 = point0[1] / 2 + quarterPi,
+        sinPhi0 = sin(phi0),
+        cosPhi0 = cos(phi0);
+
+    for (var j = 0; j < m; ++j, lambda0 = lambda1, sinPhi0 = sinPhi1, cosPhi0 = cosPhi1, point0 = point1) {
+      var point1 = ring[j],
+          lambda1 = point1[0],
+          phi1 = point1[1] / 2 + quarterPi,
+          sinPhi1 = sin(phi1),
+          cosPhi1 = cos(phi1),
+          delta = lambda1 - lambda0,
+          sign = delta >= 0 ? 1 : -1,
+          absDelta = sign * delta,
+          antimeridian = absDelta > pi,
+          k = sinPhi0 * sinPhi1;
+
+      sum$1.add(atan2(k * sign * sin(absDelta), cosPhi0 * cosPhi1 + k * cos(absDelta)));
+      angle += antimeridian ? delta + sign * tau : delta;
+
+      // Are the longitudes either side of the point’s meridian (lambda),
+      // and are the latitudes smaller than the parallel (phi)?
+      if (antimeridian ^ lambda0 >= lambda ^ lambda1 >= lambda) {
+        var arc = cartesianCross(cartesian(point0), cartesian(point1));
+        cartesianNormalizeInPlace(arc);
+        var intersection = cartesianCross(normal, arc);
+        cartesianNormalizeInPlace(intersection);
+        var phiArc = (antimeridian ^ delta >= 0 ? -1 : 1) * asin(intersection[2]);
+        if (phi > phiArc || phi === phiArc && (arc[0] || arc[1])) {
+          winding += antimeridian ^ delta >= 0 ? 1 : -1;
+        }
+      }
+    }
+  }
+
+  // First, determine whether the South pole is inside or outside:
+  //
+  // It is inside if:
+  // * the polygon winds around it in a clockwise direction.
+  // * the polygon does not (cumulatively) wind around it, but has a negative
+  //   (counter-clockwise) area.
+  //
+  // Second, count the (signed) number of times a segment crosses a lambda
+  // from the point to the South pole.  If it is zero, then the point is the
+  // same side as the South pole.
+
+  return (angle < -epsilon || angle < epsilon && sum$1 < -epsilon) ^ winding & 1;
+};
+
+var lengthSum = adder();
+
+var identity$4 = function (x) {
+  return x;
+};
+
+var areaSum$1 = adder();
+var areaRingSum$1 = adder();
+
+var x0$2 = Infinity;
+var y0$2 = x0$2;
+var x1 = -x0$2;
+var y1 = x1;
+
+var boundsStream$1 = {
+  point: boundsPoint$1,
+  lineStart: noop,
+  lineEnd: noop,
+  polygonStart: noop,
+  polygonEnd: noop,
+  result: function result() {
+    var bounds = [[x0$2, y0$2], [x1, y1]];
+    x1 = y1 = -(y0$2 = x0$2 = Infinity);
+    return bounds;
+  }
+};
+
+function boundsPoint$1(x, y) {
+  if (x < x0$2) x0$2 = x;
+  if (x > x1) x1 = x;
+  if (y < y0$2) y0$2 = y;
+  if (y > y1) y1 = y;
+}
+
+var lengthSum$1 = adder();
+
+var clip = function (pointVisible, clipLine, interpolate, start) {
+  return function (rotate, sink) {
+    var line = clipLine(sink),
+        rotatedStart = rotate.invert(start[0], start[1]),
+        ringBuffer = clipBuffer(),
+        ringSink = clipLine(ringBuffer),
+        polygonStarted = false,
+        polygon,
+        segments,
+        ring;
+
+    var clip = {
+      point: point,
+      lineStart: lineStart,
+      lineEnd: lineEnd,
+      polygonStart: function polygonStart() {
+        clip.point = pointRing;
+        clip.lineStart = ringStart;
+        clip.lineEnd = ringEnd;
+        segments = [];
+        polygon = [];
+      },
+      polygonEnd: function polygonEnd() {
+        clip.point = point;
+        clip.lineStart = lineStart;
+        clip.lineEnd = lineEnd;
+        segments = merge$1(segments);
+        var startInside = polygonContains(polygon, rotatedStart);
+        if (segments.length) {
+          if (!polygonStarted) sink.polygonStart(), polygonStarted = true;
+          clipPolygon(segments, compareIntersection, startInside, interpolate, sink);
+        } else if (startInside) {
+          if (!polygonStarted) sink.polygonStart(), polygonStarted = true;
+          sink.lineStart();
+          interpolate(null, null, 1, sink);
+          sink.lineEnd();
+        }
+        if (polygonStarted) sink.polygonEnd(), polygonStarted = false;
+        segments = polygon = null;
+      },
+      sphere: function sphere() {
+        sink.polygonStart();
+        sink.lineStart();
+        interpolate(null, null, 1, sink);
+        sink.lineEnd();
+        sink.polygonEnd();
+      }
+    };
+
+    function point(lambda, phi) {
+      var point = rotate(lambda, phi);
+      if (pointVisible(lambda = point[0], phi = point[1])) sink.point(lambda, phi);
+    }
+
+    function pointLine(lambda, phi) {
+      var point = rotate(lambda, phi);
+      line.point(point[0], point[1]);
+    }
+
+    function lineStart() {
+      clip.point = pointLine;
+      line.lineStart();
+    }
+
+    function lineEnd() {
+      clip.point = point;
+      line.lineEnd();
+    }
+
+    function pointRing(lambda, phi) {
+      ring.push([lambda, phi]);
+      var point = rotate(lambda, phi);
+      ringSink.point(point[0], point[1]);
+    }
+
+    function ringStart() {
+      ringSink.lineStart();
+      ring = [];
+    }
+
+    function ringEnd() {
+      pointRing(ring[0][0], ring[0][1]);
+      ringSink.lineEnd();
+
+      var clean = ringSink.clean(),
+          ringSegments = ringBuffer.result(),
+          i,
+          n = ringSegments.length,
+          m,
+          segment,
+          point;
+
+      ring.pop();
+      polygon.push(ring);
+      ring = null;
+
+      if (!n) return;
+
+      // No intersections.
+      if (clean & 1) {
+        segment = ringSegments[0];
+        if ((m = segment.length - 1) > 0) {
+          if (!polygonStarted) sink.polygonStart(), polygonStarted = true;
+          sink.lineStart();
+          for (i = 0; i < m; ++i) {
+            sink.point((point = segment[i])[0], point[1]);
+          }sink.lineEnd();
+        }
+        return;
+      }
+
+      // Rejoin connected segments.
+      // TODO reuse ringBuffer.rejoin()?
+      if (n > 1 && clean & 2) ringSegments.push(ringSegments.pop().concat(ringSegments.shift()));
+
+      segments.push(ringSegments.filter(validSegment));
+    }
+
+    return clip;
+  };
+};
+
+function validSegment(segment) {
+  return segment.length > 1;
+}
+
+// Intersections are sorted along the clip edge. For both antimeridian cutting
+// and circle clipping, the same comparison is used.
+function compareIntersection(a, b) {
+  return ((a = a.x)[0] < 0 ? a[1] - halfPi - epsilon : halfPi - a[1]) - ((b = b.x)[0] < 0 ? b[1] - halfPi - epsilon : halfPi - b[1]);
+}
+
+var clipAntimeridian = clip(function () {
+  return true;
+}, clipAntimeridianLine, clipAntimeridianInterpolate, [-pi, -halfPi]);
+
+// Takes a line and cuts into visible segments. Return values: 0 - there were
+// intersections or the line was empty; 1 - no intersections; 2 - there were
+// intersections, and the first and last segments should be rejoined.
+function clipAntimeridianLine(stream) {
+  var lambda0 = NaN,
+      phi0 = NaN,
+      sign0 = NaN,
+      _clean; // no intersections
+
+  return {
+    lineStart: function lineStart() {
+      stream.lineStart();
+      _clean = 1;
+    },
+    point: function point(lambda1, phi1) {
+      var sign1 = lambda1 > 0 ? pi : -pi,
+          delta = abs(lambda1 - lambda0);
+      if (abs(delta - pi) < epsilon) {
+        // line crosses a pole
+        stream.point(lambda0, phi0 = (phi0 + phi1) / 2 > 0 ? halfPi : -halfPi);
+        stream.point(sign0, phi0);
+        stream.lineEnd();
+        stream.lineStart();
+        stream.point(sign1, phi0);
+        stream.point(lambda1, phi0);
+        _clean = 0;
+      } else if (sign0 !== sign1 && delta >= pi) {
+        // line crosses antimeridian
+        if (abs(lambda0 - sign0) < epsilon) lambda0 -= sign0 * epsilon; // handle degeneracies
+        if (abs(lambda1 - sign1) < epsilon) lambda1 -= sign1 * epsilon;
+        phi0 = clipAntimeridianIntersect(lambda0, phi0, lambda1, phi1);
+        stream.point(sign0, phi0);
+        stream.lineEnd();
+        stream.lineStart();
+        stream.point(sign1, phi0);
+        _clean = 0;
+      }
+      stream.point(lambda0 = lambda1, phi0 = phi1);
+      sign0 = sign1;
+    },
+    lineEnd: function lineEnd() {
+      stream.lineEnd();
+      lambda0 = phi0 = NaN;
+    },
+    clean: function clean() {
+      return 2 - _clean; // if intersections, rejoin first and last segments
+    }
+  };
+}
+
+function clipAntimeridianIntersect(lambda0, phi0, lambda1, phi1) {
+  var cosPhi0,
+      cosPhi1,
+      sinLambda0Lambda1 = sin(lambda0 - lambda1);
+  return abs(sinLambda0Lambda1) > epsilon ? atan((sin(phi0) * (cosPhi1 = cos(phi1)) * sin(lambda1) - sin(phi1) * (cosPhi0 = cos(phi0)) * sin(lambda0)) / (cosPhi0 * cosPhi1 * sinLambda0Lambda1)) : (phi0 + phi1) / 2;
+}
+
+function clipAntimeridianInterpolate(from, to, direction, stream) {
+  var phi;
+  if (from == null) {
+    phi = direction * halfPi;
+    stream.point(-pi, phi);
+    stream.point(0, phi);
+    stream.point(pi, phi);
+    stream.point(pi, 0);
+    stream.point(pi, -phi);
+    stream.point(0, -phi);
+    stream.point(-pi, -phi);
+    stream.point(-pi, 0);
+    stream.point(-pi, phi);
+  } else if (abs(from[0] - to[0]) > epsilon) {
+    var lambda = from[0] < to[0] ? pi : -pi;
+    phi = direction * lambda / 2;
+    stream.point(-lambda, phi);
+    stream.point(0, phi);
+    stream.point(lambda, phi);
+  } else {
+    stream.point(to[0], to[1]);
+  }
+}
+
+var clipCircle = function (radius, delta) {
+  var cr = cos(radius),
+      smallRadius = cr > 0,
+      notHemisphere = abs(cr) > epsilon; // TODO optimise for this common case
+
+  function interpolate(from, to, direction, stream) {
+    circleStream(stream, radius, delta, direction, from, to);
+  }
+
+  function visible(lambda, phi) {
+    return cos(lambda) * cos(phi) > cr;
+  }
+
+  // Takes a line and cuts into visible segments. Return values used for polygon
+  // clipping: 0 - there were intersections or the line was empty; 1 - no
+  // intersections 2 - there were intersections, and the first and last segments
+  // should be rejoined.
+  function clipLine(stream) {
+    var point0, // previous point
+    c0, // code for previous point
+    v0, // visibility of previous point
+    v00, // visibility of first point
+    _clean; // no intersections
+    return {
+      lineStart: function lineStart() {
+        v00 = v0 = false;
+        _clean = 1;
+      },
+      point: function point(lambda, phi) {
+        var point1 = [lambda, phi],
+            point2,
+            v = visible(lambda, phi),
+            c = smallRadius ? v ? 0 : code(lambda, phi) : v ? code(lambda + (lambda < 0 ? pi : -pi), phi) : 0;
+        if (!point0 && (v00 = v0 = v)) stream.lineStart();
+        // Handle degeneracies.
+        // TODO ignore if not clipping polygons.
+        if (v !== v0) {
+          point2 = intersect(point0, point1);
+          if (!point2 || pointEqual(point0, point2) || pointEqual(point1, point2)) {
+            point1[0] += epsilon;
+            point1[1] += epsilon;
+            v = visible(point1[0], point1[1]);
+          }
+        }
+        if (v !== v0) {
+          _clean = 0;
+          if (v) {
+            // outside going in
+            stream.lineStart();
+            point2 = intersect(point1, point0);
+            stream.point(point2[0], point2[1]);
+          } else {
+            // inside going out
+            point2 = intersect(point0, point1);
+            stream.point(point2[0], point2[1]);
+            stream.lineEnd();
+          }
+          point0 = point2;
+        } else if (notHemisphere && point0 && smallRadius ^ v) {
+          var t;
+          // If the codes for two points are different, or are both zero,
+          // and there this segment intersects with the small circle.
+          if (!(c & c0) && (t = intersect(point1, point0, true))) {
+            _clean = 0;
+            if (smallRadius) {
+              stream.lineStart();
+              stream.point(t[0][0], t[0][1]);
+              stream.point(t[1][0], t[1][1]);
+              stream.lineEnd();
+            } else {
+              stream.point(t[1][0], t[1][1]);
+              stream.lineEnd();
+              stream.lineStart();
+              stream.point(t[0][0], t[0][1]);
+            }
+          }
+        }
+        if (v && (!point0 || !pointEqual(point0, point1))) {
+          stream.point(point1[0], point1[1]);
+        }
+        point0 = point1, v0 = v, c0 = c;
+      },
+      lineEnd: function lineEnd() {
+        if (v0) stream.lineEnd();
+        point0 = null;
+      },
+      // Rejoin first and last segments if there were intersections and the first
+      // and last points were visible.
+      clean: function clean() {
+        return _clean | (v00 && v0) << 1;
+      }
+    };
+  }
+
+  // Intersects the great circle between a and b with the clip circle.
+  function intersect(a, b, two) {
+    var pa = cartesian(a),
+        pb = cartesian(b);
+
+    // We have two planes, n1.p = d1 and n2.p = d2.
+    // Find intersection line p(t) = c1 n1 + c2 n2 + t (n1 ⨯ n2).
+    var n1 = [1, 0, 0],
+        // normal
+    n2 = cartesianCross(pa, pb),
+        n2n2 = cartesianDot(n2, n2),
+        n1n2 = n2[0],
+        // cartesianDot(n1, n2),
+    determinant = n2n2 - n1n2 * n1n2;
+
+    // Two polar points.
+    if (!determinant) return !two && a;
+
+    var c1 = cr * n2n2 / determinant,
+        c2 = -cr * n1n2 / determinant,
+        n1xn2 = cartesianCross(n1, n2),
+        A = cartesianScale(n1, c1),
+        B = cartesianScale(n2, c2);
+    cartesianAddInPlace(A, B);
+
+    // Solve |p(t)|^2 = 1.
+    var u = n1xn2,
+        w = cartesianDot(A, u),
+        uu = cartesianDot(u, u),
+        t2 = w * w - uu * (cartesianDot(A, A) - 1);
+
+    if (t2 < 0) return;
+
+    var t = sqrt(t2),
+        q = cartesianScale(u, (-w - t) / uu);
+    cartesianAddInPlace(q, A);
+    q = spherical(q);
+
+    if (!two) return q;
+
+    // Two intersection points.
+    var lambda0 = a[0],
+        lambda1 = b[0],
+        phi0 = a[1],
+        phi1 = b[1],
+        z;
+
+    if (lambda1 < lambda0) z = lambda0, lambda0 = lambda1, lambda1 = z;
+
+    var delta = lambda1 - lambda0,
+        polar = abs(delta - pi) < epsilon,
+        meridian = polar || delta < epsilon;
+
+    if (!polar && phi1 < phi0) z = phi0, phi0 = phi1, phi1 = z;
+
+    // Check that the first point is between a and b.
+    if (meridian ? polar ? phi0 + phi1 > 0 ^ q[1] < (abs(q[0] - lambda0) < epsilon ? phi0 : phi1) : phi0 <= q[1] && q[1] <= phi1 : delta > pi ^ (lambda0 <= q[0] && q[0] <= lambda1)) {
+      var q1 = cartesianScale(u, (-w + t) / uu);
+      cartesianAddInPlace(q1, A);
+      return [q, spherical(q1)];
+    }
+  }
+
+  // Generates a 4-bit vector representing the location of a point relative to
+  // the small circle's bounding box.
+  function code(lambda, phi) {
+    var r = smallRadius ? radius : pi - radius,
+        code = 0;
+    if (lambda < -r) code |= 1; // left
+    else if (lambda > r) code |= 2; // right
+    if (phi < -r) code |= 4; // below
+    else if (phi > r) code |= 8; // above
+    return code;
+  }
+
+  return clip(visible, clipLine, interpolate, smallRadius ? [0, -radius] : [-pi, radius - pi]);
+};
+
+function transformer(methods) {
+  return function (stream) {
+    var s = new TransformStream();
+    for (var key in methods) {
+      s[key] = methods[key];
+    }s.stream = stream;
+    return s;
+  };
+}
+
+function TransformStream() {}
+
+TransformStream.prototype = {
+  constructor: TransformStream,
+  point: function point(x, y) {
+    this.stream.point(x, y);
+  },
+  sphere: function sphere() {
+    this.stream.sphere();
+  },
+  lineStart: function lineStart() {
+    this.stream.lineStart();
+  },
+  lineEnd: function lineEnd() {
+    this.stream.lineEnd();
+  },
+  polygonStart: function polygonStart() {
+    this.stream.polygonStart();
+  },
+  polygonEnd: function polygonEnd() {
+    this.stream.polygonEnd();
+  }
+};
+
+function fitExtent(projection, extent, object) {
+    var w = extent[1][0] - extent[0][0],
+        h = extent[1][1] - extent[0][1],
+        clip = projection.clipExtent && projection.clipExtent();
+
+    projection.scale(150).translate([0, 0]);
+
+    if (clip != null) projection.clipExtent(null);
+
+    geoStream(object, projection.stream(boundsStream$1));
+
+    var b = boundsStream$1.result(),
+        k = Math.min(w / (b[1][0] - b[0][0]), h / (b[1][1] - b[0][1])),
+        x = +extent[0][0] + (w - k * (b[1][0] + b[0][0])) / 2,
+        y = +extent[0][1] + (h - k * (b[1][1] + b[0][1])) / 2;
+
+    if (clip != null) projection.clipExtent(clip);
+
+    return projection.scale(k * 150).translate([x, y]);
+}
+
+function fitSize(projection, size, object) {
+    return fitExtent(projection, [[0, 0], size], object);
+}
+
+var maxDepth = 16;
+var cosMinDistance = cos(30 * radians); // cos(minimum angular distance)
+
+var resample = function (project, delta2) {
+  return +delta2 ? resample$1(project, delta2) : resampleNone(project);
+};
+
+function resampleNone(project) {
+  return transformer({
+    point: function point(x, y) {
+      x = project(x, y);
+      this.stream.point(x[0], x[1]);
+    }
+  });
+}
+
+function resample$1(project, delta2) {
+
+  function resampleLineTo(x0, y0, lambda0, a0, b0, c0, x1, y1, lambda1, a1, b1, c1, depth, stream) {
+    var dx = x1 - x0,
+        dy = y1 - y0,
+        d2 = dx * dx + dy * dy;
+    if (d2 > 4 * delta2 && depth--) {
+      var a = a0 + a1,
+          b = b0 + b1,
+          c = c0 + c1,
+          m = sqrt(a * a + b * b + c * c),
+          phi2 = asin(c /= m),
+          lambda2 = abs(abs(c) - 1) < epsilon || abs(lambda0 - lambda1) < epsilon ? (lambda0 + lambda1) / 2 : atan2(b, a),
+          p = project(lambda2, phi2),
+          x2 = p[0],
+          y2 = p[1],
+          dx2 = x2 - x0,
+          dy2 = y2 - y0,
+          dz = dy * dx2 - dx * dy2;
+      if (dz * dz / d2 > delta2 // perpendicular projected distance
+      || abs((dx * dx2 + dy * dy2) / d2 - 0.5) > 0.3 // midpoint close to an end
+      || a0 * a1 + b0 * b1 + c0 * c1 < cosMinDistance) {
+        // angular distance
+        resampleLineTo(x0, y0, lambda0, a0, b0, c0, x2, y2, lambda2, a /= m, b /= m, c, depth, stream);
+        stream.point(x2, y2);
+        resampleLineTo(x2, y2, lambda2, a, b, c, x1, y1, lambda1, a1, b1, c1, depth, stream);
+      }
+    }
+  }
+  return function (stream) {
+    var lambda00, x00, y00, a00, b00, c00, // first point
+    lambda0, x0, y0, a0, b0, c0; // previous point
+
+    var resampleStream = {
+      point: point,
+      lineStart: lineStart,
+      lineEnd: lineEnd,
+      polygonStart: function polygonStart() {
+        stream.polygonStart();resampleStream.lineStart = ringStart;
+      },
+      polygonEnd: function polygonEnd() {
+        stream.polygonEnd();resampleStream.lineStart = lineStart;
+      }
+    };
+
+    function point(x, y) {
+      x = project(x, y);
+      stream.point(x[0], x[1]);
+    }
+
+    function lineStart() {
+      x0 = NaN;
+      resampleStream.point = linePoint;
+      stream.lineStart();
+    }
+
+    function linePoint(lambda, phi) {
+      var c = cartesian([lambda, phi]),
+          p = project(lambda, phi);
+      resampleLineTo(x0, y0, lambda0, a0, b0, c0, x0 = p[0], y0 = p[1], lambda0 = lambda, a0 = c[0], b0 = c[1], c0 = c[2], maxDepth, stream);
+      stream.point(x0, y0);
+    }
+
+    function lineEnd() {
+      resampleStream.point = point;
+      stream.lineEnd();
+    }
+
+    function ringStart() {
+      lineStart();
+      resampleStream.point = ringPoint;
+      resampleStream.lineEnd = ringEnd;
+    }
+
+    function ringPoint(lambda, phi) {
+      linePoint(lambda00 = lambda, phi), x00 = x0, y00 = y0, a00 = a0, b00 = b0, c00 = c0;
+      resampleStream.point = linePoint;
+    }
+
+    function ringEnd() {
+      resampleLineTo(x0, y0, lambda0, a0, b0, c0, x00, y00, lambda00, a00, b00, c00, maxDepth, stream);
+      resampleStream.lineEnd = lineEnd;
+      lineEnd();
+    }
+
+    return resampleStream;
+  };
+}
+
+var transformRadians = transformer({
+  point: function point(x, y) {
+    this.stream.point(x * radians, y * radians);
+  }
+});
+
+function projection(project) {
+  return projectionMutator(function () {
+    return project;
+  })();
+}
+
+function projectionMutator(projectAt) {
+  var project,
+      k = 150,
+      // scale
+  x = 480,
+      y = 250,
+      // translate
+  dx,
+      dy,
+      lambda = 0,
+      phi = 0,
+      // center
+  deltaLambda = 0,
+      deltaPhi = 0,
+      deltaGamma = 0,
+      rotate,
+      projectRotate,
+      // rotate
+  theta = null,
+      preclip = clipAntimeridian,
+      // clip angle
+  x0 = null,
+      y0,
+      x1,
+      y1,
+      postclip = identity$4,
+      // clip extent
+  delta2 = 0.5,
+      projectResample = resample(projectTransform, delta2),
+      // precision
+  cache,
+      cacheStream;
+
+  function projection(point) {
+    point = projectRotate(point[0] * radians, point[1] * radians);
+    return [point[0] * k + dx, dy - point[1] * k];
+  }
+
+  function invert(point) {
+    point = projectRotate.invert((point[0] - dx) / k, (dy - point[1]) / k);
+    return point && [point[0] * degrees, point[1] * degrees];
+  }
+
+  function projectTransform(x, y) {
+    return x = project(x, y), [x[0] * k + dx, dy - x[1] * k];
+  }
+
+  projection.stream = function (stream) {
+    return cache && cacheStream === stream ? cache : cache = transformRadians(preclip(rotate, projectResample(postclip(cacheStream = stream))));
+  };
+
+  projection.clipAngle = function (_) {
+    return arguments.length ? (preclip = +_ ? clipCircle(theta = _ * radians, 6 * radians) : (theta = null, clipAntimeridian), reset()) : theta * degrees;
+  };
+
+  projection.clipExtent = function (_) {
+    return arguments.length ? (postclip = _ == null ? (x0 = y0 = x1 = y1 = null, identity$4) : clipExtent(x0 = +_[0][0], y0 = +_[0][1], x1 = +_[1][0], y1 = +_[1][1]), reset()) : x0 == null ? null : [[x0, y0], [x1, y1]];
+  };
+
+  projection.scale = function (_) {
+    return arguments.length ? (k = +_, recenter()) : k;
+  };
+
+  projection.translate = function (_) {
+    return arguments.length ? (x = +_[0], y = +_[1], recenter()) : [x, y];
+  };
+
+  projection.center = function (_) {
+    return arguments.length ? (lambda = _[0] % 360 * radians, phi = _[1] % 360 * radians, recenter()) : [lambda * degrees, phi * degrees];
+  };
+
+  projection.rotate = function (_) {
+    return arguments.length ? (deltaLambda = _[0] % 360 * radians, deltaPhi = _[1] % 360 * radians, deltaGamma = _.length > 2 ? _[2] % 360 * radians : 0, recenter()) : [deltaLambda * degrees, deltaPhi * degrees, deltaGamma * degrees];
+  };
+
+  projection.precision = function (_) {
+    return arguments.length ? (projectResample = resample(projectTransform, delta2 = _ * _), reset()) : sqrt(delta2);
+  };
+
+  projection.fitExtent = function (extent$$1, object) {
+    return fitExtent(projection, extent$$1, object);
+  };
+
+  projection.fitSize = function (size, object) {
+    return fitSize(projection, size, object);
+  };
+
+  function recenter() {
+    projectRotate = compose(rotate = rotateRadians(deltaLambda, deltaPhi, deltaGamma), project);
+    var center = project(lambda, phi);
+    dx = x - center[0] * k;
+    dy = y + center[1] * k;
+    return reset();
+  }
+
+  function reset() {
+    cache = cacheStream = null;
+    return projection;
+  }
+
+  return function () {
+    project = projectAt.apply(this, arguments);
+    projection.invert = project.invert && invert;
+    return recenter();
+  };
+}
+
+function mercatorRaw(lambda, phi) {
+  return [lambda, log(tan((halfPi + phi) / 2))];
+}
+
+mercatorRaw.invert = function (x, y) {
+  return [x, 2 * atan(exp(y)) - halfPi];
+};
+
+function mercatorProjection(project) {
+  var m = projection(project),
+      center = m.center,
+      scale = m.scale,
+      translate = m.translate,
+      clipExtent = m.clipExtent,
+      x0 = null,
+      y0,
+      x1,
+      y1; // clip extent
+
+  m.scale = function (_) {
+    return arguments.length ? (scale(_), reclip()) : scale();
+  };
+
+  m.translate = function (_) {
+    return arguments.length ? (translate(_), reclip()) : translate();
+  };
+
+  m.center = function (_) {
+    return arguments.length ? (center(_), reclip()) : center();
+  };
+
+  m.clipExtent = function (_) {
+    return arguments.length ? (_ == null ? x0 = y0 = x1 = y1 = null : (x0 = +_[0][0], y0 = +_[0][1], x1 = +_[1][0], y1 = +_[1][1]), reclip()) : x0 == null ? null : [[x0, y0], [x1, y1]];
+  };
+
+  function reclip() {
+    var k = pi * scale(),
+        t = m(rotation(m.rotate()).invert([0, 0]));
+    return clipExtent(x0 == null ? [[t[0] - k, t[1] - k], [t[0] + k, t[1] + k]] : project === mercatorRaw ? [[Math.max(t[0] - k, x0), y0], [Math.min(t[0] + k, x1), y1]] : [[x0, Math.max(t[1] - k, y0)], [x1, Math.min(t[1] + k, y1)]]);
+  }
+
+  return reclip();
+}
+
+function transverseMercatorRaw(lambda, phi) {
+  return [log(tan((halfPi + phi) / 2)), -lambda];
+}
+
+transverseMercatorRaw.invert = function (x, y) {
+  return [-y, 2 * atan(exp(x)) - halfPi];
+};
+
+var geoTransverseMercator = function () {
+  var m = mercatorProjection(transverseMercatorRaw),
+      center = m.center,
+      rotate = m.rotate;
+
+  m.center = function (_) {
+    return arguments.length ? center([-_[1], _[0]]) : (_ = center(), [_[1], -_[0]]);
+  };
+
+  m.rotate = function (_) {
+    return arguments.length ? rotate([_[0], _[1], _.length > 2 ? _[2] + 90 : 90]) : (_ = rotate(), [_[0], _[1], _[2] - 90]);
+  };
+
+  return rotate([0, 0, 90]).scale(159.155);
+};
+
+/**
+ * Calculates a buffer for input features for a given radius. Units supported are miles, kilometers, and degrees.
+ *
+ * When using a negative radius, the resulting geometry may be invalid if
+ * it's too small compared to the radius magnitude. If the input is a
+ * FeatureCollection, only valid members will be returned in the output
+ * FeatureCollection - i.e., the output collection may have fewer members than
+ * the input, or even be empty.
+ *
+ * @name buffer
+ * @param {FeatureCollection|Geometry|Feature<any>} geojson input to be buffered
+ * @param {number} radius distance to draw the buffer (negative values are allowed)
+ * @param {Object} [options] Optional parameters
+ * @param {string} [options.units="kilometers"] any of the options supported by turf units
+ * @param {number} [options.steps=64] number of steps
+ * @returns {FeatureCollection|Feature<Polygon|MultiPolygon>|undefined} buffered features
+ * @example
+ * var point = turf.point([-90.548630, 14.616599]);
+ * var buffered = turf.buffer(point, 500, {units: 'miles'});
+ *
+ * //addToMap
+ * var addToMap = [point, buffered]
+ */
+function buffer$1(geojson, radius, options) {
+    // Optional params
+    options = options || {};
+    var units = options.units;
+    var steps = options.steps || 64;
+
+    // validation
+    if (!geojson) throw new Error('geojson is required');
+    if ((typeof options === 'undefined' ? 'undefined' : _typeof(options)) !== 'object') throw new Error('options must be an object');
+    if (typeof steps !== 'number') throw new Error('steps must be an number');
+
+    // Allow negative buffers ("erosion") or zero-sized buffers ("repair geometry")
+    if (radius === undefined) throw new Error('radius is required');
+    if (steps <= 0) throw new Error('steps must be greater than 0');
+
+    // default params
+    steps = steps || 64;
+    units = units || 'kilometers';
+
+    var results = [];
+    switch (geojson.type) {
+        case 'GeometryCollection':
+            geomEach(geojson, function (geometry$$1) {
+                var buffered = bufferFeature(geometry$$1, radius, units, steps);
+                if (buffered) results.push(buffered);
+            });
+            return featureCollection(results);
+        case 'FeatureCollection':
+            featureEach(geojson, function (feature$$1) {
+                var multiBuffered = bufferFeature(feature$$1, radius, units, steps);
+                if (multiBuffered) {
+                    featureEach(multiBuffered, function (buffered) {
+                        if (buffered) results.push(buffered);
+                    });
+                }
+            });
+            return featureCollection(results);
+    }
+    return bufferFeature(geojson, radius, units, steps);
+}
+
+/**
+ * Buffer single Feature/Geometry
+ *
+ * @private
+ * @param {Feature<any>} geojson input to be buffered
+ * @param {number} radius distance to draw the buffer
+ * @param {string} [units='kilometers'] any of the options supported by turf units
+ * @param {number} [steps=64] number of steps
+ * @returns {Feature<Polygon|MultiPolygon>} buffered feature
+ */
+function bufferFeature(geojson, radius, units, steps) {
+    var properties = geojson.properties || {};
+    var geometry$$1 = geojson.type === 'Feature' ? geojson.geometry : geojson;
+
+    // Geometry Types faster than jsts
+    if (geometry$$1.type === 'GeometryCollection') {
+        var results = [];
+        geomEach(geojson, function (geometry$$1) {
+            var buffered = bufferFeature(geometry$$1, radius, units, steps);
+            if (buffered) results.push(buffered);
+        });
+        return featureCollection(results);
+    }
+
+    // Project GeoJSON to Transverse Mercator projection (convert to Meters)
+    var projected;
+    var bbox = bbox$1(geojson);
+    var needsTransverseMercator = bbox[1] > 50 && bbox[3] > 50;
+
+    if (needsTransverseMercator) {
+        projected = {
+            type: geometry$$1.type,
+            coordinates: projectCoords(geometry$$1.coordinates, defineProjection(geometry$$1))
+        };
+    } else {
+        projected = toMercator(geometry$$1);
+    }
+
+    // JSTS buffer operation
+    var reader = new GeoJSONReader();
+    var geom = reader.read(projected);
+    var distance = radiansToLength(lengthToRadians(radius, units), 'meters');
+    var buffered = BufferOp.bufferOp(geom, distance);
+    var writer = new GeoJSONWriter();
+    buffered = writer.write(buffered);
+
+    // Detect if empty geometries
+    if (coordsIsNaN(buffered.coordinates)) return undefined;
+
+    // Unproject coordinates (convert to Degrees)
+    var result;
+    if (needsTransverseMercator) {
+        result = {
+            type: buffered.type,
+            coordinates: unprojectCoords(buffered.coordinates, defineProjection(geometry$$1))
+        };
+    } else {
+        result = toWgs84(buffered);
+    }
+
+    return result.geometry ? result : feature(result, properties);
+}
+
+/**
+ * Coordinates isNaN
+ *
+ * @private
+ * @param {Array<any>} coords GeoJSON Coordinates
+ * @returns {boolean} if NaN exists
+ */
+function coordsIsNaN(coords) {
+    if (Array.isArray(coords[0])) return coordsIsNaN(coords[0]);
+    return isNaN(coords[0]);
+}
+
+/**
+ * Project coordinates to projection
+ *
+ * @private
+ * @param {Array<any>} coords to project
+ * @param {GeoProjection} proj D3 Geo Projection
+ * @returns {Array<any>} projected coordinates
+ */
+function projectCoords(coords, proj) {
+    if (_typeof(coords[0]) !== 'object') return proj(coords);
+    return coords.map(function (coord) {
+        return projectCoords(coord, proj);
+    });
+}
+
+/**
+ * Un-Project coordinates to projection
+ *
+ * @private
+ * @param {Array<any>} coords to un-project
+ * @param {GeoProjection} proj D3 Geo Projection
+ * @returns {Array<any>} un-projected coordinates
+ */
+function unprojectCoords(coords, proj) {
+    if (_typeof(coords[0]) !== 'object') return proj.invert(coords);
+    return coords.map(function (coord) {
+        return unprojectCoords(coord, proj);
+    });
+}
+
+/**
+ * Define Transverse Mercator projection
+ *
+ * @private
+ * @param {Geometry|Feature<any>} geojson Base projection on center of GeoJSON
+ * @returns {GeoProjection} D3 Geo Transverse Mercator Projection
+ */
+function defineProjection(geojson) {
+    var coords = center(geojson).geometry.coordinates.reverse();
+    var rotate = coords.map(function (coord) {
+        return -coord;
+    });
+    return geoTransverseMercator().center(coords).rotate(rotate).scale(earthRadius);
+}
+
+/**
+ * Calculates a buffer for input features for a given radius. Units supported are miles, kilometers, and degrees.
+ * @param  {google.maps.Polygon|google.maps.Polyline|google.maps.Marker|google.maps.LatLng|Array.<google.maps.LatLng>|Feature.<Polygon|Linestring|Point>} object input object
+ * @param  {String} output  either 'geometry','object' (google.maps) or 'feature', case insensitive, defaults to 'feature'
+ * @param  {Number} distance    [description]
+ * @param  {String} units       'meters' or 'miles' etc
+ * @return {Feature|Feature.<Geometry>}  A GeoJson Feature or its geometry, according to output parameter
+ */
+function createbuffer(object, output, distance, units, comment, steps) {
+    units = units || 'meters';
+    output = (output || 'feature').toLowerCase();
+
+    var Feature;
+    if (object instanceof google.maps.Polyline || object instanceof google.maps.Polygon || object instanceof google.maps.Marker || object instanceof google.maps.LatLng) {
+        var geometry = Wicket$1().fromObject(object).toJson();
+        Feature = {
+            type: "Feature",
+            properties: {},
+            geometry: geometry
+        };
+    } else if (object.type && object.type === 'Feature' && object.geometry) {
+        Feature = object;
+    } else {
+        Feature = polygonToFeaturePolygon(object);
+    }
+
+    var buffered = buffer$1(Feature, distance, {
+        units: units,
+        steps: steps
+    });
+
+    if (buffered.type === 'FeatureCollection') {
+        buffered = buffered.features[0];
+    }
+
+    if (output === 'geometry') {
+        return buffered.geometry;
+    } else if (output === 'object') {
+        return Wicket$1().fromJson(buffered.geometry).toObject();
+    } else {
+        return buffered;
+    }
+}
+
+// http://en.wikipedia.org/wiki/Even%E2%80%93odd_rule
+// modified from: https://github.com/substack/point-in-polygon/blob/master/index.js
+// which was modified from http://www.ecse.rpi.edu/Homepages/wrf/Research/Short_Notes/pnpoly.html
+
+/**
+ * Takes a {@link Point} and a {@link Polygon} or {@link MultiPolygon} and determines if the point resides inside the polygon. The polygon can
+ * be convex or concave. The function accounts for holes.
+ *
+ * @name booleanPointInPolygon
+ * @param {Feature<Point>} point input point
+ * @param {Feature<Polygon|MultiPolygon>} polygon input polygon or multipolygon
+ * @param {Object} [options={}] Optional parameters
+ * @param {boolean} [options.ignoreBoundary=false] True if polygon boundary should be ignored when determining if the point is inside the polygon otherwise false.
+ * @returns {boolean} `true` if the Point is inside the Polygon; `false` if the Point is not inside the Polygon
+ * @example
+ * var pt = turf.point([-77, 44]);
+ * var poly = turf.polygon([[
+ *   [-81, 41],
+ *   [-81, 47],
+ *   [-72, 47],
+ *   [-72, 41],
+ *   [-81, 41]
+ * ]]);
+ *
+ * turf.booleanPointInPolygon(pt, poly);
+ * //= true
+ */
+function booleanPointInPolygon(point, polygon, options) {
+    // Optional parameters
+    options = options || {};
+    if ((typeof options === 'undefined' ? 'undefined' : _typeof(options)) !== 'object') throw new Error('options is invalid');
+    var ignoreBoundary = options.ignoreBoundary;
+
+    // validation
+    if (!point) throw new Error('point is required');
+    if (!polygon) throw new Error('polygon is required');
+
+    var pt = getCoord(point);
+    var polys = getCoords(polygon);
+    var type = polygon.geometry ? polygon.geometry.type : polygon.type;
+    var bbox = polygon.bbox;
+
+    // Quick elimination if point is not inside bbox
+    if (bbox && inBBox(pt, bbox) === false) return false;
+
+    // normalize to multipolygon
+    if (type === 'Polygon') polys = [polys];
+
+    for (var i = 0, insidePoly = false; i < polys.length && !insidePoly; i++) {
+        // check if it is in the outer ring first
+        if (inRing(pt, polys[i][0], ignoreBoundary)) {
+            var inHole = false;
+            var k = 1;
+            // check for the point in any of the holes
+            while (k < polys[i].length && !inHole) {
+                if (inRing(pt, polys[i][k], !ignoreBoundary)) {
+                    inHole = true;
+                }
+                k++;
+            }
+            if (!inHole) insidePoly = true;
+        }
+    }
+    return insidePoly;
+}
+
+/**
+ * inRing
+ *
+ * @private
+ * @param {Array<number>} pt [x,y]
+ * @param {Array<Array<number>>} ring [[x,y], [x,y],..]
+ * @param {boolean} ignoreBoundary ignoreBoundary
+ * @returns {boolean} inRing
+ */
+function inRing(pt, ring, ignoreBoundary) {
+    var isInside = false;
+    if (ring[0][0] === ring[ring.length - 1][0] && ring[0][1] === ring[ring.length - 1][1]) ring = ring.slice(0, ring.length - 1);
+
+    for (var i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+        var xi = ring[i][0],
+            yi = ring[i][1];
+        var xj = ring[j][0],
+            yj = ring[j][1];
+        var onBoundary = pt[1] * (xi - xj) + yi * (xj - pt[0]) + yj * (pt[0] - xi) === 0 && (xi - pt[0]) * (xj - pt[0]) <= 0 && (yi - pt[1]) * (yj - pt[1]) <= 0;
+        if (onBoundary) return !ignoreBoundary;
+        var intersect = yi > pt[1] !== yj > pt[1] && pt[0] < (xj - xi) * (pt[1] - yi) / (yj - yi) + xi;
+        if (intersect) isInside = !isInside;
+    }
+    return isInside;
+}
+
+/**
+ * inBBox
+ *
+ * @private
+ * @param {Array<number>} pt point [x,y]
+ * @param {Array<number>} bbox BBox [west, south, east, north]
+ * @returns {boolean} true/false if point is inside BBox
+ */
+function inBBox(pt, bbox) {
+    return bbox[0] <= pt[0] && bbox[1] <= pt[1] && bbox[2] >= pt[0] && bbox[3] >= pt[1];
+}
+
+/**
+ * Filters an array of points returning those who falls inside a given {@link Polygon}
+ * @param {Array<google.maps.Marker>} sourceArray array of {@link google.maps.Marker}
+ * @param {Polygon|Multipolygon} geojsonPolygon  the polygon thay may contain the points
+ * @return {{pointsInside:Array<google.maps.Marker>, pointsOutside:Array<google.maps.Marker>}} an object with the points that fall inside and outside the polygon
+ */
+function pointInPolygon(sourceArray, geojsonPolygon) {
+	var pointsInside = [];
+	var pointsOutside = [];
+
+	if (geojsonPolygon.type !== 'Feature') {
+		geojsonPolygon = {
+			"type": "Feature",
+			"properties": {},
+			"geometry": geojsonPolygon
+		};
+	}
+	if (geojsonPolygon.geometry.type === 'Polygon' || geojsonPolygon.geometry.type === 'Multipolygon') {
+		forEach(sourceArray, function (item) {
+
+			var Point = markerToFeaturePoint(item);
+			//console.zlog('Point is', Point);
+			if (booleanPointInPolygon(Point, geojsonPolygon)) {
+				pointsInside.push(item);
+			} else {
+				pointsOutside.push(item);
+			}
+		});
+	}
+
+	return {
+		pointsInside: pointsInside,
+		pointsOutside: pointsOutside
+	};
+}
+
+/**
+ * Takes a {@link LineString|linestring}, {@link MultiLineString|multi-linestring}, {@link MultiPolygon|multi-polygon}, or {@link Polygon|polygon} and returns {@link Point|points} at all self-intersections.
+ *
+ * @name kinks
+ * @param {Feature<LineString|MultiLineString|MultiPolygon|Polygon>} featureIn input feature
+ * @returns {FeatureCollection<Point>} self-intersections
+ * @example
+ * var poly = turf.polygon([[
+ *   [-12.034835, 8.901183],
+ *   [-12.060413, 8.899826],
+ *   [-12.03638, 8.873199],
+ *   [-12.059383, 8.871418],
+ *   [-12.034835, 8.901183]
+ * ]]);
+ *
+ * var kinks = turf.kinks(poly);
+ *
+ * //addToMap
+ * var addToMap = [poly, kinks]
+ */
+function kinks$1(featureIn) {
+    var coordinates;
+    var feature$$1;
+    var results = {
+        type: 'FeatureCollection',
+        features: []
+    };
+    if (featureIn.type === 'Feature') {
+        feature$$1 = featureIn.geometry;
+    } else {
+        feature$$1 = featureIn;
+    }
+    if (feature$$1.type === 'LineString') {
+        coordinates = [feature$$1.coordinates];
+    } else if (feature$$1.type === 'MultiLineString') {
+        coordinates = feature$$1.coordinates;
+    } else if (feature$$1.type === 'MultiPolygon') {
+        coordinates = [].concat.apply([], feature$$1.coordinates);
+    } else if (feature$$1.type === 'Polygon') {
+        coordinates = feature$$1.coordinates;
+    } else {
+        throw new Error('Input must be a LineString, MultiLineString, ' + 'Polygon, or MultiPolygon Feature or Geometry');
+    }
+    coordinates.forEach(function (line1) {
+        coordinates.forEach(function (line2) {
+            for (var i = 0; i < line1.length - 1; i++) {
+                // start iteration at i, intersections for k < i have already been checked in previous outer loop iterations
+                for (var k = i; k < line2.length - 1; k++) {
+                    if (line1 === line2) {
+                        // segments are adjacent and always share a vertex, not a kink
+                        if (Math.abs(i - k) === 1) {
+                            continue;
+                        }
+                        // first and last segment in a closed lineString or ring always share a vertex, not a kink
+                        if (
+                        // segments are first and last segment of lineString
+                        i === 0 && k === line1.length - 2 &&
+                        // lineString is closed
+                        line1[i][0] === line1[line1.length - 1][0] && line1[i][1] === line1[line1.length - 1][1]) {
+                            continue;
+                        }
+                    }
+
+                    var intersection = lineIntersects(line1[i][0], line1[i][1], line1[i + 1][0], line1[i + 1][1], line2[k][0], line2[k][1], line2[k + 1][0], line2[k + 1][1]);
+                    if (intersection) {
+                        results.features.push(point([intersection[0], intersection[1]]));
+                    }
+                }
+            }
+        });
+    });
+    return results;
+}
+
+// modified from http://jsfiddle.net/justin_c_rounds/Gd2S2/light/
+function lineIntersects(line1StartX, line1StartY, line1EndX, line1EndY, line2StartX, line2StartY, line2EndX, line2EndY) {
+    // if the lines intersect, the result contains the x and y of the intersection (treating the lines as infinite) and booleans for whether line segment 1 or line segment 2 contain the point
+    var denominator,
+        a,
+        b,
+        numerator1,
+        numerator2,
+        result = {
+        x: null,
+        y: null,
+        onLine1: false,
+        onLine2: false
+    };
+    denominator = (line2EndY - line2StartY) * (line1EndX - line1StartX) - (line2EndX - line2StartX) * (line1EndY - line1StartY);
+    if (denominator === 0) {
+        if (result.x !== null && result.y !== null) {
+            return result;
+        } else {
+            return false;
+        }
+    }
+    a = line1StartY - line2StartY;
+    b = line1StartX - line2StartX;
+    numerator1 = (line2EndX - line2StartX) * a - (line2EndY - line2StartY) * b;
+    numerator2 = (line1EndX - line1StartX) * a - (line1EndY - line1StartY) * b;
+    a = numerator1 / denominator;
+    b = numerator2 / denominator;
+
+    // if we cast these lines infinitely in both directions, they intersect here:
+    result.x = line1StartX + a * (line1EndX - line1StartX);
+    result.y = line1StartY + a * (line1EndY - line1StartY);
+
+    // if line1 is a segment and line2 is infinite, they intersect if:
+    if (a >= 0 && a <= 1) {
+        result.onLine1 = true;
+    }
+    // if line2 is a segment and line1 is infinite, they intersect if:
+    if (b >= 0 && b <= 1) {
+        result.onLine2 = true;
+    }
+    // if line1 and line2 are segments, they intersect if both of the above are true
+    if (result.onLine1 && result.onLine2) {
+        return [result.x, result.y];
+    } else {
+        return false;
+    }
+}
+
+/**
+ * Takes an array of points, google.maps.Polygon or Feature<Polygon> and returns {@link Point|points} at all self-intersections.
+ *
+ * @name kinks
+ * @param  {google.maps.Polyline|google.maps.Polygon|Array.<google.maps.LatLng>|Feature<Polygon>} object array of points, google.maps.Polygon or Feature<Polygon>
+ * @returns {FeatureCollection<Point>} self-intersections
+ *
+ */
+function kinks(object) {
+  var Feature;
+  if (object instanceof google.maps.Polyline || object instanceof google.maps.Polygon) {
+    var geometry = Wicket().fromObject(object).toJson();
+    Feature = {
+      type: "Feature",
+      properties: {},
+      geometry: geometry
+    };
+  } else if (object.type && object.type === 'Feature' && object.geometry) {
+    Feature = object;
+  } else {
+    Feature = polygonToFeaturePolygon(object);
+  }
+
+  return kinks$1(Feature);
+}
+
+var quickselect = partialSort;
+
+// Floyd-Rivest selection algorithm:
+// Rearrange items so that all items in the [left, k] range are smaller than all items in (k, right];
+// The k-th element will have the (k - left + 1)th smallest value in [left, right]
+
+function partialSort(arr, k, left, right, compare) {
+    left = left || 0;
+    right = right || arr.length - 1;
+    compare = compare || defaultCompare;
 
     while (right > left) {
         if (right - left > 600) {
@@ -35369,7 +37812,7 @@ function quickselectStep(arr, k, left, right, compare) {
             var sd = 0.5 * Math.sqrt(z * s * (n - s) / n) * (m - n / 2 < 0 ? -1 : 1);
             var newLeft = Math.max(left, Math.floor(k - m * s / n + sd));
             var newRight = Math.min(right, Math.floor(k + (n - m) * s / n + sd));
-            quickselectStep(arr, k, newLeft, newRight, compare);
+            partialSort(arr, k, newLeft, newRight, compare);
         }
 
         var t = arr[k];
@@ -35410,8 +37853,10 @@ function defaultCompare(a, b) {
     return a < b ? -1 : a > b ? 1 : 0;
 }
 
-function rbush$2(maxEntries, format) {
-    if (!(this instanceof rbush$2)) return new rbush$2(maxEntries, format);
+var rbush_1 = rbush;
+
+function rbush(maxEntries, format) {
+    if (!(this instanceof rbush)) return new rbush(maxEntries, format);
 
     // max entries in a node is 9 by default; min node fill is 40% for best performance
     this._maxEntries = Math.max(4, maxEntries || 9);
@@ -35424,7 +37869,7 @@ function rbush$2(maxEntries, format) {
     this.clear();
 }
 
-rbush$2.prototype = {
+rbush.prototype = {
 
     all: function all() {
         return this._all(this.data, []);
@@ -35436,7 +37881,7 @@ rbush$2.prototype = {
             result = [],
             toBBox = this.toBBox;
 
-        if (!intersects$1(bbox, node)) return result;
+        if (!intersects(bbox, node)) return result;
 
         var nodesToSearch = [],
             i,
@@ -35450,8 +37895,8 @@ rbush$2.prototype = {
                 child = node.children[i];
                 childBBox = node.leaf ? toBBox(child) : child;
 
-                if (intersects$1(bbox, childBBox)) {
-                    if (node.leaf) result.push(child);else if (contains(bbox, childBBox)) this._all(child, result);else nodesToSearch.push(child);
+                if (intersects(bbox, childBBox)) {
+                    if (node.leaf) result.push(child);else if (contains$1(bbox, childBBox)) this._all(child, result);else nodesToSearch.push(child);
                 }
             }
             node = nodesToSearch.pop();
@@ -35465,7 +37910,7 @@ rbush$2.prototype = {
         var node = this.data,
             toBBox = this.toBBox;
 
-        if (!intersects$1(bbox, node)) return false;
+        if (!intersects(bbox, node)) return false;
 
         var nodesToSearch = [],
             i,
@@ -35479,8 +37924,8 @@ rbush$2.prototype = {
                 child = node.children[i];
                 childBBox = node.leaf ? toBBox(child) : child;
 
-                if (intersects$1(bbox, childBBox)) {
-                    if (node.leaf || contains(bbox, childBBox)) return true;
+                if (intersects(bbox, childBBox)) {
+                    if (node.leaf || contains$1(bbox, childBBox)) return true;
                     nodesToSearch.push(child);
                 }
             }
@@ -35500,7 +37945,7 @@ rbush$2.prototype = {
             return this;
         }
 
-        // recursively build the tree with the given data from scratch using OMT algorithm
+        // recursively build the tree with the given data from stratch using OMT algorithm
         var node = this._build(data.slice(), 0, data.length - 1, 0);
 
         if (!this.data.children.length) {
@@ -35570,7 +38015,7 @@ rbush$2.prototype = {
                 }
             }
 
-            if (!goingUp && !node.leaf && contains(node, bbox)) {
+            if (!goingUp && !node.leaf && contains$1(node, bbox)) {
                 // go down
                 path.push(node);
                 indexes.push(i);
@@ -35931,11 +38376,11 @@ function intersectionArea(a, b) {
     return Math.max(0, maxX - minX) * Math.max(0, maxY - minY);
 }
 
-function contains(a, b) {
+function contains$1(a, b) {
     return a.minX <= b.minX && a.minY <= b.minY && b.maxX <= a.maxX && b.maxY <= a.maxY;
 }
 
-function intersects$1(a, b) {
+function intersects(a, b) {
     return b.minX <= a.maxX && b.minY <= a.maxY && b.maxX >= a.minX && b.maxY >= a.minY;
 }
 
@@ -35971,844 +38416,164 @@ function multiSelect(arr, left, right, n, compare) {
     }
 }
 
-/**
- * GeoJSON implementation of [RBush](https://github.com/mourner/rbush#rbush) spatial index.
- *
- * @name rbush
- * @param {number} [maxEntries=9] defines the maximum number of entries in a tree node. 9 (used by default) is a
- * reasonable choice for most applications. Higher value means faster insertion and slower search, and vice versa.
- * @returns {RBush} GeoJSON RBush
- * @example
- * import geojsonRbush from 'geojson-rbush';
- * var tree = geojsonRbush();
- */
-function geojsonRbush(maxEntries) {
-    var tree = rbush$2(maxEntries);
-    /**
-     * [insert](https://github.com/mourner/rbush#data-format)
-     *
-     * @param {Feature<any>} feature insert single GeoJSON Feature
-     * @returns {RBush} GeoJSON RBush
-     * @example
-     * var polygon = {
-     *   "type": "Feature",
-     *   "properties": {},
-     *   "geometry": {
-     *     "type": "Polygon",
-     *     "coordinates": [[[-78, 41], [-67, 41], [-67, 48], [-78, 48], [-78, 41]]]
-     *   }
-     * }
-     * tree.insert(polygon)
-     */
-    tree.insert = function (feature) {
-        if (Array.isArray(feature)) {
-            var bbox = feature;
-            feature = bboxPolygon$2(bbox);
-            feature.bbox = bbox;
-        } else {
-            feature.bbox = feature.bbox ? feature.bbox : turfBBox(feature);
+// Find self-intersections in geojson polygon (possibly with interior rings)
+var isects = function (feature, filterFn, useSpatialIndex) {
+    if (feature.geometry.type !== 'Polygon') throw new Error('The input feature must be a Polygon');
+    if (useSpatialIndex === undefined) useSpatialIndex = 1;
+
+    var coord = feature.geometry.coordinates;
+
+    var output = [];
+    var seen = {};
+
+    if (useSpatialIndex) {
+        var allEdgesAsRbushTreeItems = [];
+        for (var ring0 = 0; ring0 < coord.length; ring0++) {
+            for (var edge0 = 0; edge0 < coord[ring0].length - 1; edge0++) {
+                allEdgesAsRbushTreeItems.push(rbushTreeItem(ring0, edge0));
+            }
         }
-        return rbush$2.prototype.insert.call(this, feature);
-    };
+        var tree = rbush_1();
+        tree.load(allEdgesAsRbushTreeItems);
+    }
 
-    /**
-     * [load](https://github.com/mourner/rbush#bulk-inserting-data)
-     *
-     * @param {BBox[]|FeatureCollection<any>} features load entire GeoJSON FeatureCollection
-     * @returns {RBush} GeoJSON RBush
-     * @example
-     * var polygons = {
-     *   "type": "FeatureCollection",
-     *   "features": [
-     *     {
-     *       "type": "Feature",
-     *       "properties": {},
-     *       "geometry": {
-     *         "type": "Polygon",
-     *         "coordinates": [[[-78, 41], [-67, 41], [-67, 48], [-78, 48], [-78, 41]]]
-     *       }
-     *     },
-     *     {
-     *       "type": "Feature",
-     *       "properties": {},
-     *       "geometry": {
-     *         "type": "Polygon",
-     *         "coordinates": [[[-93, 32], [-83, 32], [-83, 39], [-93, 39], [-93, 32]]]
-     *       }
-     *     }
-     *   ]
-     * }
-     * tree.load(polygons)
-     */
-    tree.load = function (features) {
-        var load = [];
-        // Load an Array of BBox
-        if (Array.isArray(features)) {
-            features.forEach(function (bbox) {
-                var feature = bboxPolygon$2(bbox);
-                feature.bbox = bbox;
-                load.push(feature);
-            });
-        } else {
-            // Load FeatureCollection
-            featureEach(features, function (feature) {
-                feature.bbox = feature.bbox ? feature.bbox : turfBBox(feature);
-                load.push(feature);
-            });
+    for (var ringA = 0; ringA < coord.length; ringA++) {
+        for (var edgeA = 0; edgeA < coord[ringA].length - 1; edgeA++) {
+            if (useSpatialIndex) {
+                var bboxOverlaps = tree.search(rbushTreeItem(ringA, edgeA));
+                bboxOverlaps.forEach(function (bboxIsect) {
+                    var ring1 = bboxIsect.ring;
+                    var edge1 = bboxIsect.edge;
+                    ifIsectAddToOutput(ringA, edgeA, ring1, edge1);
+                });
+            } else {
+                for (var ring1 = 0; ring1 < coord.length; ring1++) {
+                    for (var edge1 = 0; edge1 < coord[ring1].length - 1; edge1++) {
+                        // TODO: speedup possible if only interested in unique: start last two loops at ringA and edgeA+1
+                        ifIsectAddToOutput(ringA, edgeA, ring1, edge1);
+                    }
+                }
+            }
         }
-        return rbush$2.prototype.load.call(this, load);
-    };
+    }
 
-    /**
-     * [remove](https://github.com/mourner/rbush#removing-data)
-     *
-     * @param {BBox|Feature<any>} feature remove single GeoJSON Feature
-     * @returns {RBush} GeoJSON RBush
-     * @example
-     * var polygon = {
-     *   "type": "Feature",
-     *   "properties": {},
-     *   "geometry": {
-     *     "type": "Polygon",
-     *     "coordinates": [[[-78, 41], [-67, 41], [-67, 48], [-78, 48], [-78, 41]]]
-     *   }
-     * }
-     * tree.remove(polygon)
-     */
-    tree.remove = function (feature) {
-        if (Array.isArray(feature)) {
-            var bbox = feature;
-            feature = bboxPolygon$2(bbox);
-            feature.bbox = bbox;
-        }
-        return rbush$2.prototype.remove.call(this, feature);
-    };
-
-    /**
-     * [clear](https://github.com/mourner/rbush#removing-data)
-     *
-     * @returns {RBush} GeoJSON Rbush
-     * @example
-     * tree.clear()
-     */
-    tree.clear = function () {
-        return rbush$2.prototype.clear.call(this);
-    };
-
-    /**
-     * [search](https://github.com/mourner/rbush#search)
-     *
-     * @param {BBox|FeatureCollection|Feature<any>} geojson search with GeoJSON
-     * @returns {FeatureCollection<any>} all features that intersects with the given GeoJSON.
-     * @example
-     * var polygon = {
-     *   "type": "Feature",
-     *   "properties": {},
-     *   "geometry": {
-     *     "type": "Polygon",
-     *     "coordinates": [[[-78, 41], [-67, 41], [-67, 48], [-78, 48], [-78, 41]]]
-     *   }
-     * }
-     * tree.search(polygon)
-     */
-    tree.search = function (geojson) {
-        var features = rbush$2.prototype.search.call(this, this.toBBox(geojson));
-        return {
-            type: 'FeatureCollection',
-            features: features
-        };
-    };
-
-    /**
-     * [collides](https://github.com/mourner/rbush#collisions)
-     *
-     * @param {BBox|FeatureCollection|Feature<any>} geojson collides with GeoJSON
-     * @returns {boolean} true if there are any items intersecting the given GeoJSON, otherwise false.
-     * @example
-     * var polygon = {
-     *   "type": "Feature",
-     *   "properties": {},
-     *   "geometry": {
-     *     "type": "Polygon",
-     *     "coordinates": [[[-78, 41], [-67, 41], [-67, 48], [-78, 48], [-78, 41]]]
-     *   }
-     * }
-     * tree.collides(polygon)
-     */
-    tree.collides = function (geojson) {
-        return rbush$2.prototype.collides.call(this, this.toBBox(geojson));
-    };
-
-    /**
-     * [all](https://github.com/mourner/rbush#search)
-     *
-     * @returns {FeatureCollection<any>} all the features in RBush
-     * @example
-     * tree.all()
-     * //=FeatureCollection
-     */
-    tree.all = function () {
-        var features = rbush$2.prototype.all.call(this);
-        return {
-            type: 'FeatureCollection',
-            features: features
-        };
-    };
-
-    /**
-     * [toJSON](https://github.com/mourner/rbush#export-and-import)
-     *
-     * @returns {any} export data as JSON object
-     * @example
-     * var exported = tree.toJSON()
-     * //=JSON object
-     */
-    tree.toJSON = function () {
-        return rbush$2.prototype.toJSON.call(this);
-    };
-
-    /**
-     * [fromJSON](https://github.com/mourner/rbush#export-and-import)
-     *
-     * @param {any} json import previously exported data
-     * @returns {RBush} GeoJSON RBush
-     * @example
-     * var exported = {
-     *   "children": [
-     *     {
-     *       "type": "Feature",
-     *       "geometry": {
-     *         "type": "Point",
-     *         "coordinates": [110, 50]
-     *       },
-     *       "properties": {},
-     *       "bbox": [110, 50, 110, 50]
-     *     }
-     *   ],
-     *   "height": 1,
-     *   "leaf": true,
-     *   "minX": 110,
-     *   "minY": 50,
-     *   "maxX": 110,
-     *   "maxY": 50
-     * }
-     * tree.fromJSON(exported)
-     */
-    tree.fromJSON = function (json) {
-        return rbush$2.prototype.fromJSON.call(this, json);
-    };
-
-    /**
-     * Converts GeoJSON to {minX, minY, maxX, maxY} schema
-     *
-     * @private
-     * @param {BBox|FeatureCollectio|Feature<any>} geojson feature(s) to retrieve BBox from
-     * @returns {Object} converted to {minX, minY, maxX, maxY}
-     */
-    tree.toBBox = function (geojson) {
-        var bbox;
-        if (geojson.bbox) bbox = geojson.bbox;else if (Array.isArray(geojson) && geojson.length === 4) bbox = geojson;else bbox = turfBBox(geojson);
-
-        return {
-            minX: bbox[0],
-            minY: bbox[1],
-            maxX: bbox[2],
-            maxY: bbox[3]
-        };
-    };
-    return tree;
-}
-
-/**
- * Takes a bbox and returns an equivalent {@link Polygon|polygon}.
- *
- * @private
- * @name bboxPolygon
- * @param {Array<number>} bbox extent in [minX, minY, maxX, maxY] order
- * @returns {Feature<Polygon>} a Polygon representation of the bounding box
- * @example
- * var bbox = [0, 0, 10, 10];
- *
- * var poly = turf.bboxPolygon(bbox);
- *
- * //addToMap
- * var addToMap = [poly]
- */
-function bboxPolygon$2(bbox) {
-    var lowLeft = [bbox[0], bbox[1]];
-    var topLeft = [bbox[0], bbox[3]];
-    var topRight = [bbox[2], bbox[3]];
-    var lowRight = [bbox[2], bbox[1]];
-    var coordinates = [[lowLeft, lowRight, topRight, topLeft, lowLeft]];
-
-    return {
+    if (!filterFn) output = {
         type: 'Feature',
-        bbox: bbox,
-        properties: {},
         geometry: {
-            type: 'Polygon',
-            coordinates: coordinates
+            type: 'MultiPoint',
+            coordinates: output
         }
     };
-}
+    return output;
 
-/**
- * Takes a set of features, calculates the bbox of all input features, and returns a bounding box.
- *
- * @private
- * @name bbox
- * @param {FeatureCollection|Feature<any>} geojson input features
- * @returns {Array<number>} bbox extent in [minX, minY, maxX, maxY] order
- * @example
- * var line = turf.lineString([[-74, 40], [-78, 42], [-82, 35]]);
- * var bbox = turf.bbox(line);
- * var bboxPolygon = turf.bboxPolygon(bbox);
- *
- * //addToMap
- * var addToMap = [line, bboxPolygon]
- */
-function turfBBox(geojson) {
-    var bbox = [Infinity, Infinity, -Infinity, -Infinity];
-    coordEach(geojson, function (coord) {
-        if (bbox[0] > coord[0]) bbox[0] = coord[0];
-        if (bbox[1] > coord[1]) bbox[1] = coord[1];
-        if (bbox[2] < coord[0]) bbox[2] = coord[0];
-        if (bbox[3] < coord[1]) bbox[3] = coord[1];
-    });
-    return bbox;
-}
+    // Function to check if two edges intersect and add the intersection to the output
+    function ifIsectAddToOutput(ring0, edge0, ring1, edge1) {
+        var start0 = coord[ring0][edge0];
+        var end0 = coord[ring0][edge0 + 1];
+        var start1 = coord[ring1][edge1];
+        var end1 = coord[ring1][edge1 + 1];
 
-/**
- * Creates a {@link FeatureCollection} of 2-vertex {@link LineString} segments from a {@link LineString|(Multi)LineString} or {@link Polygon|(Multi)Polygon}.
- *
- * @name lineSegment
- * @param {Geometry|FeatureCollection|Feature<LineString|MultiLineString|MultiPolygon|Polygon>} geojson GeoJSON Polygon or LineString
- * @returns {FeatureCollection<LineString>} 2-vertex line segments
- * @example
- * var polygon = turf.polygon([[[-50, 5], [-40, -10], [-50, -10], [-40, 5], [-50, 5]]]);
- * var segments = turf.lineSegment(polygon);
- *
- * //addToMap
- * var addToMap = [polygon, segments]
- */
-function lineSegment(geojson) {
-    if (!geojson) throw new Error('geojson is required');
+        var isect = intersect(start0, end0, start1, end1);
 
-    var results = [];
-    flattenEach(geojson, function (feature$$1) {
-        lineSegmentFeature(feature$$1, results);
-    });
-    return featureCollection(results);
-}
-
-/**
- * Line Segment
- *
- * @private
- * @param {Feature<LineString|Polygon>} geojson Line or polygon feature
- * @param {Array} results push to results
- * @returns {void}
- */
-function lineSegmentFeature(geojson, results) {
-    var coords = [];
-    var geometry$$1 = geojson.geometry;
-    switch (geometry$$1.type) {
-        case 'Polygon':
-            coords = getCoords(geometry$$1);
-            break;
-        case 'LineString':
-            coords = [getCoords(geometry$$1)];
-    }
-    coords.forEach(function (coord) {
-        var segments = createSegments(coord, geojson.properties);
-        segments.forEach(function (segment) {
-            segment.id = results.length;
-            results.push(segment);
-        });
-    });
-}
-
-/**
- * Create Segments from LineString coordinates
- *
- * @private
- * @param {LineString} coords LineString coordinates
- * @param {*} properties GeoJSON properties
- * @returns {Array<Feature<LineString>>} line segments
- */
-function createSegments(coords, properties) {
-    var segments = [];
-    coords.reduce(function (previousCoords, currentCoords) {
-        var segment = lineString([previousCoords, currentCoords], properties);
-        segment.bbox = bbox$2(previousCoords, currentCoords);
-        segments.push(segment);
-        return currentCoords;
-    });
-    return segments;
-}
-
-/**
- * Create BBox between two coordinates (faster than @turf/bbox)
- *
- * @private
- * @param {Array<number>} coords1 Point coordinate
- * @param {Array<number>} coords2 Point coordinate
- * @returns {BBox} [west, south, east, north]
- */
-function bbox$2(coords1, coords2) {
-    var x1 = coords1[0];
-    var y1 = coords1[1];
-    var x2 = coords2[0];
-    var y2 = coords2[1];
-    var west = x1 < x2 ? x1 : x2;
-    var south = y1 < y2 ? y1 : y2;
-    var east = x1 > x2 ? x1 : x2;
-    var north = y1 > y2 ? y1 : y2;
-    return [west, south, east, north];
-}
-
-/**
- * Takes any LineString or Polygon GeoJSON and returns the intersecting point(s).
- *
- * @name lineIntersect
- * @param {Geometry|FeatureCollection|Feature<LineString|MultiLineString|Polygon|MultiPolygon>} line1 any LineString or Polygon
- * @param {Geometry|FeatureCollection|Feature<LineString|MultiLineString|Polygon|MultiPolygon>} line2 any LineString or Polygon
- * @returns {FeatureCollection<Point>} point(s) that intersect both
- * @example
- * var line1 = turf.lineString([[126, -11], [129, -21]]);
- * var line2 = turf.lineString([[123, -18], [131, -14]]);
- * var intersects = turf.lineIntersect(line1, line2);
- *
- * //addToMap
- * var addToMap = [line1, line2, intersects]
- */
-function lineIntersect(line1, line2) {
-    var unique = {};
-    var results = [];
-
-    // First, normalize geometries to features
-    // Then, handle simple 2-vertex segments
-    if (line1.type === 'LineString') line1 = feature(line1);
-    if (line2.type === 'LineString') line2 = feature(line2);
-    if (line1.type === 'Feature' && line2.type === 'Feature' && line1.geometry.type === 'LineString' && line2.geometry.type === 'LineString' && line1.geometry.coordinates.length === 2 && line2.geometry.coordinates.length === 2) {
-        var intersect = intersects(line1, line2);
-        if (intersect) results.push(intersect);
-        return featureCollection(results);
-    }
-
-    // Handles complex GeoJSON Geometries
-    var tree = geojsonRbush();
-    tree.load(lineSegment(line2));
-    featureEach(lineSegment(line1), function (segment) {
-        featureEach(tree.search(segment), function (match) {
-            var intersect = intersects(segment, match);
-            if (intersect) {
-                // prevent duplicate points https://github.com/Turfjs/turf/issues/688
-                var key = getCoords(intersect).join(',');
-                if (!unique[key]) {
-                    unique[key] = true;
-                    results.push(intersect);
-                }
-            }
-        });
-    });
-    return featureCollection(results);
-}
-
-/**
- * Find a point that intersects LineStrings with two coordinates each
- *
- * @private
- * @param {Feature<LineString>} line1 GeoJSON LineString (Must only contain 2 coordinates)
- * @param {Feature<LineString>} line2 GeoJSON LineString (Must only contain 2 coordinates)
- * @returns {Feature<Point>} intersecting GeoJSON Point
- */
-function intersects(line1, line2) {
-    var coords1 = getCoords(line1);
-    var coords2 = getCoords(line2);
-    if (coords1.length !== 2) {
-        throw new Error('<intersects> line1 must only contain 2 coordinates');
-    }
-    if (coords2.length !== 2) {
-        throw new Error('<intersects> line2 must only contain 2 coordinates');
-    }
-    var x1 = coords1[0][0];
-    var y1 = coords1[0][1];
-    var x2 = coords1[1][0];
-    var y2 = coords1[1][1];
-    var x3 = coords2[0][0];
-    var y3 = coords2[0][1];
-    var x4 = coords2[1][0];
-    var y4 = coords2[1][1];
-    var denom = (y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1);
-    var numeA = (x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3);
-    var numeB = (x2 - x1) * (y1 - y3) - (y2 - y1) * (x1 - x3);
-
-    if (denom === 0) {
-        if (numeA === 0 && numeB === 0) {
-            return null;
-        }
-        return null;
-    }
-
-    var uA = numeA / denom;
-    var uB = numeB / denom;
-
-    if (uA >= 0 && uA <= 1 && uB >= 0 && uB <= 1) {
-        var x = x1 + uA * (x2 - x1);
-        var y = y1 + uA * (y2 - y1);
-        return point([x, y]);
-    }
-    return null;
-}
-
-/**
- * Takes a {@link Point} and a {@link LineString} and calculates the closest Point on the (Multi)LineString.
- *
- * @name nearestPointOnLine
- * @param {Geometry|Feature<LineString|MultiLineString>} lines lines to snap to
- * @param {Geometry|Feature<Point>|number[]} pt point to snap from
- * @param {Object} [options={}] Optional parameters
- * @param {string} [options.units='kilometers'] can be degrees, radians, miles, or kilometers
- * @returns {Feature<Point>} closest point on the `line` to `point`. The properties object will contain three values: `index`: closest point was found on nth line part, `dist`: distance between pt and the closest point, `location`: distance along the line between start and the closest point.
- * @example
- * var line = turf.lineString([
- *     [-77.031669, 38.878605],
- *     [-77.029609, 38.881946],
- *     [-77.020339, 38.884084],
- *     [-77.025661, 38.885821],
- *     [-77.021884, 38.889563],
- *     [-77.019824, 38.892368]
- * ]);
- * var pt = turf.point([-77.037076, 38.884017]);
- *
- * var snapped = turf.nearestPointOnLine(line, pt, {units: 'miles'});
- *
- * //addToMap
- * var addToMap = [line, pt, snapped];
- * snapped.properties['marker-color'] = '#00f';
- */
-function nearestPointOnLine(lines, pt, options) {
-    // Optional parameters
-    options = options || {};
-    if (!isObject$2(options)) throw new Error('options is invalid');
-
-    // validation
-    var type = lines.geometry ? lines.geometry.type : lines.type;
-    if (type !== 'LineString' && type !== 'MultiLineString') {
-        throw new Error('lines must be LineString or MultiLineString');
-    }
-
-    var closestPt = point([Infinity, Infinity], {
-        dist: Infinity
-    });
-
-    var length = 0.0;
-    flattenEach(lines, function (line) {
-        var coords = getCoords(line);
-
-        for (var i = 0; i < coords.length - 1; i++) {
-            //start
-            var start = point(coords[i]);
-            start.properties.dist = distance(pt, start, options);
-            //stop
-            var stop = point(coords[i + 1]);
-            stop.properties.dist = distance(pt, stop, options);
-            // sectionLength
-            var sectionLength = distance(start, stop, options);
-            //perpendicular
-            var heightDistance = Math.max(start.properties.dist, stop.properties.dist);
-            var direction = bearing(start, stop);
-            var perpendicularPt1 = destination(pt, heightDistance, direction + 90, options);
-            var perpendicularPt2 = destination(pt, heightDistance, direction - 90, options);
-            var intersect = lineIntersect(lineString([perpendicularPt1.geometry.coordinates, perpendicularPt2.geometry.coordinates]), lineString([start.geometry.coordinates, stop.geometry.coordinates]));
-            var intersectPt = null;
-            if (intersect.features.length > 0) {
-                intersectPt = intersect.features[0];
-                intersectPt.properties.dist = distance(pt, intersectPt, options);
-                intersectPt.properties.location = length + distance(start, intersectPt, options);
-            }
-
-            if (start.properties.dist < closestPt.properties.dist) {
-                closestPt = start;
-                closestPt.properties.index = i;
-                closestPt.properties.location = length;
-            }
-            if (stop.properties.dist < closestPt.properties.dist) {
-                closestPt = stop;
-                closestPt.properties.index = i + 1;
-                closestPt.properties.location = length + sectionLength;
-            }
-            if (intersectPt && intersectPt.properties.dist < closestPt.properties.dist) {
-                closestPt = intersectPt;
-                closestPt.properties.index = i;
-            }
-            // update length
-            length += sectionLength;
-        }
-    });
-
-    return closestPt;
-}
-
-// https://en.wikipedia.org/wiki/Rhumb_line
-
-// https://en.wikipedia.org/wiki/Rhumb_line
-
-/**
- * Converts a WGS84 GeoJSON object into Mercator (EPSG:900913) projection
- *
- * @name toMercator
- * @param {GeoJSON|Position} geojson WGS84 GeoJSON object
- * @param {Object} [options] Optional parameters
- * @param {boolean} [options.mutate=false] allows GeoJSON input to be mutated (significant performance increase if true)
- * @returns {GeoJSON} true/false
- * @example
- * var pt = turf.point([-71,41]);
- * var converted = turf.toMercator(pt);
- *
- * //addToMap
- * var addToMap = [pt, converted];
- */
-function toMercator(geojson, options) {
-    return convert(geojson, 'mercator', options);
-}
-
-/**
- * Converts a Mercator (EPSG:900913) GeoJSON object into WGS84 projection
- *
- * @name toWgs84
- * @param {GeoJSON|Position} geojson Mercator GeoJSON object
- * @param {Object} [options] Optional parameters
- * @param {boolean} [options.mutate=false] allows GeoJSON input to be mutated (significant performance increase if true)
- * @returns {GeoJSON} true/false
- * @example
- * var pt = turf.point([-7903683.846322424, 5012341.663847514]);
- * var converted = turf.toWgs84(pt);
- *
- * //addToMap
- * var addToMap = [pt, converted];
- */
-function toWgs84(geojson, options) {
-    return convert(geojson, 'wgs84', options);
-}
-
-/**
- * Converts a GeoJSON coordinates to the defined `projection`
- *
- * @private
- * @param {GeoJSON} geojson GeoJSON Feature or Geometry
- * @param {string} projection defines the projection system to convert the coordinates to
- * @param {Object} [options] Optional parameters
- * @param {boolean} [options.mutate=false] allows GeoJSON input to be mutated (significant performance increase if true)
- * @returns {GeoJSON} true/false
- */
-function convert(geojson, projection, options) {
-    // Optional parameters
-    options = options || {};
-    if (!isObject$2(options)) throw new Error('options is invalid');
-    var mutate = options.mutate;
-
-    // Validation
-    if (!geojson) throw new Error('geojson is required');
-
-    // Handle Position
-    if (Array.isArray(geojson) && isNumber(geojson[0])) geojson = projection === 'mercator' ? convertToMercator(geojson) : convertToWgs84(geojson);
-
-    // Handle GeoJSON
-    else {
-            // Handle possible data mutation
-            if (mutate !== true) geojson = clone(geojson);
-
-            coordEach(geojson, function (coord) {
-                var newCoord = projection === 'mercator' ? convertToMercator(coord) : convertToWgs84(coord);
-                coord[0] = newCoord[0];
-                coord[1] = newCoord[1];
-            });
-        }
-    return geojson;
-}
-
-/**
- * Convert lon/lat values to 900913 x/y.
- * (from https://github.com/mapbox/sphericalmercator)
- *
- * @private
- * @param {Array<number>} lonLat WGS84 point
- * @returns {Array<number>} Mercator [x, y] point
- */
-function convertToMercator(lonLat) {
-    var D2R = Math.PI / 180,
-
-    // 900913 properties
-    A = 6378137.0,
-        MAXEXTENT = 20037508.342789244;
-
-    // compensate longitudes passing the 180th meridian
-    // from https://github.com/proj4js/proj4js/blob/master/lib/common/adjust_lon.js
-    var adjusted = Math.abs(lonLat[0]) <= 180 ? lonLat[0] : lonLat[0] - sign(lonLat[0]) * 360;
-    var xy = [A * adjusted * D2R, A * Math.log(Math.tan(Math.PI * 0.25 + 0.5 * lonLat[1] * D2R))];
-
-    // if xy value is beyond maxextent (e.g. poles), return maxextent
-    if (xy[0] > MAXEXTENT) xy[0] = MAXEXTENT;
-    if (xy[0] < -MAXEXTENT) xy[0] = -MAXEXTENT;
-    if (xy[1] > MAXEXTENT) xy[1] = MAXEXTENT;
-    if (xy[1] < -MAXEXTENT) xy[1] = -MAXEXTENT;
-
-    return xy;
-}
-
-/**
- * Convert 900913 x/y values to lon/lat.
- * (from https://github.com/mapbox/sphericalmercator)
- *
- * @private
- * @param {Array<number>} xy Mercator [x, y] point
- * @returns {Array<number>} WGS84 [lon, lat] point
- */
-function convertToWgs84(xy) {
-    // 900913 properties.
-    var R2D = 180 / Math.PI;
-    var A = 6378137.0;
-
-    return [xy[0] * R2D / A, (Math.PI * 0.5 - 2.0 * Math.atan(Math.exp(-xy[1] / A))) * R2D];
-}
-
-/**
- * Returns the sign of the input, or zero
- *
- * @private
- * @param {number} x input
- * @returns {number} -1|0|1 output
- */
-function sign(x) {
-    return x < 0 ? -1 : x > 0 ? 1 : 0;
-}
-
-// (logic of computation inspired by:
-// https://stackoverflow.com/questions/32771458/distance-from-lat-lng-point-to-minor-arc-segment)
-
-/**
- * Takes a {@link LineString|linestring}, {@link MultiLineString|multi-linestring}, {@link MultiPolygon|multi-polygon}, or {@link Polygon|polygon} and returns {@link Point|points} at all self-intersections.
- *
- * @name kinks
- * @param {Feature<LineString|MultiLineString|MultiPolygon|Polygon>} featureIn input feature
- * @returns {FeatureCollection<Point>} self-intersections
- * @example
- * var poly = turf.polygon([[
- *   [-12.034835, 8.901183],
- *   [-12.060413, 8.899826],
- *   [-12.03638, 8.873199],
- *   [-12.059383, 8.871418],
- *   [-12.034835, 8.901183]
- * ]]);
- *
- * var kinks = turf.kinks(poly);
- *
- * //addToMap
- * var addToMap = [poly, kinks]
- */
-function kinks(featureIn) {
-    var coordinates;
-    var feature$$1;
-    var results = {
-        type: 'FeatureCollection',
-        features: []
-    };
-    if (featureIn.type === 'Feature') {
-        feature$$1 = featureIn.geometry;
-    } else {
-        feature$$1 = featureIn;
-    }
-    if (feature$$1.type === 'LineString') {
-        coordinates = [feature$$1.coordinates];
-    } else if (feature$$1.type === 'MultiLineString') {
-        coordinates = feature$$1.coordinates;
-    } else if (feature$$1.type === 'MultiPolygon') {
-        coordinates = [].concat.apply([], feature$$1.coordinates);
-    } else if (feature$$1.type === 'Polygon') {
-        coordinates = feature$$1.coordinates;
-    } else {
-        throw new Error('Input must be a LineString, MultiLineString, ' + 'Polygon, or MultiPolygon Feature or Geometry');
-    }
-    coordinates.forEach(function (line1) {
-        coordinates.forEach(function (line2) {
-            for (var i = 0; i < line1.length - 1; i++) {
-                // start iteration at i, intersections for k < i have already been checked in previous outer loop iterations
-                for (var k = i; k < line2.length - 1; k++) {
-                    if (line1 === line2) {
-                        // segments are adjacent and always share a vertex, not a kink
-                        if (Math.abs(i - k) === 1) {
-                            continue;
-                        }
-                        // first and last segment in a closed lineString or ring always share a vertex, not a kink
-                        if (
-                        // segments are first and last segment of lineString
-                        i === 0 && k === line1.length - 2 &&
-                        // lineString is closed
-                        line1[i][0] === line1[line1.length - 1][0] && line1[i][1] === line1[line1.length - 1][1]) {
-                            continue;
-                        }
-                    }
-
-                    var intersection = lineIntersects(line1[i][0], line1[i][1], line1[i + 1][0], line1[i + 1][1], line2[k][0], line2[k][1], line2[k + 1][0], line2[k + 1][1]);
-                    if (intersection) {
-                        results.features.push(point([intersection[0], intersection[1]]));
-                    }
-                }
-            }
-        });
-    });
-    return results;
-}
-
-// modified from http://jsfiddle.net/justin_c_rounds/Gd2S2/light/
-function lineIntersects(line1StartX, line1StartY, line1EndX, line1EndY, line2StartX, line2StartY, line2EndX, line2EndY) {
-    // if the lines intersect, the result contains the x and y of the intersection (treating the lines as infinite) and booleans for whether line segment 1 or line segment 2 contain the point
-    var denominator,
-        a,
-        b,
-        numerator1,
-        numerator2,
-        result = {
-        x: null,
-        y: null,
-        onLine1: false,
-        onLine2: false
-    };
-    denominator = (line2EndY - line2StartY) * (line1EndX - line1StartX) - (line2EndX - line2StartX) * (line1EndY - line1StartY);
-    if (denominator === 0) {
-        if (result.x !== null && result.y !== null) {
-            return result;
+        if (isect === null) return; // discard parallels and coincidence
+        var frac0;
+        var frac1;
+        if (end0[0] !== start0[0]) {
+            frac0 = (isect[0] - start0[0]) / (end0[0] - start0[0]);
         } else {
+            frac0 = (isect[1] - start0[1]) / (end0[1] - start0[1]);
+        }
+        if (end1[0] !== start1[0]) {
+            frac1 = (isect[0] - start1[0]) / (end1[0] - start1[0]);
+        } else {
+            frac1 = (isect[1] - start1[1]) / (end1[1] - start1[1]);
+        }
+        if (frac0 >= 1 || frac0 <= 0 || frac1 >= 1 || frac1 <= 0) return; // require segment intersection
+
+        var key = isect;
+        var unique = !seen[key];
+        if (unique) {
+            seen[key] = true;
+        }
+
+        if (filterFn) {
+            output.push(filterFn(isect, ring0, edge0, start0, end0, frac0, ring1, edge1, start1, end1, frac1, unique));
+        } else {
+            output.push(isect);
+        }
+    }
+
+    // Function to return a rbush tree item given an ring and edge number
+    function rbushTreeItem(ring, edge) {
+
+        var start = coord[ring][edge];
+        var end = coord[ring][edge + 1];
+        var minX;
+        var maxX;
+        var minY;
+        var maxY;
+        if (start[0] < end[0]) {
+            minX = start[0];
+            maxX = end[0];
+        } else {
+            minX = end[0];
+            maxX = start[0];
+        }
+        if (start[1] < end[1]) {
+            minY = start[1];
+            maxY = end[1];
+        } else {
+            minY = end[1];
+            maxY = start[1];
+        }
+        return {
+            minX: minX,
+            minY: minY,
+            maxX: maxX,
+            maxY: maxY,
+            ring: ring,
+            edge: edge
+        };
+    }
+};
+
+// Function to compute where two lines (not segments) intersect. From https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection
+function intersect(start0, end0, start1, end1) {
+    if (equalArrays$3(start0, start1) || equalArrays$3(start0, end1) || equalArrays$3(end0, start1) || equalArrays$3(end1, start1)) return null;
+    var x0 = start0[0],
+        y0 = start0[1],
+        x1 = end0[0],
+        y1 = end0[1],
+        x2 = start1[0],
+        y2 = start1[1],
+        x3 = end1[0],
+        y3 = end1[1];
+    var denom = (x0 - x1) * (y2 - y3) - (y0 - y1) * (x2 - x3);
+    if (denom === 0) return null;
+    var x4 = ((x0 * y1 - y0 * x1) * (x2 - x3) - (x0 - x1) * (x2 * y3 - y2 * x3)) / denom;
+    var y4 = ((x0 * y1 - y0 * x1) * (y2 - y3) - (y0 - y1) * (x2 * y3 - y2 * x3)) / denom;
+    return [x4, y4];
+}
+
+// Function to compare Arrays of numbers. From http://stackoverflow.com/questions/7837456/how-to-compare-arrays-in-javascript
+function equalArrays$3(array1, array2) {
+    // if the other array is a falsy value, return
+    if (!array1 || !array2) return false;
+
+    // compare lengths - can save a lot of time
+    if (array1.length !== array2.length) return false;
+
+    for (var i = 0, l = array1.length; i < l; i++) {
+        // Check if we have nested arrays
+        if (array1[i] instanceof Array && array2[i] instanceof Array) {
+            // recurse into the nested arrays
+            if (!equalArrays$3(array1[i], array2[i])) return false;
+        } else if (array1[i] !== array2[i]) {
+            // Warning - two different object instances will never be equal: {x:20} !== {x:20}
             return false;
         }
     }
-    a = line1StartY - line2StartY;
-    b = line1StartX - line2StartX;
-    numerator1 = (line2EndX - line2StartX) * a - (line2EndY - line2StartY) * b;
-    numerator2 = (line1EndX - line1StartX) * a - (line1EndY - line1StartY) * b;
-    a = numerator1 / denominator;
-    b = numerator2 / denominator;
-
-    // if we cast these lines infinitely in both directions, they intersect here:
-    result.x = line1StartX + a * (line1EndX - line1StartX);
-    result.y = line1StartY + a * (line1EndY - line1StartY);
-
-    // if line1 is a segment and line2 is infinite, they intersect if:
-    if (a >= 0 && a <= 1) {
-        result.onLine1 = true;
-    }
-    // if line2 is a segment and line1 is infinite, they intersect if:
-    if (b >= 0 && b <= 1) {
-        result.onLine2 = true;
-    }
-    // if line1 and line2 are segments, they intersect if both of the above are true
-    if (result.onLine1 && result.onLine2) {
-        return [result.x, result.y];
-    } else {
-        return false;
-    }
+    return true;
 }
 
 /**
@@ -36826,7 +38591,7 @@ function lineIntersects(line1StartX, line1StartY, line1EndX, line1EndY, line2Sta
  * var addToMap = [polygon]
  * polygon.properties.area = area
  */
-function area(geojson) {
+function area$1(geojson) {
     return geomReduce(geojson, function (value, geom) {
         return value + calculateArea(geom);
     }, 0);
@@ -36937,303 +38702,6 @@ function rad(_) {
 }
 
 /**
- * Takes a {@link LineString|line} and returns a {@link Point|point} at a specified distance along the line.
- *
- * @name along
- * @param {Feature<LineString>} line input line
- * @param {number} distance distance along the line
- * @param {Object} [options] Optional parameters
- * @param {string} [options.units="kilometers"] can be degrees, radians, miles, or kilometers
- * @returns {Feature<Point>} Point `distance` `units` along the line
- * @example
- * var line = turf.lineString([[-83, 30], [-84, 36], [-78, 41]]);
- * var options = {units: 'miles'};
- *
- * var along = turf.along(line, 200, options);
- *
- * //addToMap
- * var addToMap = [along, line]
- */
-function along(line, distance$$1, options) {
-    // Optional parameters
-    options = options || {};
-    if (!isObject$2(options)) throw new Error('options is invalid');
-
-    // Validation
-    var coords;
-    if (line.type === 'Feature') coords = line.geometry.coordinates;else if (line.type === 'LineString') coords = line.coordinates;else throw new Error('input must be a LineString Feature or Geometry');
-    if (!isNumber(distance$$1)) throw new Error('distance must be a number');
-
-    var travelled = 0;
-    for (var i = 0; i < coords.length; i++) {
-        if (distance$$1 >= travelled && i === coords.length - 1) break;else if (travelled >= distance$$1) {
-            var overshot = distance$$1 - travelled;
-            if (!overshot) return point(coords[i]);else {
-                var direction = bearing(coords[i], coords[i - 1]) - 180;
-                var interpolated = destination(coords[i], overshot, direction, options);
-                return interpolated;
-            }
-        } else {
-            travelled += distance(coords[i], coords[i + 1], options);
-        }
-    }
-    return point(coords[coords.length - 1]);
-}
-
-/**
- * Takes a {@link LineString|line}, a start {@link Point}, and a stop point
- * and returns a subsection of the line in-between those points.
- * The start & stop points don't need to fall exactly on the line.
- *
- * This can be useful for extracting only the part of a route between waypoints.
- *
- * @name lineSlice
- * @param {Feature<Point>} startPt starting point
- * @param {Feature<Point>} stopPt stopping point
- * @param {Feature<LineString>|LineString} line line to slice
- * @returns {Feature<LineString>} sliced line
- * @example
- * var line = turf.lineString([
- *     [-77.031669, 38.878605],
- *     [-77.029609, 38.881946],
- *     [-77.020339, 38.884084],
- *     [-77.025661, 38.885821],
- *     [-77.021884, 38.889563],
- *     [-77.019824, 38.892368]
- * ]);
- * var start = turf.point([-77.029609, 38.881946]);
- * var stop = turf.point([-77.021884, 38.889563]);
- *
- * var sliced = turf.lineSlice(start, stop, line);
- *
- * //addToMap
- * var addToMap = [start, stop, line]
- */
-function lineSlice(startPt, stopPt, line) {
-    var coords;
-    if (line.type === 'Feature') {
-        coords = line.geometry.coordinates;
-    } else if (line.type === 'LineString') {
-        coords = line.coordinates;
-    } else {
-        throw new Error('input must be a LineString Feature or Geometry');
-    }
-
-    var startVertex = nearestPointOnLine(line, startPt);
-    var stopVertex = nearestPointOnLine(line, stopPt);
-    var ends;
-    if (startVertex.properties.index <= stopVertex.properties.index) {
-        ends = [startVertex, stopVertex];
-    } else {
-        ends = [stopVertex, startVertex];
-    }
-    var clipCoords = [ends[0].geometry.coordinates];
-    for (var i = ends[0].properties.index + 1; i < ends[1].properties.index + 1; i++) {
-        clipCoords.push(coords[i]);
-    }
-    clipCoords.push(ends[1].geometry.coordinates);
-    return lineString(clipCoords, line.properties);
-}
-
-/**
- * Takes two or more {@link Polygon|polygons} and returns a combined polygon. If the input polygons are not contiguous, this function returns a {@link MultiPolygon} feature.
- *
- * @name union
- * @param {...Feature<Polygon>} A polygon to combine
- * @returns {Feature<(Polygon|MultiPolygon)>} a combined {@link Polygon} or {@link MultiPolygon} feature
- * @example
- * var poly1 = turf.polygon([[
- *     [-82.574787, 35.594087],
- *     [-82.574787, 35.615581],
- *     [-82.545261, 35.615581],
- *     [-82.545261, 35.594087],
- *     [-82.574787, 35.594087]
- * ]], {"fill": "#0f0"});
- * var poly2 = turf.polygon([[
- *     [-82.560024, 35.585153],
- *     [-82.560024, 35.602602],
- *     [-82.52964, 35.602602],
- *     [-82.52964, 35.585153],
- *     [-82.560024, 35.585153]
- * ]], {"fill": "#00f"});
- *
- * var union = turf.union(poly1, poly2);
- *
- * //addToMap
- * var addToMap = [poly1, poly2, union];
- */
-function union() {
-    var reader = new GeoJSONReader();
-    var result = reader.read(JSON.stringify(arguments[0].geometry));
-
-    for (var i = 1; i < arguments.length; i++) {
-        result = UnionOp.union(result, reader.read(JSON.stringify(arguments[i].geometry)));
-    }
-
-    var writer = new GeoJSONWriter();
-    result = writer.write(result);
-
-    return {
-        type: 'Feature',
-        geometry: result,
-        properties: arguments[0].properties
-    };
-}
-
-var rbush$4 = require('rbush');
-
-// Find self-intersections in geojson polygon (possibly with interior rings)
-var rbush$6 = require('rbush');
-
-var isects = function (feature, filterFn, useSpatialIndex) {
-    if (feature.geometry.type !== 'Polygon') throw new Error('The input feature must be a Polygon');
-    if (useSpatialIndex === undefined) useSpatialIndex = 1;
-
-    var coord = feature.geometry.coordinates;
-
-    var output = [];
-    var seen = {};
-
-    if (useSpatialIndex) {
-        var allEdgesAsRbushTreeItems = [];
-        for (var ring0 = 0; ring0 < coord.length; ring0++) {
-            for (var edge0 = 0; edge0 < coord[ring0].length - 1; edge0++) {
-                allEdgesAsRbushTreeItems.push(rbushTreeItem(ring0, edge0));
-            }
-        }
-        var tree = rbush$6();
-        tree.load(allEdgesAsRbushTreeItems);
-    }
-
-    for (var ringA = 0; ringA < coord.length; ringA++) {
-        for (var edgeA = 0; edgeA < coord[ringA].length - 1; edgeA++) {
-            if (useSpatialIndex) {
-                var bboxOverlaps = tree.search(rbushTreeItem(ringA, edgeA));
-                bboxOverlaps.forEach(function (bboxIsect) {
-                    var ring1 = bboxIsect.ring;
-                    var edge1 = bboxIsect.edge;
-                    ifIsectAddToOutput(ringA, edgeA, ring1, edge1);
-                });
-            } else {
-                for (var ring1 = 0; ring1 < coord.length; ring1++) {
-                    for (var edge1 = 0; edge1 < coord[ring1].length - 1; edge1++) {
-                        // TODO: speedup possible if only interested in unique: start last two loops at ringA and edgeA+1
-                        ifIsectAddToOutput(ringA, edgeA, ring1, edge1);
-                    }
-                }
-            }
-        }
-    }
-
-    if (!filterFn) output = { type: 'Feature', geometry: { type: 'MultiPoint', coordinates: output } };
-    return output;
-
-    // Function to check if two edges intersect and add the intersection to the output
-    function ifIsectAddToOutput(ring0, edge0, ring1, edge1) {
-        var start0 = coord[ring0][edge0];
-        var end0 = coord[ring0][edge0 + 1];
-        var start1 = coord[ring1][edge1];
-        var end1 = coord[ring1][edge1 + 1];
-
-        var isect = intersect$2(start0, end0, start1, end1);
-
-        if (isect === null) return; // discard parallels and coincidence
-        var frac0;
-        var frac1;
-        if (end0[0] !== start0[0]) {
-            frac0 = (isect[0] - start0[0]) / (end0[0] - start0[0]);
-        } else {
-            frac0 = (isect[1] - start0[1]) / (end0[1] - start0[1]);
-        }
-        if (end1[0] !== start1[0]) {
-            frac1 = (isect[0] - start1[0]) / (end1[0] - start1[0]);
-        } else {
-            frac1 = (isect[1] - start1[1]) / (end1[1] - start1[1]);
-        }
-        if (frac0 >= 1 || frac0 <= 0 || frac1 >= 1 || frac1 <= 0) return; // require segment intersection
-
-        var key = isect;
-        var unique = !seen[key];
-        if (unique) {
-            seen[key] = true;
-        }
-
-        if (filterFn) {
-            output.push(filterFn(isect, ring0, edge0, start0, end0, frac0, ring1, edge1, start1, end1, frac1, unique));
-        } else {
-            output.push(isect);
-        }
-    }
-
-    // Function to return a rbush tree item given an ring and edge number
-    function rbushTreeItem(ring, edge) {
-
-        var start = coord[ring][edge];
-        var end = coord[ring][edge + 1];
-        var minX;
-        var maxX;
-        var minY;
-        var maxY;
-        if (start[0] < end[0]) {
-            minX = start[0];
-            maxX = end[0];
-        } else {
-            minX = end[0];
-            maxX = start[0];
-        }
-        if (start[1] < end[1]) {
-            minY = start[1];
-            maxY = end[1];
-        } else {
-            minY = end[1];
-            maxY = start[1];
-        }
-        return { minX: minX, minY: minY, maxX: maxX, maxY: maxY, ring: ring, edge: edge };
-    }
-};
-
-// Function to compute where two lines (not segments) intersect. From https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection
-function intersect$2(start0, end0, start1, end1) {
-    if (equalArrays$3(start0, start1) || equalArrays$3(start0, end1) || equalArrays$3(end0, start1) || equalArrays$3(end1, start1)) return null;
-    var x0 = start0[0],
-        y0 = start0[1],
-        x1 = end0[0],
-        y1 = end0[1],
-        x2 = start1[0],
-        y2 = start1[1],
-        x3 = end1[0],
-        y3 = end1[1];
-    var denom = (x0 - x1) * (y2 - y3) - (y0 - y1) * (x2 - x3);
-    if (denom === 0) return null;
-    var x4 = ((x0 * y1 - y0 * x1) * (x2 - x3) - (x0 - x1) * (x2 * y3 - y2 * x3)) / denom;
-    var y4 = ((x0 * y1 - y0 * x1) * (y2 - y3) - (y0 - y1) * (x2 * y3 - y2 * x3)) / denom;
-    return [x4, y4];
-}
-
-// Function to compare Arrays of numbers. From http://stackoverflow.com/questions/7837456/how-to-compare-arrays-in-javascript
-function equalArrays$3(array1, array2) {
-    // if the other array is a falsy value, return
-    if (!array1 || !array2) return false;
-
-    // compare lengths - can save a lot of time
-    if (array1.length !== array2.length) return false;
-
-    for (var i = 0, l = array1.length; i < l; i++) {
-        // Check if we have nested arrays
-        if (array1[i] instanceof Array && array2[i] instanceof Array) {
-            // recurse into the nested arrays
-            if (!equalArrays$3(array1[i], array2[i])) return false;
-        } else if (array1[i] !== array2[i]) {
-            // Warning - two different object instances will never be equal: {x:20} !== {x:20}
-            return false;
-        }
-    }
-    return true;
-}
-
-var rbush$5 = require('rbush');
-
-/**
  * Takes a complex (i.e. self-intersecting) geojson polygon, and breaks it down into its composite simple, non-self-intersecting one-ring polygons.
  *
  * @module simplepolygon
@@ -37283,7 +38751,10 @@ var simplepolygon = function (feature$$1) {
     if (numSelfIsect == 0) {
         var outputFeatureArray = [];
         for (var i = 0; i < numRings; i++) {
-            outputFeatureArray.push(polygon([feature$$1.geometry.coordinates[i]], { parent: -1, winding: windingOfRing(feature$$1.geometry.coordinates[i]) }));
+            outputFeatureArray.push(polygon([feature$$1.geometry.coordinates[i]], {
+                parent: -1,
+                winding: windingOfRing(feature$$1.geometry.coordinates[i])
+            }));
         }
         var output = featureCollection(outputFeatureArray);
         determineParents();
@@ -37328,9 +38799,15 @@ var simplepolygon = function (feature$$1) {
     // Make a spatial index of intersections, in preperation for the following two steps
     var allIsectsAsIsectRbushTreeItem = [];
     for (var i = 0; i < numIsect; i++) {
-        allIsectsAsIsectRbushTreeItem.push({ minX: isectList[i].coord[0], minY: isectList[i].coord[1], maxX: isectList[i].coord[0], maxY: isectList[i].coord[1], index: i }); // could pass isect: isectList[i], but not necessary
+        allIsectsAsIsectRbushTreeItem.push({
+            minX: isectList[i].coord[0],
+            minY: isectList[i].coord[1],
+            maxX: isectList[i].coord[0],
+            maxY: isectList[i].coord[1],
+            index: i
+        }); // could pass isect: isectList[i], but not necessary
     }
-    var isectRbushTree = rbush$5();
+    var isectRbushTree = rbush_1();
     isectRbushTree.load(allIsectsAsIsectRbushTreeItem);
 
     // Now we will teach each intersection in isectList which is the next intersection along both it's [ring, edge]'s, in two steps.
@@ -37346,7 +38823,12 @@ var simplepolygon = function (feature$$1) {
                 } else {
                     coordToFind = pseudoVtxListByRingAndEdge[i][j][k + 1].coord;
                 }
-                var IsectRbushTreeItemFound = isectRbushTree.search({ minX: coordToFind[0], minY: coordToFind[1], maxX: coordToFind[0], maxY: coordToFind[1] })[0]; // We can take [0] of the result, because there is only one isect correponding to a pseudo-vertex
+                var IsectRbushTreeItemFound = isectRbushTree.search({
+                    minX: coordToFind[0],
+                    minY: coordToFind[1],
+                    maxX: coordToFind[0],
+                    maxY: coordToFind[1]
+                })[0]; // We can take [0] of the result, because there is only one isect correponding to a pseudo-vertex
                 pseudoVtxListByRingAndEdge[i][j][k].nxtIsectAlongEdgeIn = IsectRbushTreeItemFound.index;
             }
         }
@@ -37357,7 +38839,12 @@ var simplepolygon = function (feature$$1) {
         for (var j = 0; j < pseudoVtxListByRingAndEdge[i].length; j++) {
             for (var k = 0; k < pseudoVtxListByRingAndEdge[i][j].length; k++) {
                 var coordToFind = pseudoVtxListByRingAndEdge[i][j][k].coord;
-                var IsectRbushTreeItemFound = isectRbushTree.search({ minX: coordToFind[0], minY: coordToFind[1], maxX: coordToFind[0], maxY: coordToFind[1] })[0]; // We can take [0] of the result, because there is only one isect correponding to a pseudo-vertex
+                var IsectRbushTreeItemFound = isectRbushTree.search({
+                    minX: coordToFind[0],
+                    minY: coordToFind[1],
+                    maxX: coordToFind[0],
+                    maxY: coordToFind[1]
+                })[0]; // We can take [0] of the result, because there is only one isect correponding to a pseudo-vertex
                 var l = IsectRbushTreeItemFound.index;
                 if (l < numvertices) {
                     // Special treatment at ring-vertices: we correct the misnaming that happened in the previous block, since ringAndEdgeOut = ringAndEdge2 for ring vertices.
@@ -37399,7 +38886,11 @@ var simplepolygon = function (feature$$1) {
         }
         var windingAtIsect = isConvex([isectList[isectBeforeLeftIsect].coord, isectList[leftIsect].coord, isectList[isectAfterLeftIsect].coord], true) ? 1 : -1;
 
-        queue.push({ isect: leftIsect, parent: -1, winding: windingAtIsect });
+        queue.push({
+            isect: leftIsect,
+            parent: -1,
+            winding: windingAtIsect
+        });
     }
     // Sort the queue by the same criterion used to find the leftIsect: the left-most leftIsect must be last in the queue, such that it will be popped first, such that we will work from out to in regarding input rings. This assumtion is used when predicting the winding number and parent of a new queue member.
     queue.sort(function (a, b) {
@@ -37435,7 +38926,8 @@ var simplepolygon = function (feature$$1) {
             var nxtIsectInQueue = undefined;
             for (var i = 0; i < queue.length; i++) {
                 if (queue[i].isect == nxtIsect) {
-                    nxtIsectInQueue = i;break;
+                    nxtIsectInQueue = i;
+                    break;
                 }
             }
             if (nxtIsectInQueue != undefined) {
@@ -37450,7 +38942,9 @@ var simplepolygon = function (feature$$1) {
                 walkingRingAndEdge = isectList[nxtIsect].ringAndEdge2;
                 isectList[nxtIsect].ringAndEdge2Walkable = false;
                 if (isectList[nxtIsect].ringAndEdge1Walkable) {
-                    var pushing = { isect: nxtIsect };
+                    var pushing = {
+                        isect: nxtIsect
+                    };
                     if (isConvex([isectList[currentIsect].coord, isectList[nxtIsect].coord, isectList[isectList[nxtIsect].nxtIsectAlongRingAndEdge2].coord], currentOutputRingWinding == 1)) {
                         pushing.parent = currentOutputRingParent;
                         pushing.winding = -currentOutputRingWinding;
@@ -37466,7 +38960,9 @@ var simplepolygon = function (feature$$1) {
                 walkingRingAndEdge = isectList[nxtIsect].ringAndEdge1;
                 isectList[nxtIsect].ringAndEdge1Walkable = false;
                 if (isectList[nxtIsect].ringAndEdge2Walkable) {
-                    var pushing = { isect: nxtIsect };
+                    var pushing = {
+                        isect: nxtIsect
+                    };
                     if (isConvex([isectList[currentIsect].coord, isectList[nxtIsect].coord, isectList[isectList[nxtIsect].nxtIsectAlongRingAndEdge1].coord], currentOutputRingWinding == 1)) {
                         pushing.parent = currentOutputRingParent;
                         pushing.winding = -currentOutputRingWinding;
@@ -37483,7 +38979,12 @@ var simplepolygon = function (feature$$1) {
         // Close output ring
         currentOutputRingCoords.push(isectList[nxtIsect].coord);
         // Push output ring to output
-        outputFeatureArray.push(polygon([currentOutputRingCoords], { index: currentOutputRing, parent: currentOutputRingParent, winding: currentOutputRingWinding, netWinding: undefined }));
+        outputFeatureArray.push(polygon([currentOutputRingCoords], {
+            index: currentOutputRing,
+            parent: currentOutputRingParent,
+            winding: currentOutputRingWinding,
+            netWinding: undefined
+        }));
     }
 
     var output = featureCollection(outputFeatureArray);
@@ -37504,8 +39005,10 @@ var simplepolygon = function (feature$$1) {
                 var parentArea = Infinity;
                 for (var j = 0; j < output.features.length; j++) {
                     if (featuresWithoutParent[i] == j) continue;
-                    if (booleanPointInPolygon(output.features[featuresWithoutParent[i]].geometry.coordinates[0][0], output.features[j], { ignoreBoundary: true })) {
-                        if (area(output.features[j]) < parentArea) {
+                    if (booleanPointInPolygon(output.features[featuresWithoutParent[i]].geometry.coordinates[0][0], output.features[j], {
+                        ignoreBoundary: true
+                    })) {
+                        if (area$1(output.features[j]) < parentArea) {
                             parent = j;
                         }
                     }
@@ -37650,4700 +39153,6 @@ function unkinkPolygon(geojson) {
     return featureCollection(features);
 }
 
-var D2R = Math.PI / 180;
-var R2D = 180 / Math.PI;
-
-var lineclip = require('lineclip');
-
-// https://en.wikipedia.org/wiki/Rhumb_line
-
-/*!
-* @license GNU Affero General Public License.
-* Copyright (c) 2015, 2015 Ronny Lorenz <ronny@tbi.univie.ac.at>
-* v. 1.2.0
-* https://github.com/RaumZeit/MarchingSquares.js
-*/
-
-/*
-  The look-up tables for tracing back the contour path
-  of isoBands
-*/
-
-var isoBandNextXTL = [];
-var isoBandNextYTL = [];
-var isoBandNextOTL = [];
-
-var isoBandNextXTR = [];
-var isoBandNextYTR = [];
-var isoBandNextOTR = [];
-
-var isoBandNextXRT = [];
-var isoBandNextYRT = [];
-var isoBandNextORT = [];
-
-var isoBandNextXRB = [];
-var isoBandNextYRB = [];
-var isoBandNextORB = [];
-
-var isoBandNextXBL = [];
-var isoBandNextYBL = [];
-var isoBandNextOBL = [];
-
-var isoBandNextXBR = [];
-var isoBandNextYBR = [];
-var isoBandNextOBR = [];
-
-var isoBandNextXLT = [];
-var isoBandNextYLT = [];
-var isoBandNextOLT = [];
-
-var isoBandNextXLB = [];
-var isoBandNextYLB = [];
-var isoBandNextOLB = [];
-
-isoBandNextXRT[85] = isoBandNextXRB[85] = -1;
-isoBandNextYRT[85] = isoBandNextYRB[85] = 0;
-isoBandNextORT[85] = isoBandNextORB[85] = 1;
-isoBandNextXLT[85] = isoBandNextXLB[85] = 1;
-isoBandNextYLT[85] = isoBandNextYLB[85] = 0;
-isoBandNextOLT[85] = isoBandNextOLB[85] = 1;
-
-isoBandNextXTL[85] = isoBandNextXTR[85] = 0;
-isoBandNextYTL[85] = isoBandNextYTR[85] = -1;
-isoBandNextOTL[85] = isoBandNextOBL[85] = 0;
-isoBandNextXBR[85] = isoBandNextXBL[85] = 0;
-isoBandNextYBR[85] = isoBandNextYBL[85] = 1;
-isoBandNextOTR[85] = isoBandNextOBR[85] = 1;
-
-/* triangle cases */
-isoBandNextXLB[1] = isoBandNextXLB[169] = 0;
-isoBandNextYLB[1] = isoBandNextYLB[169] = -1;
-isoBandNextOLB[1] = isoBandNextOLB[169] = 0;
-isoBandNextXBL[1] = isoBandNextXBL[169] = -1;
-isoBandNextYBL[1] = isoBandNextYBL[169] = 0;
-isoBandNextOBL[1] = isoBandNextOBL[169] = 0;
-
-isoBandNextXRB[4] = isoBandNextXRB[166] = 0;
-isoBandNextYRB[4] = isoBandNextYRB[166] = -1;
-isoBandNextORB[4] = isoBandNextORB[166] = 1;
-isoBandNextXBR[4] = isoBandNextXBR[166] = 1;
-isoBandNextYBR[4] = isoBandNextYBR[166] = 0;
-isoBandNextOBR[4] = isoBandNextOBR[166] = 0;
-
-isoBandNextXRT[16] = isoBandNextXRT[154] = 0;
-isoBandNextYRT[16] = isoBandNextYRT[154] = 1;
-isoBandNextORT[16] = isoBandNextORT[154] = 1;
-isoBandNextXTR[16] = isoBandNextXTR[154] = 1;
-isoBandNextYTR[16] = isoBandNextYTR[154] = 0;
-isoBandNextOTR[16] = isoBandNextOTR[154] = 1;
-
-isoBandNextXLT[64] = isoBandNextXLT[106] = 0;
-isoBandNextYLT[64] = isoBandNextYLT[106] = 1;
-isoBandNextOLT[64] = isoBandNextOLT[106] = 0;
-isoBandNextXTL[64] = isoBandNextXTL[106] = -1;
-isoBandNextYTL[64] = isoBandNextYTL[106] = 0;
-isoBandNextOTL[64] = isoBandNextOTL[106] = 1;
-
-/* single trapezoid cases */
-isoBandNextXLT[2] = isoBandNextXLT[168] = 0;
-isoBandNextYLT[2] = isoBandNextYLT[168] = -1;
-isoBandNextOLT[2] = isoBandNextOLT[168] = 1;
-isoBandNextXLB[2] = isoBandNextXLB[168] = 0;
-isoBandNextYLB[2] = isoBandNextYLB[168] = -1;
-isoBandNextOLB[2] = isoBandNextOLB[168] = 0;
-isoBandNextXBL[2] = isoBandNextXBL[168] = -1;
-isoBandNextYBL[2] = isoBandNextYBL[168] = 0;
-isoBandNextOBL[2] = isoBandNextOBL[168] = 0;
-isoBandNextXBR[2] = isoBandNextXBR[168] = -1;
-isoBandNextYBR[2] = isoBandNextYBR[168] = 0;
-isoBandNextOBR[2] = isoBandNextOBR[168] = 1;
-
-isoBandNextXRT[8] = isoBandNextXRT[162] = 0;
-isoBandNextYRT[8] = isoBandNextYRT[162] = -1;
-isoBandNextORT[8] = isoBandNextORT[162] = 0;
-isoBandNextXRB[8] = isoBandNextXRB[162] = 0;
-isoBandNextYRB[8] = isoBandNextYRB[162] = -1;
-isoBandNextORB[8] = isoBandNextORB[162] = 1;
-isoBandNextXBL[8] = isoBandNextXBL[162] = 1;
-isoBandNextYBL[8] = isoBandNextYBL[162] = 0;
-isoBandNextOBL[8] = isoBandNextOBL[162] = 1;
-isoBandNextXBR[8] = isoBandNextXBR[162] = 1;
-isoBandNextYBR[8] = isoBandNextYBR[162] = 0;
-isoBandNextOBR[8] = isoBandNextOBR[162] = 0;
-
-isoBandNextXRT[32] = isoBandNextXRT[138] = 0;
-isoBandNextYRT[32] = isoBandNextYRT[138] = 1;
-isoBandNextORT[32] = isoBandNextORT[138] = 1;
-isoBandNextXRB[32] = isoBandNextXRB[138] = 0;
-isoBandNextYRB[32] = isoBandNextYRB[138] = 1;
-isoBandNextORB[32] = isoBandNextORB[138] = 0;
-isoBandNextXTL[32] = isoBandNextXTL[138] = 1;
-isoBandNextYTL[32] = isoBandNextYTL[138] = 0;
-isoBandNextOTL[32] = isoBandNextOTL[138] = 0;
-isoBandNextXTR[32] = isoBandNextXTR[138] = 1;
-isoBandNextYTR[32] = isoBandNextYTR[138] = 0;
-isoBandNextOTR[32] = isoBandNextOTR[138] = 1;
-
-isoBandNextXLB[128] = isoBandNextXLB[42] = 0;
-isoBandNextYLB[128] = isoBandNextYLB[42] = 1;
-isoBandNextOLB[128] = isoBandNextOLB[42] = 1;
-isoBandNextXLT[128] = isoBandNextXLT[42] = 0;
-isoBandNextYLT[128] = isoBandNextYLT[42] = 1;
-isoBandNextOLT[128] = isoBandNextOLT[42] = 0;
-isoBandNextXTL[128] = isoBandNextXTL[42] = -1;
-isoBandNextYTL[128] = isoBandNextYTL[42] = 0;
-isoBandNextOTL[128] = isoBandNextOTL[42] = 1;
-isoBandNextXTR[128] = isoBandNextXTR[42] = -1;
-isoBandNextYTR[128] = isoBandNextYTR[42] = 0;
-isoBandNextOTR[128] = isoBandNextOTR[42] = 0;
-
-/* single rectangle cases */
-isoBandNextXRB[5] = isoBandNextXRB[165] = -1;
-isoBandNextYRB[5] = isoBandNextYRB[165] = 0;
-isoBandNextORB[5] = isoBandNextORB[165] = 0;
-isoBandNextXLB[5] = isoBandNextXLB[165] = 1;
-isoBandNextYLB[5] = isoBandNextYLB[165] = 0;
-isoBandNextOLB[5] = isoBandNextOLB[165] = 0;
-
-isoBandNextXBR[20] = isoBandNextXBR[150] = 0;
-isoBandNextYBR[20] = isoBandNextYBR[150] = 1;
-isoBandNextOBR[20] = isoBandNextOBR[150] = 1;
-isoBandNextXTR[20] = isoBandNextXTR[150] = 0;
-isoBandNextYTR[20] = isoBandNextYTR[150] = -1;
-isoBandNextOTR[20] = isoBandNextOTR[150] = 1;
-
-isoBandNextXRT[80] = isoBandNextXRT[90] = -1;
-isoBandNextYRT[80] = isoBandNextYRT[90] = 0;
-isoBandNextORT[80] = isoBandNextORT[90] = 1;
-isoBandNextXLT[80] = isoBandNextXLT[90] = 1;
-isoBandNextYLT[80] = isoBandNextYLT[90] = 0;
-isoBandNextOLT[80] = isoBandNextOLT[90] = 1;
-
-isoBandNextXBL[65] = isoBandNextXBL[105] = 0;
-isoBandNextYBL[65] = isoBandNextYBL[105] = 1;
-isoBandNextOBL[65] = isoBandNextOBL[105] = 0;
-isoBandNextXTL[65] = isoBandNextXTL[105] = 0;
-isoBandNextYTL[65] = isoBandNextYTL[105] = -1;
-isoBandNextOTL[65] = isoBandNextOTL[105] = 0;
-
-isoBandNextXRT[160] = isoBandNextXRT[10] = -1;
-isoBandNextYRT[160] = isoBandNextYRT[10] = 0;
-isoBandNextORT[160] = isoBandNextORT[10] = 1;
-isoBandNextXRB[160] = isoBandNextXRB[10] = -1;
-isoBandNextYRB[160] = isoBandNextYRB[10] = 0;
-isoBandNextORB[160] = isoBandNextORB[10] = 0;
-isoBandNextXLB[160] = isoBandNextXLB[10] = 1;
-isoBandNextYLB[160] = isoBandNextYLB[10] = 0;
-isoBandNextOLB[160] = isoBandNextOLB[10] = 0;
-isoBandNextXLT[160] = isoBandNextXLT[10] = 1;
-isoBandNextYLT[160] = isoBandNextYLT[10] = 0;
-isoBandNextOLT[160] = isoBandNextOLT[10] = 1;
-
-isoBandNextXBR[130] = isoBandNextXBR[40] = 0;
-isoBandNextYBR[130] = isoBandNextYBR[40] = 1;
-isoBandNextOBR[130] = isoBandNextOBR[40] = 1;
-isoBandNextXBL[130] = isoBandNextXBL[40] = 0;
-isoBandNextYBL[130] = isoBandNextYBL[40] = 1;
-isoBandNextOBL[130] = isoBandNextOBL[40] = 0;
-isoBandNextXTL[130] = isoBandNextXTL[40] = 0;
-isoBandNextYTL[130] = isoBandNextYTL[40] = -1;
-isoBandNextOTL[130] = isoBandNextOTL[40] = 0;
-isoBandNextXTR[130] = isoBandNextXTR[40] = 0;
-isoBandNextYTR[130] = isoBandNextYTR[40] = -1;
-isoBandNextOTR[130] = isoBandNextOTR[40] = 1;
-
-/* single hexagon cases */
-isoBandNextXRB[37] = isoBandNextXRB[133] = 0;
-isoBandNextYRB[37] = isoBandNextYRB[133] = 1;
-isoBandNextORB[37] = isoBandNextORB[133] = 1;
-isoBandNextXLB[37] = isoBandNextXLB[133] = 0;
-isoBandNextYLB[37] = isoBandNextYLB[133] = 1;
-isoBandNextOLB[37] = isoBandNextOLB[133] = 0;
-isoBandNextXTL[37] = isoBandNextXTL[133] = -1;
-isoBandNextYTL[37] = isoBandNextYTL[133] = 0;
-isoBandNextOTL[37] = isoBandNextOTL[133] = 0;
-isoBandNextXTR[37] = isoBandNextXTR[133] = 1;
-isoBandNextYTR[37] = isoBandNextYTR[133] = 0;
-isoBandNextOTR[37] = isoBandNextOTR[133] = 0;
-
-isoBandNextXBR[148] = isoBandNextXBR[22] = -1;
-isoBandNextYBR[148] = isoBandNextYBR[22] = 0;
-isoBandNextOBR[148] = isoBandNextOBR[22] = 0;
-isoBandNextXLB[148] = isoBandNextXLB[22] = 0;
-isoBandNextYLB[148] = isoBandNextYLB[22] = -1;
-isoBandNextOLB[148] = isoBandNextOLB[22] = 1;
-isoBandNextXLT[148] = isoBandNextXLT[22] = 0;
-isoBandNextYLT[148] = isoBandNextYLT[22] = 1;
-isoBandNextOLT[148] = isoBandNextOLT[22] = 1;
-isoBandNextXTR[148] = isoBandNextXTR[22] = -1;
-isoBandNextYTR[148] = isoBandNextYTR[22] = 0;
-isoBandNextOTR[148] = isoBandNextOTR[22] = 1;
-
-isoBandNextXRT[82] = isoBandNextXRT[88] = 0;
-isoBandNextYRT[82] = isoBandNextYRT[88] = -1;
-isoBandNextORT[82] = isoBandNextORT[88] = 1;
-isoBandNextXBR[82] = isoBandNextXBR[88] = 1;
-isoBandNextYBR[82] = isoBandNextYBR[88] = 0;
-isoBandNextOBR[82] = isoBandNextOBR[88] = 1;
-isoBandNextXBL[82] = isoBandNextXBL[88] = -1;
-isoBandNextYBL[82] = isoBandNextYBL[88] = 0;
-isoBandNextOBL[82] = isoBandNextOBL[88] = 1;
-isoBandNextXLT[82] = isoBandNextXLT[88] = 0;
-isoBandNextYLT[82] = isoBandNextYLT[88] = -1;
-isoBandNextOLT[82] = isoBandNextOLT[88] = 0;
-
-isoBandNextXRT[73] = isoBandNextXRT[97] = 0;
-isoBandNextYRT[73] = isoBandNextYRT[97] = 1;
-isoBandNextORT[73] = isoBandNextORT[97] = 0;
-isoBandNextXRB[73] = isoBandNextXRB[97] = 0;
-isoBandNextYRB[73] = isoBandNextYRB[97] = -1;
-isoBandNextORB[73] = isoBandNextORB[97] = 0;
-isoBandNextXBL[73] = isoBandNextXBL[97] = 1;
-isoBandNextYBL[73] = isoBandNextYBL[97] = 0;
-isoBandNextOBL[73] = isoBandNextOBL[97] = 0;
-isoBandNextXTL[73] = isoBandNextXTL[97] = 1;
-isoBandNextYTL[73] = isoBandNextYTL[97] = 0;
-isoBandNextOTL[73] = isoBandNextOTL[97] = 1;
-
-isoBandNextXRT[145] = isoBandNextXRT[25] = 0;
-isoBandNextYRT[145] = isoBandNextYRT[25] = -1;
-isoBandNextORT[145] = isoBandNextORT[25] = 0;
-isoBandNextXBL[145] = isoBandNextXBL[25] = 1;
-isoBandNextYBL[145] = isoBandNextYBL[25] = 0;
-isoBandNextOBL[145] = isoBandNextOBL[25] = 1;
-isoBandNextXLB[145] = isoBandNextXLB[25] = 0;
-isoBandNextYLB[145] = isoBandNextYLB[25] = 1;
-isoBandNextOLB[145] = isoBandNextOLB[25] = 1;
-isoBandNextXTR[145] = isoBandNextXTR[25] = -1;
-isoBandNextYTR[145] = isoBandNextYTR[25] = 0;
-isoBandNextOTR[145] = isoBandNextOTR[25] = 0;
-
-isoBandNextXRB[70] = isoBandNextXRB[100] = 0;
-isoBandNextYRB[70] = isoBandNextYRB[100] = 1;
-isoBandNextORB[70] = isoBandNextORB[100] = 0;
-isoBandNextXBR[70] = isoBandNextXBR[100] = -1;
-isoBandNextYBR[70] = isoBandNextYBR[100] = 0;
-isoBandNextOBR[70] = isoBandNextOBR[100] = 1;
-isoBandNextXLT[70] = isoBandNextXLT[100] = 0;
-isoBandNextYLT[70] = isoBandNextYLT[100] = -1;
-isoBandNextOLT[70] = isoBandNextOLT[100] = 1;
-isoBandNextXTL[70] = isoBandNextXTL[100] = 1;
-isoBandNextYTL[70] = isoBandNextYTL[100] = 0;
-isoBandNextOTL[70] = isoBandNextOTL[100] = 0;
-
-/* single pentagon cases */
-isoBandNextXRB[101] = isoBandNextXRB[69] = 0;
-isoBandNextYRB[101] = isoBandNextYRB[69] = 1;
-isoBandNextORB[101] = isoBandNextORB[69] = 0;
-isoBandNextXTL[101] = isoBandNextXTL[69] = 1;
-isoBandNextYTL[101] = isoBandNextYTL[69] = 0;
-isoBandNextOTL[101] = isoBandNextOTL[69] = 0;
-
-isoBandNextXLB[149] = isoBandNextXLB[21] = 0;
-isoBandNextYLB[149] = isoBandNextYLB[21] = 1;
-isoBandNextOLB[149] = isoBandNextOLB[21] = 1;
-isoBandNextXTR[149] = isoBandNextXTR[21] = -1;
-isoBandNextYTR[149] = isoBandNextYTR[21] = 0;
-isoBandNextOTR[149] = isoBandNextOTR[21] = 0;
-
-isoBandNextXBR[86] = isoBandNextXBR[84] = -1;
-isoBandNextYBR[86] = isoBandNextYBR[84] = 0;
-isoBandNextOBR[86] = isoBandNextOBR[84] = 1;
-isoBandNextXLT[86] = isoBandNextXLT[84] = 0;
-isoBandNextYLT[86] = isoBandNextYLT[84] = -1;
-isoBandNextOLT[86] = isoBandNextOLT[84] = 1;
-
-isoBandNextXRT[89] = isoBandNextXRT[81] = 0;
-isoBandNextYRT[89] = isoBandNextYRT[81] = -1;
-isoBandNextORT[89] = isoBandNextORT[81] = 0;
-isoBandNextXBL[89] = isoBandNextXBL[81] = 1;
-isoBandNextYBL[89] = isoBandNextYBL[81] = 0;
-isoBandNextOBL[89] = isoBandNextOBL[81] = 1;
-
-isoBandNextXRT[96] = isoBandNextXRT[74] = 0;
-isoBandNextYRT[96] = isoBandNextYRT[74] = 1;
-isoBandNextORT[96] = isoBandNextORT[74] = 0;
-isoBandNextXRB[96] = isoBandNextXRB[74] = -1;
-isoBandNextYRB[96] = isoBandNextYRB[74] = 0;
-isoBandNextORB[96] = isoBandNextORB[74] = 1;
-isoBandNextXLT[96] = isoBandNextXLT[74] = 1;
-isoBandNextYLT[96] = isoBandNextYLT[74] = 0;
-isoBandNextOLT[96] = isoBandNextOLT[74] = 0;
-isoBandNextXTL[96] = isoBandNextXTL[74] = 1;
-isoBandNextYTL[96] = isoBandNextYTL[74] = 0;
-isoBandNextOTL[96] = isoBandNextOTL[74] = 1;
-
-isoBandNextXRT[24] = isoBandNextXRT[146] = 0;
-isoBandNextYRT[24] = isoBandNextYRT[146] = -1;
-isoBandNextORT[24] = isoBandNextORT[146] = 1;
-isoBandNextXBR[24] = isoBandNextXBR[146] = 1;
-isoBandNextYBR[24] = isoBandNextYBR[146] = 0;
-isoBandNextOBR[24] = isoBandNextOBR[146] = 1;
-isoBandNextXBL[24] = isoBandNextXBL[146] = 0;
-isoBandNextYBL[24] = isoBandNextYBL[146] = 1;
-isoBandNextOBL[24] = isoBandNextOBL[146] = 1;
-isoBandNextXTR[24] = isoBandNextXTR[146] = 0;
-isoBandNextYTR[24] = isoBandNextYTR[146] = -1;
-isoBandNextOTR[24] = isoBandNextOTR[146] = 0;
-
-isoBandNextXRB[6] = isoBandNextXRB[164] = -1;
-isoBandNextYRB[6] = isoBandNextYRB[164] = 0;
-isoBandNextORB[6] = isoBandNextORB[164] = 1;
-isoBandNextXBR[6] = isoBandNextXBR[164] = -1;
-isoBandNextYBR[6] = isoBandNextYBR[164] = 0;
-isoBandNextOBR[6] = isoBandNextOBR[164] = 0;
-isoBandNextXLB[6] = isoBandNextXLB[164] = 0;
-isoBandNextYLB[6] = isoBandNextYLB[164] = -1;
-isoBandNextOLB[6] = isoBandNextOLB[164] = 1;
-isoBandNextXLT[6] = isoBandNextXLT[164] = 1;
-isoBandNextYLT[6] = isoBandNextYLT[164] = 0;
-isoBandNextOLT[6] = isoBandNextOLT[164] = 0;
-
-isoBandNextXBL[129] = isoBandNextXBL[41] = 0;
-isoBandNextYBL[129] = isoBandNextYBL[41] = 1;
-isoBandNextOBL[129] = isoBandNextOBL[41] = 1;
-isoBandNextXLB[129] = isoBandNextXLB[41] = 0;
-isoBandNextYLB[129] = isoBandNextYLB[41] = 1;
-isoBandNextOLB[129] = isoBandNextOLB[41] = 0;
-isoBandNextXTL[129] = isoBandNextXTL[41] = -1;
-isoBandNextYTL[129] = isoBandNextYTL[41] = 0;
-isoBandNextOTL[129] = isoBandNextOTL[41] = 0;
-isoBandNextXTR[129] = isoBandNextXTR[41] = 0;
-isoBandNextYTR[129] = isoBandNextYTR[41] = -1;
-isoBandNextOTR[129] = isoBandNextOTR[41] = 0;
-
-isoBandNextXBR[66] = isoBandNextXBR[104] = 0;
-isoBandNextYBR[66] = isoBandNextYBR[104] = 1;
-isoBandNextOBR[66] = isoBandNextOBR[104] = 0;
-isoBandNextXBL[66] = isoBandNextXBL[104] = -1;
-isoBandNextYBL[66] = isoBandNextYBL[104] = 0;
-isoBandNextOBL[66] = isoBandNextOBL[104] = 1;
-isoBandNextXLT[66] = isoBandNextXLT[104] = 0;
-isoBandNextYLT[66] = isoBandNextYLT[104] = -1;
-isoBandNextOLT[66] = isoBandNextOLT[104] = 0;
-isoBandNextXTL[66] = isoBandNextXTL[104] = 0;
-isoBandNextYTL[66] = isoBandNextYTL[104] = -1;
-isoBandNextOTL[66] = isoBandNextOTL[104] = 1;
-
-isoBandNextXRT[144] = isoBandNextXRT[26] = -1;
-isoBandNextYRT[144] = isoBandNextYRT[26] = 0;
-isoBandNextORT[144] = isoBandNextORT[26] = 0;
-isoBandNextXLB[144] = isoBandNextXLB[26] = 1;
-isoBandNextYLB[144] = isoBandNextYLB[26] = 0;
-isoBandNextOLB[144] = isoBandNextOLB[26] = 1;
-isoBandNextXLT[144] = isoBandNextXLT[26] = 0;
-isoBandNextYLT[144] = isoBandNextYLT[26] = 1;
-isoBandNextOLT[144] = isoBandNextOLT[26] = 1;
-isoBandNextXTR[144] = isoBandNextXTR[26] = -1;
-isoBandNextYTR[144] = isoBandNextYTR[26] = 0;
-isoBandNextOTR[144] = isoBandNextOTR[26] = 1;
-
-isoBandNextXRB[36] = isoBandNextXRB[134] = 0;
-isoBandNextYRB[36] = isoBandNextYRB[134] = 1;
-isoBandNextORB[36] = isoBandNextORB[134] = 1;
-isoBandNextXBR[36] = isoBandNextXBR[134] = 0;
-isoBandNextYBR[36] = isoBandNextYBR[134] = 1;
-isoBandNextOBR[36] = isoBandNextOBR[134] = 0;
-isoBandNextXTL[36] = isoBandNextXTL[134] = 0;
-isoBandNextYTL[36] = isoBandNextYTL[134] = -1;
-isoBandNextOTL[36] = isoBandNextOTL[134] = 1;
-isoBandNextXTR[36] = isoBandNextXTR[134] = 1;
-isoBandNextYTR[36] = isoBandNextYTR[134] = 0;
-isoBandNextOTR[36] = isoBandNextOTR[134] = 0;
-
-isoBandNextXRT[9] = isoBandNextXRT[161] = -1;
-isoBandNextYRT[9] = isoBandNextYRT[161] = 0;
-isoBandNextORT[9] = isoBandNextORT[161] = 0;
-isoBandNextXRB[9] = isoBandNextXRB[161] = 0;
-isoBandNextYRB[9] = isoBandNextYRB[161] = -1;
-isoBandNextORB[9] = isoBandNextORB[161] = 0;
-isoBandNextXBL[9] = isoBandNextXBL[161] = 1;
-isoBandNextYBL[9] = isoBandNextYBL[161] = 0;
-isoBandNextOBL[9] = isoBandNextOBL[161] = 0;
-isoBandNextXLB[9] = isoBandNextXLB[161] = 1;
-isoBandNextYLB[9] = isoBandNextYLB[161] = 0;
-isoBandNextOLB[9] = isoBandNextOLB[161] = 1;
-
-/* 8-sided cases */
-isoBandNextXRT[136] = 0;
-isoBandNextYRT[136] = 1;
-isoBandNextORT[136] = 1;
-isoBandNextXRB[136] = 0;
-isoBandNextYRB[136] = 1;
-isoBandNextORB[136] = 0;
-isoBandNextXBR[136] = -1;
-isoBandNextYBR[136] = 0;
-isoBandNextOBR[136] = 1;
-isoBandNextXBL[136] = -1;
-isoBandNextYBL[136] = 0;
-isoBandNextOBL[136] = 0;
-isoBandNextXLB[136] = 0;
-isoBandNextYLB[136] = -1;
-isoBandNextOLB[136] = 0;
-isoBandNextXLT[136] = 0;
-isoBandNextYLT[136] = -1;
-isoBandNextOLT[136] = 1;
-isoBandNextXTL[136] = 1;
-isoBandNextYTL[136] = 0;
-isoBandNextOTL[136] = 0;
-isoBandNextXTR[136] = 1;
-isoBandNextYTR[136] = 0;
-isoBandNextOTR[136] = 1;
-
-isoBandNextXRT[34] = 0;
-isoBandNextYRT[34] = -1;
-isoBandNextORT[34] = 0;
-isoBandNextXRB[34] = 0;
-isoBandNextYRB[34] = -1;
-isoBandNextORB[34] = 1;
-isoBandNextXBR[34] = 1;
-isoBandNextYBR[34] = 0;
-isoBandNextOBR[34] = 0;
-isoBandNextXBL[34] = 1;
-isoBandNextYBL[34] = 0;
-isoBandNextOBL[34] = 1;
-isoBandNextXLB[34] = 0;
-isoBandNextYLB[34] = 1;
-isoBandNextOLB[34] = 1;
-isoBandNextXLT[34] = 0;
-isoBandNextYLT[34] = 1;
-isoBandNextOLT[34] = 0;
-isoBandNextXTL[34] = -1;
-isoBandNextYTL[34] = 0;
-isoBandNextOTL[34] = 1;
-isoBandNextXTR[34] = -1;
-isoBandNextYTR[34] = 0;
-isoBandNextOTR[34] = 0;
-
-isoBandNextXRT[35] = 0;
-isoBandNextYRT[35] = 1;
-isoBandNextORT[35] = 1;
-isoBandNextXRB[35] = 0;
-isoBandNextYRB[35] = -1;
-isoBandNextORB[35] = 1;
-isoBandNextXBR[35] = 1;
-isoBandNextYBR[35] = 0;
-isoBandNextOBR[35] = 0;
-isoBandNextXBL[35] = -1;
-isoBandNextYBL[35] = 0;
-isoBandNextOBL[35] = 0;
-isoBandNextXLB[35] = 0;
-isoBandNextYLB[35] = -1;
-isoBandNextOLB[35] = 0;
-isoBandNextXLT[35] = 0;
-isoBandNextYLT[35] = 1;
-isoBandNextOLT[35] = 0;
-isoBandNextXTL[35] = -1;
-isoBandNextYTL[35] = 0;
-isoBandNextOTL[35] = 1;
-isoBandNextXTR[35] = 1;
-isoBandNextYTR[35] = 0;
-isoBandNextOTR[35] = 1;
-
-/* 6-sided cases */
-isoBandNextXRT[153] = 0;
-isoBandNextYRT[153] = 1;
-isoBandNextORT[153] = 1;
-isoBandNextXBL[153] = -1;
-isoBandNextYBL[153] = 0;
-isoBandNextOBL[153] = 0;
-isoBandNextXLB[153] = 0;
-isoBandNextYLB[153] = -1;
-isoBandNextOLB[153] = 0;
-isoBandNextXTR[153] = 1;
-isoBandNextYTR[153] = 0;
-isoBandNextOTR[153] = 1;
-
-isoBandNextXRB[102] = 0;
-isoBandNextYRB[102] = -1;
-isoBandNextORB[102] = 1;
-isoBandNextXBR[102] = 1;
-isoBandNextYBR[102] = 0;
-isoBandNextOBR[102] = 0;
-isoBandNextXLT[102] = 0;
-isoBandNextYLT[102] = 1;
-isoBandNextOLT[102] = 0;
-isoBandNextXTL[102] = -1;
-isoBandNextYTL[102] = 0;
-isoBandNextOTL[102] = 1;
-
-isoBandNextXRT[155] = 0;
-isoBandNextYRT[155] = -1;
-isoBandNextORT[155] = 0;
-isoBandNextXBL[155] = 1;
-isoBandNextYBL[155] = 0;
-isoBandNextOBL[155] = 1;
-isoBandNextXLB[155] = 0;
-isoBandNextYLB[155] = 1;
-isoBandNextOLB[155] = 1;
-isoBandNextXTR[155] = -1;
-isoBandNextYTR[155] = 0;
-isoBandNextOTR[155] = 0;
-
-isoBandNextXRB[103] = 0;
-isoBandNextYRB[103] = 1;
-isoBandNextORB[103] = 0;
-isoBandNextXBR[103] = -1;
-isoBandNextYBR[103] = 0;
-isoBandNextOBR[103] = 1;
-isoBandNextXLT[103] = 0;
-isoBandNextYLT[103] = -1;
-isoBandNextOLT[103] = 1;
-isoBandNextXTL[103] = 1;
-isoBandNextYTL[103] = 0;
-isoBandNextOTL[103] = 0;
-
-/* 7-sided cases */
-isoBandNextXRT[152] = 0;
-isoBandNextYRT[152] = 1;
-isoBandNextORT[152] = 1;
-isoBandNextXBR[152] = -1;
-isoBandNextYBR[152] = 0;
-isoBandNextOBR[152] = 1;
-isoBandNextXBL[152] = -1;
-isoBandNextYBL[152] = 0;
-isoBandNextOBL[152] = 0;
-isoBandNextXLB[152] = 0;
-isoBandNextYLB[152] = -1;
-isoBandNextOLB[152] = 0;
-isoBandNextXLT[152] = 0;
-isoBandNextYLT[152] = -1;
-isoBandNextOLT[152] = 1;
-isoBandNextXTR[152] = 1;
-isoBandNextYTR[152] = 0;
-isoBandNextOTR[152] = 1;
-
-isoBandNextXRT[156] = 0;
-isoBandNextYRT[156] = -1;
-isoBandNextORT[156] = 1;
-isoBandNextXBR[156] = 1;
-isoBandNextYBR[156] = 0;
-isoBandNextOBR[156] = 1;
-isoBandNextXBL[156] = -1;
-isoBandNextYBL[156] = 0;
-isoBandNextOBL[156] = 0;
-isoBandNextXLB[156] = 0;
-isoBandNextYLB[156] = -1;
-isoBandNextOLB[156] = 0;
-isoBandNextXLT[156] = 0;
-isoBandNextYLT[156] = 1;
-isoBandNextOLT[156] = 1;
-isoBandNextXTR[156] = -1;
-isoBandNextYTR[156] = 0;
-isoBandNextOTR[156] = 1;
-
-isoBandNextXRT[137] = 0;
-isoBandNextYRT[137] = 1;
-isoBandNextORT[137] = 1;
-isoBandNextXRB[137] = 0;
-isoBandNextYRB[137] = 1;
-isoBandNextORB[137] = 0;
-isoBandNextXBL[137] = -1;
-isoBandNextYBL[137] = 0;
-isoBandNextOBL[137] = 0;
-isoBandNextXLB[137] = 0;
-isoBandNextYLB[137] = -1;
-isoBandNextOLB[137] = 0;
-isoBandNextXTL[137] = 1;
-isoBandNextYTL[137] = 0;
-isoBandNextOTL[137] = 0;
-isoBandNextXTR[137] = 1;
-isoBandNextYTR[137] = 0;
-isoBandNextOTR[137] = 1;
-
-isoBandNextXRT[139] = 0;
-isoBandNextYRT[139] = 1;
-isoBandNextORT[139] = 1;
-isoBandNextXRB[139] = 0;
-isoBandNextYRB[139] = -1;
-isoBandNextORB[139] = 0;
-isoBandNextXBL[139] = 1;
-isoBandNextYBL[139] = 0;
-isoBandNextOBL[139] = 0;
-isoBandNextXLB[139] = 0;
-isoBandNextYLB[139] = 1;
-isoBandNextOLB[139] = 0;
-isoBandNextXTL[139] = -1;
-isoBandNextYTL[139] = 0;
-isoBandNextOTL[139] = 0;
-isoBandNextXTR[139] = 1;
-isoBandNextYTR[139] = 0;
-isoBandNextOTR[139] = 1;
-
-isoBandNextXRT[98] = 0;
-isoBandNextYRT[98] = -1;
-isoBandNextORT[98] = 0;
-isoBandNextXRB[98] = 0;
-isoBandNextYRB[98] = -1;
-isoBandNextORB[98] = 1;
-isoBandNextXBR[98] = 1;
-isoBandNextYBR[98] = 0;
-isoBandNextOBR[98] = 0;
-isoBandNextXBL[98] = 1;
-isoBandNextYBL[98] = 0;
-isoBandNextOBL[98] = 1;
-isoBandNextXLT[98] = 0;
-isoBandNextYLT[98] = 1;
-isoBandNextOLT[98] = 0;
-isoBandNextXTL[98] = -1;
-isoBandNextYTL[98] = 0;
-isoBandNextOTL[98] = 1;
-
-isoBandNextXRT[99] = 0;
-isoBandNextYRT[99] = 1;
-isoBandNextORT[99] = 0;
-isoBandNextXRB[99] = 0;
-isoBandNextYRB[99] = -1;
-isoBandNextORB[99] = 1;
-isoBandNextXBR[99] = 1;
-isoBandNextYBR[99] = 0;
-isoBandNextOBR[99] = 0;
-isoBandNextXBL[99] = -1;
-isoBandNextYBL[99] = 0;
-isoBandNextOBL[99] = 1;
-isoBandNextXLT[99] = 0;
-isoBandNextYLT[99] = -1;
-isoBandNextOLT[99] = 0;
-isoBandNextXTL[99] = 1;
-isoBandNextYTL[99] = 0;
-isoBandNextOTL[99] = 1;
-
-isoBandNextXRB[38] = 0;
-isoBandNextYRB[38] = -1;
-isoBandNextORB[38] = 1;
-isoBandNextXBR[38] = 1;
-isoBandNextYBR[38] = 0;
-isoBandNextOBR[38] = 0;
-isoBandNextXLB[38] = 0;
-isoBandNextYLB[38] = 1;
-isoBandNextOLB[38] = 1;
-isoBandNextXLT[38] = 0;
-isoBandNextYLT[38] = 1;
-isoBandNextOLT[38] = 0;
-isoBandNextXTL[38] = -1;
-isoBandNextYTL[38] = 0;
-isoBandNextOTL[38] = 1;
-isoBandNextXTR[38] = -1;
-isoBandNextYTR[38] = 0;
-isoBandNextOTR[38] = 0;
-
-isoBandNextXRB[39] = 0;
-isoBandNextYRB[39] = 1;
-isoBandNextORB[39] = 1;
-isoBandNextXBR[39] = -1;
-isoBandNextYBR[39] = 0;
-isoBandNextOBR[39] = 0;
-isoBandNextXLB[39] = 0;
-isoBandNextYLB[39] = -1;
-isoBandNextOLB[39] = 1;
-isoBandNextXLT[39] = 0;
-isoBandNextYLT[39] = 1;
-isoBandNextOLT[39] = 0;
-isoBandNextXTL[39] = -1;
-isoBandNextYTL[39] = 0;
-isoBandNextOTL[39] = 1;
-isoBandNextXTR[39] = 1;
-isoBandNextYTR[39] = 0;
-isoBandNextOTR[39] = 0;
-
-/*
-  Define helper functions for the polygon_table
-  */
-
-/* triangle cases */
-var p00 = function p00(cell) {
-    return [[cell.bottomleft, 0], [0, 0], [0, cell.leftbottom]];
-};
-var p01 = function p01(cell) {
-    return [[1, cell.rightbottom], [1, 0], [cell.bottomright, 0]];
-};
-var p02 = function p02(cell) {
-    return [[cell.topright, 1], [1, 1], [1, cell.righttop]];
-};
-var p03 = function p03(cell) {
-    return [[0, cell.lefttop], [0, 1], [cell.topleft, 1]];
-};
-/* trapezoid cases */
-var p04 = function p04(cell) {
-    return [[cell.bottomright, 0], [cell.bottomleft, 0], [0, cell.leftbottom], [0, cell.lefttop]];
-};
-var p05 = function p05(cell) {
-    return [[cell.bottomright, 0], [cell.bottomleft, 0], [1, cell.righttop], [1, cell.rightbottom]];
-};
-var p06 = function p06(cell) {
-    return [[1, cell.righttop], [1, cell.rightbottom], [cell.topleft, 1], [cell.topright, 1]];
-};
-var p07 = function p07(cell) {
-    return [[0, cell.leftbottom], [0, cell.lefttop], [cell.topleft, 1], [cell.topright, 1]];
-};
-/* rectangle cases */
-var p08 = function p08(cell) {
-    return [[0, 0], [0, cell.leftbottom], [1, cell.rightbottom], [1, 0]];
-};
-var p09 = function p09(cell) {
-    return [[1, 0], [cell.bottomright, 0], [cell.topright, 1], [1, 1]];
-};
-var p10 = function p10(cell) {
-    return [[1, 1], [1, cell.righttop], [0, cell.lefttop], [0, 1]];
-};
-var p11 = function p11(cell) {
-    return [[cell.bottomleft, 0], [0, 0], [0, 1], [cell.topleft, 1]];
-};
-var p12 = function p12(cell) {
-    return [[1, cell.righttop], [1, cell.rightbottom], [0, cell.leftbottom], [0, cell.lefttop]];
-};
-var p13 = function p13(cell) {
-    return [[cell.topleft, 1], [cell.topright, 1], [cell.bottomright, 0], [cell.bottomleft, 0]];
-};
-/* square case */
-var p14 = function p14() {
-    return [[0, 0], [0, 1], [1, 1], [1, 0]];
-};
-/* pentagon cases */
-var p15 = function p15(cell) {
-    return [[1, cell.rightbottom], [1, 0], [0, 0], [0, 1], [cell.topleft, 1]];
-};
-/* 1211 || 1011 */
-var p16 = function p16(cell) {
-    return [[cell.topright, 1], [1, 1], [1, 0], [0, 0], [0, cell.leftbottom]];
-};
-/* 2111 || 0111 */
-var p17 = function p17(cell) {
-    return [[1, 0], [cell.bottomright, 0], [0, cell.lefttop], [0, 1], [1, 1]];
-};
-/* 1112 || 1110 */
-var p18 = function p18(cell) {
-    return [[1, 1], [1, cell.righttop], [cell.bottomleft, 0], [0, 0], [0, 1]];
-};
-/* 1121 || 1101 */
-var p19 = function p19(cell) {
-    return [[1, cell.righttop], [1, cell.rightbottom], [0, cell.lefttop], [0, 1], [cell.topleft, 1]];
-};
-/* 1200 || 1022 */
-var p20 = function p20(cell) {
-    return [[1, 1], [1, cell.righttop], [cell.bottomright, 0], [cell.bottomleft, 0], [cell.topright, 1]];
-};
-/* 0120 || 2102 */
-var p21 = function p21(cell) {
-    return [[1, cell.rightbottom], [1, 0], [cell.bottomright, 0], [0, cell.leftbottom], [0, cell.lefttop]];
-};
-/* 0012 || 2210 */
-var p22 = function p22(cell) {
-    return [[cell.topright, 1], [cell.bottomleft, 0], [0, 0], [0, cell.leftbottom], [cell.topleft, 1]];
-};
-/* 2001 || 0221 */
-var p23 = function p23(cell) {
-    return [[cell.bottomright, 0], [cell.bottomleft, 0], [0, cell.lefttop], [0, 1], [cell.topleft, 1]];
-};
-/* 1002 || 1220 */
-var p24 = function p24(cell) {
-    return [[1, 1], [1, cell.righttop], [0, cell.leftbottom], [0, cell.lefttop], [cell.topright, 1]];
-};
-/* 2100 || 0122 */
-var p25 = function p25(cell) {
-    return [[1, cell.rightbottom], [1, 0], [cell.bottomright, 0], [cell.topleft, 1], [cell.topright, 1]];
-};
-/* 0210 || 2012 */
-var p26 = function p26(cell) {
-    return [[1, cell.righttop], [1, cell.rightbottom], [cell.bottomleft, 0], [0, 0], [0, cell.leftbottom]];
-};
-/* 0021 || 2201 */
-/*hexagon cases */
-var p27 = function p27(cell) {
-    return [[1, cell.rightbottom], [1, 0], [0, 0], [0, cell.leftbottom], [cell.topleft, 1], [cell.topright, 1]];
-};
-/* 0211 || 2011 */
-var p28 = function p28(cell) {
-    return [[1, 1], [1, 0], [cell.bottomright, 0], [0, cell.leftbottom], [0, cell.lefttop], [cell.topright, 1]];
-};
-/* 2110 || 0112 */
-var p29 = function p29(cell) {
-    return [[1, 1], [1, cell.righttop], [cell.bottomright, 0], [cell.bottomleft, 0], [0, cell.lefttop], [0, 1]];
-};
-/* 1102 || 1120 */
-var p30 = function p30(cell) {
-    return [[1, cell.righttop], [1, cell.rightbottom], [cell.bottomleft, 0], [0, 0], [0, 1], [cell.topleft, 1]];
-};
-/* 1021 || 1201 */
-var p31 = function p31(cell) {
-    return [[1, 1], [1, cell.righttop], [cell.bottomleft, 0], [0, 0], [0, cell.leftbottom], [cell.topright, 1]];
-};
-/* 2101 || 0121 */
-var p32 = function p32(cell) {
-    return [[1, cell.rightbottom], [1, 0], [cell.bottomright, 0], [0, cell.lefttop], [0, 1], [cell.topleft, 1]];
-};
-/* 1012 || 1210 */
-/* 8-sided cases */
-var p33 = function p33(cell) {
-    return [[1, cell.righttop], [1, cell.rightbottom], [cell.bottomright, 0], [cell.bottomleft, 0], [0, cell.leftbottom], [0, cell.lefttop], [cell.topleft, 1], [cell.topright, 1]];
-};
-/* flipped == 1 state for 0202 and 2020 */
-/* 6-sided cases */
-var p34 = function p34(cell) {
-    return [[1, 1], [1, cell.righttop], [cell.bottomleft, 0], [0, 0], [0, cell.leftbottom], [cell.topright, 1]];
-};
-/* 0101 with flipped == 1 || 2121 with flipped == 1 */
-var p35 = function p35(cell) {
-    return [[1, cell.rightbottom], [1, 0], [cell.bottomright, 0], [0, cell.lefttop], [0, 1], [cell.topleft, 1]];
-};
-/* 1010 with flipped == 1 || 1212 with flipped == 1 */
-/* 7-sided cases */
-var p36 = function p36(cell) {
-    return [[1, 1], [1, cell.righttop], [cell.bottomright, 0], [cell.bottomleft, 0], [0, cell.leftbottom], [0, cell.lefttop], [cell.topright, 1]];
-};
-/* 2120 with flipped == 1 || 0102 with flipped == 1 */
-var p37 = function p37(cell) {
-    return [[1, cell.righttop], [1, cell.rightbottom], [cell.bottomleft, 0], [0, 0], [0, cell.leftbottom], [cell.topleft, 1], [cell.topright, 1]];
-};
-/* 2021 with flipped == 1 || 0201 with flipped == 1 */
-var p38 = function p38(cell) {
-    return [[1, cell.righttop], [1, cell.rightbottom], [cell.bottomright, 0], [cell.bottomleft, 0], [0, cell.lefttop], [0, 1], [cell.topleft, 1]];
-};
-/* 1202 with flipped == 1 || 1020 with flipped == 1 */
-var p39 = function p39(cell) {
-    return [[1, cell.rightbottom], [1, 0], [cell.bottomright, 0], [0, cell.leftbottom], [0, cell.lefttop], [cell.topleft, 1], [cell.topright, 1]];
-};
-/* 0212 with flipped == 1 || 2010 with flipped == 1 */
-
-/*
-  The lookup tables for edge number given the polygon
-  is entered at a specific location
-*/
-
-var isoBandEdgeRT = [];
-var isoBandEdgeRB = [];
-var isoBandEdgeBR = [];
-var isoBandEdgeBL = [];
-var isoBandEdgeLB = [];
-var isoBandEdgeLT = [];
-var isoBandEdgeTL = [];
-var isoBandEdgeTR = [];
-
-/* triangle cases */
-isoBandEdgeBL[1] = isoBandEdgeLB[1] = 18;
-isoBandEdgeBL[169] = isoBandEdgeLB[169] = 18;
-isoBandEdgeBR[4] = isoBandEdgeRB[4] = 12;
-isoBandEdgeBR[166] = isoBandEdgeRB[166] = 12;
-isoBandEdgeRT[16] = isoBandEdgeTR[16] = 4;
-isoBandEdgeRT[154] = isoBandEdgeTR[154] = 4;
-isoBandEdgeLT[64] = isoBandEdgeTL[64] = 22;
-isoBandEdgeLT[106] = isoBandEdgeTL[106] = 22;
-
-/* trapezoid cases */
-isoBandEdgeBR[2] = isoBandEdgeLT[2] = 17;
-isoBandEdgeBL[2] = isoBandEdgeLB[2] = 18;
-isoBandEdgeBR[168] = isoBandEdgeLT[168] = 17;
-isoBandEdgeBL[168] = isoBandEdgeLB[168] = 18;
-isoBandEdgeRT[8] = isoBandEdgeBL[8] = 9;
-isoBandEdgeRB[8] = isoBandEdgeBR[8] = 12;
-isoBandEdgeRT[162] = isoBandEdgeBL[162] = 9;
-isoBandEdgeRB[162] = isoBandEdgeBR[162] = 12;
-isoBandEdgeRT[32] = isoBandEdgeTR[32] = 4;
-isoBandEdgeRB[32] = isoBandEdgeTL[32] = 1;
-isoBandEdgeRT[138] = isoBandEdgeTR[138] = 4;
-isoBandEdgeRB[138] = isoBandEdgeTL[138] = 1;
-isoBandEdgeLB[128] = isoBandEdgeTR[128] = 21;
-isoBandEdgeLT[128] = isoBandEdgeTL[128] = 22;
-isoBandEdgeLB[42] = isoBandEdgeTR[42] = 21;
-isoBandEdgeLT[42] = isoBandEdgeTL[42] = 22;
-
-/* rectangle cases */
-isoBandEdgeRB[5] = isoBandEdgeLB[5] = 14;
-isoBandEdgeRB[165] = isoBandEdgeLB[165] = 14;
-isoBandEdgeBR[20] = isoBandEdgeTR[20] = 6;
-isoBandEdgeBR[150] = isoBandEdgeTR[150] = 6;
-isoBandEdgeRT[80] = isoBandEdgeLT[80] = 11;
-isoBandEdgeRT[90] = isoBandEdgeLT[90] = 11;
-isoBandEdgeBL[65] = isoBandEdgeTL[65] = 3;
-isoBandEdgeBL[105] = isoBandEdgeTL[105] = 3;
-isoBandEdgeRT[160] = isoBandEdgeLT[160] = 11;
-isoBandEdgeRB[160] = isoBandEdgeLB[160] = 14;
-isoBandEdgeRT[10] = isoBandEdgeLT[10] = 11;
-isoBandEdgeRB[10] = isoBandEdgeLB[10] = 14;
-isoBandEdgeBR[130] = isoBandEdgeTR[130] = 6;
-isoBandEdgeBL[130] = isoBandEdgeTL[130] = 3;
-isoBandEdgeBR[40] = isoBandEdgeTR[40] = 6;
-isoBandEdgeBL[40] = isoBandEdgeTL[40] = 3;
-
-/* pentagon cases */
-isoBandEdgeRB[101] = isoBandEdgeTL[101] = 1;
-isoBandEdgeRB[69] = isoBandEdgeTL[69] = 1;
-isoBandEdgeLB[149] = isoBandEdgeTR[149] = 21;
-isoBandEdgeLB[21] = isoBandEdgeTR[21] = 21;
-isoBandEdgeBR[86] = isoBandEdgeLT[86] = 17;
-isoBandEdgeBR[84] = isoBandEdgeLT[84] = 17;
-isoBandEdgeRT[89] = isoBandEdgeBL[89] = 9;
-isoBandEdgeRT[81] = isoBandEdgeBL[81] = 9;
-isoBandEdgeRT[96] = isoBandEdgeTL[96] = 0;
-isoBandEdgeRB[96] = isoBandEdgeLT[96] = 15;
-isoBandEdgeRT[74] = isoBandEdgeTL[74] = 0;
-isoBandEdgeRB[74] = isoBandEdgeLT[74] = 15;
-isoBandEdgeRT[24] = isoBandEdgeBR[24] = 8;
-isoBandEdgeBL[24] = isoBandEdgeTR[24] = 7;
-isoBandEdgeRT[146] = isoBandEdgeBR[146] = 8;
-isoBandEdgeBL[146] = isoBandEdgeTR[146] = 7;
-isoBandEdgeRB[6] = isoBandEdgeLT[6] = 15;
-isoBandEdgeBR[6] = isoBandEdgeLB[6] = 16;
-isoBandEdgeRB[164] = isoBandEdgeLT[164] = 15;
-isoBandEdgeBR[164] = isoBandEdgeLB[164] = 16;
-isoBandEdgeBL[129] = isoBandEdgeTR[129] = 7;
-isoBandEdgeLB[129] = isoBandEdgeTL[129] = 20;
-isoBandEdgeBL[41] = isoBandEdgeTR[41] = 7;
-isoBandEdgeLB[41] = isoBandEdgeTL[41] = 20;
-isoBandEdgeBR[66] = isoBandEdgeTL[66] = 2;
-isoBandEdgeBL[66] = isoBandEdgeLT[66] = 19;
-isoBandEdgeBR[104] = isoBandEdgeTL[104] = 2;
-isoBandEdgeBL[104] = isoBandEdgeLT[104] = 19;
-isoBandEdgeRT[144] = isoBandEdgeLB[144] = 10;
-isoBandEdgeLT[144] = isoBandEdgeTR[144] = 23;
-isoBandEdgeRT[26] = isoBandEdgeLB[26] = 10;
-isoBandEdgeLT[26] = isoBandEdgeTR[26] = 23;
-isoBandEdgeRB[36] = isoBandEdgeTR[36] = 5;
-isoBandEdgeBR[36] = isoBandEdgeTL[36] = 2;
-isoBandEdgeRB[134] = isoBandEdgeTR[134] = 5;
-isoBandEdgeBR[134] = isoBandEdgeTL[134] = 2;
-isoBandEdgeRT[9] = isoBandEdgeLB[9] = 10;
-isoBandEdgeRB[9] = isoBandEdgeBL[9] = 13;
-isoBandEdgeRT[161] = isoBandEdgeLB[161] = 10;
-isoBandEdgeRB[161] = isoBandEdgeBL[161] = 13;
-
-/* hexagon cases */
-isoBandEdgeRB[37] = isoBandEdgeTR[37] = 5;
-isoBandEdgeLB[37] = isoBandEdgeTL[37] = 20;
-isoBandEdgeRB[133] = isoBandEdgeTR[133] = 5;
-isoBandEdgeLB[133] = isoBandEdgeTL[133] = 20;
-isoBandEdgeBR[148] = isoBandEdgeLB[148] = 16;
-isoBandEdgeLT[148] = isoBandEdgeTR[148] = 23;
-isoBandEdgeBR[22] = isoBandEdgeLB[22] = 16;
-isoBandEdgeLT[22] = isoBandEdgeTR[22] = 23;
-isoBandEdgeRT[82] = isoBandEdgeBR[82] = 8;
-isoBandEdgeBL[82] = isoBandEdgeLT[82] = 19;
-isoBandEdgeRT[88] = isoBandEdgeBR[88] = 8;
-isoBandEdgeBL[88] = isoBandEdgeLT[88] = 19;
-isoBandEdgeRT[73] = isoBandEdgeTL[73] = 0;
-isoBandEdgeRB[73] = isoBandEdgeBL[73] = 13;
-isoBandEdgeRT[97] = isoBandEdgeTL[97] = 0;
-isoBandEdgeRB[97] = isoBandEdgeBL[97] = 13;
-isoBandEdgeRT[145] = isoBandEdgeBL[145] = 9;
-isoBandEdgeLB[145] = isoBandEdgeTR[145] = 21;
-isoBandEdgeRT[25] = isoBandEdgeBL[25] = 9;
-isoBandEdgeLB[25] = isoBandEdgeTR[25] = 21;
-isoBandEdgeRB[70] = isoBandEdgeTL[70] = 1;
-isoBandEdgeBR[70] = isoBandEdgeLT[70] = 17;
-isoBandEdgeRB[100] = isoBandEdgeTL[100] = 1;
-isoBandEdgeBR[100] = isoBandEdgeLT[100] = 17;
-
-/* 8-sided cases */
-isoBandEdgeRT[34] = isoBandEdgeBL[34] = 9;
-isoBandEdgeRB[34] = isoBandEdgeBR[34] = 12;
-isoBandEdgeLB[34] = isoBandEdgeTR[34] = 21;
-isoBandEdgeLT[34] = isoBandEdgeTL[34] = 22;
-isoBandEdgeRT[136] = isoBandEdgeTR[136] = 4;
-isoBandEdgeRB[136] = isoBandEdgeTL[136] = 1;
-isoBandEdgeBR[136] = isoBandEdgeLT[136] = 17;
-isoBandEdgeBL[136] = isoBandEdgeLB[136] = 18;
-isoBandEdgeRT[35] = isoBandEdgeTR[35] = 4;
-isoBandEdgeRB[35] = isoBandEdgeBR[35] = 12;
-isoBandEdgeBL[35] = isoBandEdgeLB[35] = 18;
-isoBandEdgeLT[35] = isoBandEdgeTL[35] = 22;
-
-/* 6-sided cases */
-isoBandEdgeRT[153] = isoBandEdgeTR[153] = 4;
-isoBandEdgeBL[153] = isoBandEdgeLB[153] = 18;
-isoBandEdgeRB[102] = isoBandEdgeBR[102] = 12;
-isoBandEdgeLT[102] = isoBandEdgeTL[102] = 22;
-isoBandEdgeRT[155] = isoBandEdgeBL[155] = 9;
-isoBandEdgeLB[155] = isoBandEdgeTR[155] = 23;
-isoBandEdgeRB[103] = isoBandEdgeTL[103] = 1;
-isoBandEdgeBR[103] = isoBandEdgeLT[103] = 17;
-
-/* 7-sided cases */
-isoBandEdgeRT[152] = isoBandEdgeTR[152] = 4;
-isoBandEdgeBR[152] = isoBandEdgeLT[152] = 17;
-isoBandEdgeBL[152] = isoBandEdgeLB[152] = 18;
-isoBandEdgeRT[156] = isoBandEdgeBR[156] = 8;
-isoBandEdgeBL[156] = isoBandEdgeLB[156] = 18;
-isoBandEdgeLT[156] = isoBandEdgeTR[156] = 23;
-isoBandEdgeRT[137] = isoBandEdgeTR[137] = 4;
-isoBandEdgeRB[137] = isoBandEdgeTL[137] = 1;
-isoBandEdgeBL[137] = isoBandEdgeLB[137] = 18;
-isoBandEdgeRT[139] = isoBandEdgeTR[139] = 4;
-isoBandEdgeRB[139] = isoBandEdgeBL[139] = 13;
-isoBandEdgeLB[139] = isoBandEdgeTL[139] = 20;
-isoBandEdgeRT[98] = isoBandEdgeBL[98] = 9;
-isoBandEdgeRB[98] = isoBandEdgeBR[98] = 12;
-isoBandEdgeLT[98] = isoBandEdgeTL[98] = 22;
-isoBandEdgeRT[99] = isoBandEdgeTL[99] = 0;
-isoBandEdgeRB[99] = isoBandEdgeBR[99] = 12;
-isoBandEdgeBL[99] = isoBandEdgeLT[99] = 19;
-isoBandEdgeRB[38] = isoBandEdgeBR[38] = 12;
-isoBandEdgeLB[38] = isoBandEdgeTR[38] = 21;
-isoBandEdgeLT[38] = isoBandEdgeTL[38] = 22;
-isoBandEdgeRB[39] = isoBandEdgeTR[39] = 5;
-isoBandEdgeBR[39] = isoBandEdgeLB[39] = 16;
-isoBandEdgeLT[39] = isoBandEdgeTL[39] = 22;
-
-/*
-  The lookup tables for all different polygons that
-  may appear within a grid cell
-*/
-
-var polygon_table = [];
-
-/* triangle cases */
-polygon_table[1] = polygon_table[169] = p00; /* 2221 || 0001 */
-polygon_table[4] = polygon_table[166] = p01; /* 2212 || 0010 */
-polygon_table[16] = polygon_table[154] = p02; /* 2122 || 0100 */
-polygon_table[64] = polygon_table[106] = p03; /* 1222 || 1000 */
-
-/* trapezoid cases */
-polygon_table[168] = polygon_table[2] = p04; /* 2220 || 0002 */
-polygon_table[162] = polygon_table[8] = p05; /* 2202 || 0020 */
-polygon_table[138] = polygon_table[32] = p06; /* 2022 || 0200 */
-polygon_table[42] = polygon_table[128] = p07; /* 0222 || 2000 */
-
-/* rectangle cases */
-polygon_table[5] = polygon_table[165] = p08; /* 0011 || 2211 */
-polygon_table[20] = polygon_table[150] = p09; /* 0110 || 2112 */
-polygon_table[80] = polygon_table[90] = p10; /* 1100 || 1122 */
-polygon_table[65] = polygon_table[105] = p11; /* 1001 || 1221 */
-polygon_table[160] = polygon_table[10] = p12; /* 2200 || 0022 */
-polygon_table[130] = polygon_table[40] = p13; /* 2002 || 0220 */
-
-/* square case */
-polygon_table[85] = p14; /* 1111 */
-
-/* pentagon cases */
-polygon_table[101] = polygon_table[69] = p15; /* 1211 || 1011 */
-polygon_table[149] = polygon_table[21] = p16; /* 2111 || 0111 */
-polygon_table[86] = polygon_table[84] = p17; /* 1112 || 1110 */
-polygon_table[89] = polygon_table[81] = p18; /* 1121 || 1101 */
-polygon_table[96] = polygon_table[74] = p19; /* 1200 || 1022 */
-polygon_table[24] = polygon_table[146] = p20; /* 0120 || 2102 */
-polygon_table[6] = polygon_table[164] = p21; /* 0012 || 2210 */
-polygon_table[129] = polygon_table[41] = p22; /* 2001 || 0221 */
-polygon_table[66] = polygon_table[104] = p23; /* 1002 || 1220 */
-polygon_table[144] = polygon_table[26] = p24; /* 2100 || 0122 */
-polygon_table[36] = polygon_table[134] = p25; /* 0210 || 2012 */
-polygon_table[9] = polygon_table[161] = p26; /* 0021 || 2201 */
-
-/* hexagon cases */
-polygon_table[37] = polygon_table[133] = p27; /* 0211 || 2011 */
-polygon_table[148] = polygon_table[22] = p28; /* 2110 || 0112 */
-polygon_table[82] = polygon_table[88] = p29; /* 1102 || 1120 */
-polygon_table[73] = polygon_table[97] = p30; /* 1021 || 1201 */
-polygon_table[145] = polygon_table[25] = p31; /* 2101 || 0121 */
-polygon_table[70] = polygon_table[100] = p32; /* 1012 || 1210 */
-
-/* 8-sided cases */
-polygon_table[34] = function (c) {
-    return [p07(c), p05(c)];
-}; /* 0202 || 2020 with flipped == 0 */
-polygon_table[35] = p33; /* flipped == 1 state for 0202 and 2020 */
-polygon_table[136] = function (c) {
-    return [p06(c), p04(c)];
-}; /* 2020 || 0202 with flipped == 0 */
-
-/* 6-sided cases */
-polygon_table[153] = function (c) {
-    return [p02(c), p00(c)];
-}; /* 0101 with flipped == 0 || 2121 with flipped == 2 */
-polygon_table[102] = function (c) {
-    return [p01(c), p03(c)];
-}; /* 1010 with flipped == 0 || 1212 with flipped == 2 */
-polygon_table[155] = p34; /* 0101 with flipped == 1 || 2121 with flipped == 1 */
-polygon_table[103] = p35; /* 1010 with flipped == 1 || 1212 with flipped == 1 */
-
-/* 7-sided cases */
-polygon_table[152] = function (c) {
-    return [p02(c), p04(c)];
-}; /* 2120 with flipped == 2 || 0102 with flipped == 0 */
-polygon_table[156] = p36; /* 2120 with flipped == 1 || 0102 with flipped == 1 */
-polygon_table[137] = function (c) {
-    return [p06(c), p00(c)];
-}; /* 2021 with flipped == 2 || 0201 with flipped == 0 */
-polygon_table[139] = p37; /* 2021 with flipped == 1 || 0201 with flipped == 1 */
-polygon_table[98] = function (c) {
-    return [p05(c), p03(c)];
-}; /* 1202 with flipped == 2 || 1020 with flipped == 0 */
-polygon_table[99] = p38; /* 1202 with flipped == 1 || 1020 with flipped == 1 */
-polygon_table[38] = function (c) {
-    return [p01(c), p07(c)];
-}; /* 0212 with flipped == 2 || 2010 with flipped == 0 */
-polygon_table[39] = p39; /* 0212 with flipped == 1 || 2010 with flipped == 1 */
-
-/**
- * https://github.com/rook2pawn/node-intersection
- *
- * Author @rook2pawn
- */
-
-/**
- * AB
- *
- * @private
- * @param {Array<Array<number>>} segment - 2 vertex line segment
- * @returns {Array<number>} coordinates [x, y]
- */
-
-// http://en.wikipedia.org/wiki/Even%E2%80%93odd_rule
-// modified from: https://github.com/substack/point-in-polygon/blob/master/index.js
-// which was modified from http://www.ecse.rpi.edu/Homepages/wrf/Research/Short_Notes/pnpoly.html
-
-/**
- * Takes a {@link Point} and a {@link Polygon} or {@link MultiPolygon} and determines if the point resides inside the polygon. The polygon can
- * be convex or concave. The function accounts for holes.
- *
- * @name inside
- * @param {Feature<Point>} point input point
- * @param {Feature<Polygon|MultiPolygon>} polygon input polygon or multipolygon
- * @param {Object} [options={}] Optional parameters
- * @param {boolean} [options.ignoreBoundary=false] True if polygon boundary should be ignored when determining if the point is inside the polygon otherwise false.
- * @returns {boolean} `true` if the Point is inside the Polygon; `false` if the Point is not inside the Polygon
- * @example
- * var pt = turf.point([-77, 44]);
- * var poly = turf.polygon([[
- *   [-81, 41],
- *   [-81, 47],
- *   [-72, 47],
- *   [-72, 41],
- *   [-81, 41]
- * ]]);
- *
- * turf.inside(pt, poly);
- * //= true
- */
-function inside(point, polygon, options) {
-    // Optional parameters
-    options = options || {};
-    if ((typeof options === 'undefined' ? 'undefined' : _typeof(options)) !== 'object') throw new Error('options is invalid');
-    var ignoreBoundary = options.ignoreBoundary;
-
-    // validation
-    if (!point) throw new Error('point is required');
-    if (!polygon) throw new Error('polygon is required');
-
-    var pt = getCoord(point);
-    var polys = getCoords(polygon);
-    var type = polygon.geometry ? polygon.geometry.type : polygon.type;
-    var bbox = polygon.bbox;
-
-    // Quick elimination if point is not inside bbox
-    if (bbox && inBBox$1(pt, bbox) === false) return false;
-
-    // normalize to multipolygon
-    if (type === 'Polygon') polys = [polys];
-
-    for (var i = 0, insidePoly = false; i < polys.length && !insidePoly; i++) {
-        // check if it is in the outer ring first
-        if (inRing$1(pt, polys[i][0], ignoreBoundary)) {
-            var inHole = false;
-            var k = 1;
-            // check for the point in any of the holes
-            while (k < polys[i].length && !inHole) {
-                if (inRing$1(pt, polys[i][k], !ignoreBoundary)) {
-                    inHole = true;
-                }
-                k++;
-            }
-            if (!inHole) insidePoly = true;
-        }
-    }
-    return insidePoly;
-}
-
-/**
- * inRing
- *
- * @private
- * @param {Array<number>} pt [x,y]
- * @param {Array<Array<number>>} ring [[x,y], [x,y],..]
- * @param {boolean} ignoreBoundary ignoreBoundary
- * @returns {boolean} inRing
- */
-function inRing$1(pt, ring, ignoreBoundary) {
-    var isInside = false;
-    if (ring[0][0] === ring[ring.length - 1][0] && ring[0][1] === ring[ring.length - 1][1]) ring = ring.slice(0, ring.length - 1);
-
-    for (var i = 0, j = ring.length - 1; i < ring.length; j = i++) {
-        var xi = ring[i][0],
-            yi = ring[i][1];
-        var xj = ring[j][0],
-            yj = ring[j][1];
-        var onBoundary = pt[1] * (xi - xj) + yi * (xj - pt[0]) + yj * (pt[0] - xi) === 0 && (xi - pt[0]) * (xj - pt[0]) <= 0 && (yi - pt[1]) * (yj - pt[1]) <= 0;
-        if (onBoundary) return !ignoreBoundary;
-        var intersect = yi > pt[1] !== yj > pt[1] && pt[0] < (xj - xi) * (pt[1] - yi) / (yj - yi) + xi;
-        if (intersect) isInside = !isInside;
-    }
-    return isInside;
-}
-
-/**
- * inBBox
- *
- * @private
- * @param {Array<number>} pt point [x,y]
- * @param {Array<number>} bbox BBox [west, south, east, north]
- * @returns {boolean} true/false if point is inside BBox
- */
-function inBBox$1(pt, bbox) {
-    return bbox[0] <= pt[0] && bbox[1] <= pt[1] && bbox[2] >= pt[0] && bbox[3] >= pt[1];
-}
-
-/** Returns the direction of the point q relative to the vector p1 -> p2.
- * Implementation of geos::algorithm::CGAlgorithm::orientationIndex()
- * (same as geos::algorithm::CGAlgorithm::computeOrientation())
- *
- * @param {Number[]} p1 - the origin point of the vector
- * @param {Number[]} p2 - the final point of the vector
- * @param {Number[]} q - the point to compute the direction to
- *
- * @returns {Number} - 1 if q is ccw (left) from p1->p2,
- *    -1 if q is cw (right) from p1->p2,
- *     0 if q is colinear with p1->p2
- */
-function orientationIndex(p1, p2, q) {
-  var dx1 = p2[0] - p1[0],
-      dy1 = p2[1] - p1[1],
-      dx2 = q[0] - p2[0],
-      dy2 = q[1] - p2[1];
-
-  return Math.sign(dx1 * dy2 - dx2 * dy1);
-}
-
-/** Checks if two envelopes are equal.
- * The function assumes that the arguments are envelopes, i.e.: Rectangular polygon
- *
- * @param {Feature<Polygon>} env1 - Envelope
- * @param {Feature<Polygon>} env2 - Envelope
- * @returns {Boolean} - True if the envelopes are equal
- */
-function envelopeIsEqual(env1, env2) {
-  var envX1 = env1.geometry.coordinates.map(function (c) {
-    return c[0];
-  }),
-      envY1 = env1.geometry.coordinates.map(function (c) {
-    return c[1];
-  }),
-      envX2 = env2.geometry.coordinates.map(function (c) {
-    return c[0];
-  }),
-      envY2 = env2.geometry.coordinates.map(function (c) {
-    return c[1];
-  });
-
-  return Math.max(null, envX1) === Math.max(null, envX2) && Math.max(null, envY1) === Math.max(null, envY2) && Math.min(null, envX1) === Math.min(null, envX2) && Math.min(null, envY1) === Math.min(null, envY2);
-}
-
-/** Check if a envelope is contained in other one.
- * The function assumes that the arguments are envelopes, i.e.: Convex polygon
- * XXX: Envelopes are rectangular, checking if a point is inside a rectangule is something easy,
- * this could be further improved.
- *
- * @param {Feature<Polygon>} self - Envelope
- * @param {Feature<Polygon>} env - Envelope
- * @returns {Boolean} - True if env is contained in self
- */
-function envelopeContains(self, env) {
-  return env.geometry.coordinates[0].every(function (c) {
-    return inside(point(c), self);
-  });
-}
-
-/** Checks if two coordinates are equal.
- *
- * @param {Number[]} coord1 - First coordinate
- * @param {Number[]} coord2 - Second coordinate
- * @returns {Boolean} - True if coordinates are equal
- */
-function coordinatesEqual(coord1, coord2) {
-  return coord1[0] === coord2[0] && coord1[1] === coord2[1];
-}
-
-var Node$4 = function () {
-  createClass(Node, null, [{
-    key: 'buildId',
-    value: function buildId(coordinates) {
-      return coordinates.join(',');
-    }
-  }]);
-
-  function Node(coordinates) {
-    classCallCheck(this, Node);
-
-    this.id = Node.buildId(coordinates);
-    this.coordinates = coordinates; //< {Number[]}
-    this.innerEdges = []; //< {Edge[]}
-
-    // We wil store to (out) edges in an CCW order as geos::planargraph::DirectedEdgeStar does
-    this.outerEdges = []; //< {Edge[]}
-    this.outerEdgesSorted = false; //< {Boolean} flag that stores if the outer Edges had been sorted
-  }
-
-  createClass(Node, [{
-    key: 'removeInnerEdge',
-    value: function removeInnerEdge(edge) {
-      this.innerEdges = this.innerEdges.filter(function (e) {
-        return e.from.id !== edge.from.id;
-      });
-    }
-  }, {
-    key: 'removeOuterEdge',
-    value: function removeOuterEdge(edge) {
-      this.outerEdges = this.outerEdges.filter(function (e) {
-        return e.to.id !== edge.to.id;
-      });
-    }
-
-    /** Outer edges are stored CCW order.
-     * @param {Edge} edge - Edge to add as an outerEdge.
-     */
-
-  }, {
-    key: 'addOuterEdge',
-    value: function addOuterEdge(edge) {
-      this.outerEdges.push(edge);
-      this.outerEdgesSorted = false;
-    }
-
-    /** Sorts outer edges in CCW way.
-     * @private
-     */
-
-  }, {
-    key: 'sortOuterEdges',
-    value: function sortOuterEdges() {
-      var _this = this;
-
-      if (!this.outerEdgesSorted) {
-        //this.outerEdges.sort((a, b) => a.compareTo(b));
-        // Using this comparator in order to be deterministic
-        this.outerEdges.sort(function (a, b) {
-          var aNode = a.to,
-              bNode = b.to;
-
-          if (aNode.coordinates[0] - _this.coordinates[0] >= 0 && bNode.coordinates[0] - _this.coordinates[0] < 0) return 1;
-          if (aNode.coordinates[0] - _this.coordinates[0] < 0 && bNode.coordinates[0] - _this.coordinates[0] >= 0) return -1;
-
-          if (aNode.coordinates[0] - _this.coordinates[0] === 0 && bNode.coordinates[0] - _this.coordinates[0] === 0) {
-            if (aNode.coordinates[1] - _this.coordinates[1] >= 0 || bNode.coordinates[1] - _this.coordinates[1] >= 0) return aNode.coordinates[1] - bNode.coordinates[1];
-            return bNode.coordinates[1] - aNode.coordinates[1];
-          }
-
-          var det = orientationIndex(_this.coordinates, aNode.coordinates, bNode.coordinates);
-          if (det < 0) return 1;
-          if (det > 0) return -1;
-
-          var d1 = Math.pow(aNode.coordinates[0] - _this.coordinates[0], 2) + Math.pow(aNode.coordinates[1] - _this.coordinates[1], 2),
-              d2 = Math.pow(bNode.coordinates[0] - _this.coordinates[0], 2) + Math.pow(bNode.coordinates[1] - _this.coordinates[1], 2);
-
-          return d1 - d2;
-        });
-        this.outerEdgesSorted = true;
-      }
-    }
-
-    /** Retrieves outer edges.
-     * They are sorted if they aren't in the CCW order.
-     * @returns {Edge[]} - List of outer edges sorted in a CCW order.
-     */
-
-  }, {
-    key: 'getOuterEdges',
-    value: function getOuterEdges() {
-      this.sortOuterEdges();
-      return this.outerEdges;
-    }
-  }, {
-    key: 'getOuterEdge',
-    value: function getOuterEdge(i) {
-      this.sortOuterEdges();
-      return this.outerEdges[i];
-    }
-  }, {
-    key: 'addInnerEdge',
-    value: function addInnerEdge(edge) {
-      this.innerEdges.push(edge);
-    }
-  }]);
-  return Node;
-}();
-
-/** This class is inspired by GEOS's geos::operation::polygonize::PolygonizeDirectedEdge
- */
-
-var Edge$2 = function () {
-  createClass(Edge, [{
-    key: 'getSymetric',
-
-    /** Creates or get the symetric Edge.
-     *
-     * @returns {Edge} - Symetric Edge.
-     */
-    value: function getSymetric() {
-      if (!this.symetric) {
-        this.symetric = new Edge(this.to, this.from);
-        this.symetric.symetric = this;
-      }
-
-      return this.symetric;
-    }
-
-    /**
-     * @param {Node} from - start node of the Edge
-     * @param {Node} to - end node of the edge
-     */
-
-  }]);
-
-  function Edge(from, to) {
-    classCallCheck(this, Edge);
-
-    this.from = from; //< start
-    this.to = to; //< End
-
-    this.next = undefined; //< The edge to be computed after
-    this.label = undefined; //< Used in order to detect Cut Edges (Bridges)
-    this.symetric = undefined; //< The symetric edge of this
-    this.ring = undefined; //< EdgeRing in which the Edge is
-
-    this.from.addOuterEdge(this);
-    this.to.addInnerEdge(this);
-  }
-
-  /** Removes edge from from and to nodes.
-   */
-
-
-  createClass(Edge, [{
-    key: 'deleteEdge',
-    value: function deleteEdge() {
-      this.from.removeOuterEdge(this);
-      this.to.removeInnerEdge(this);
-    }
-
-    /** Compares Edge equallity.
-     * An edge is equal to another, if the from and to nodes are the same.
-     *
-     * @param {Edge} edge - Another Edge
-     * @returns {Boolean} - True if Edges are equal, False otherwise
-     */
-
-  }, {
-    key: 'isEqual',
-    value: function isEqual(edge) {
-      return this.from.id === edge.from.id && this.to.id === edge.to.id;
-    }
-  }, {
-    key: 'toString',
-    value: function toString() {
-      return 'Edge { ' + this.from.id + ' -> ' + this.to.id + ' }';
-    }
-
-    /** Returns a LineString representation of the Edge
-     *
-     * @returns {Feature<LineString>} - LineString representation of the Edge
-     */
-
-  }, {
-    key: 'toLineString',
-    value: function toLineString() {
-      return lineString([this.from.coordinates, this.to.coordinates]);
-    }
-
-    /** Comparator of two edges.
-     * Implementation of geos::planargraph::DirectedEdge::compareTo.
-     *
-     * @param {Edge} edge - Another edge to compare with this one
-     * @returns {Number} -1 if this Edge has a greater angle with the positive x-axis than b,
-     *          0 if the Edges are colinear,
-     *          1 otherwise
-     */
-
-  }, {
-    key: 'compareTo',
-    value: function compareTo(edge) {
-      return orientationIndex(edge.from.coordinates, edge.to.coordinates, this.to.coordinates);
-    }
-  }]);
-  return Edge;
-}();
-
-/** Ring of edges which form a polygon.
- * The ring may be either an outer shell or a hole.
- *
- * This class is inspired in GEOS's geos::operation::polygonize::EdgeRing
- */
-
-var EdgeRing$2 = function () {
-  function EdgeRing() {
-    classCallCheck(this, EdgeRing);
-
-    this.edges = [];
-    this.polygon = undefined; //< Caches Polygon representation
-    this.envelope = undefined; //< Caches Envelope representation
-  }
-
-  /** Add an edge to the ring, inserting it in the last position.
-   *
-   * @param {Edge} edge - Edge to be inserted
-   */
-
-
-  createClass(EdgeRing, [{
-    key: 'push',
-    value: function push(edge) {
-      // Emulate Array getter ([]) behaviour
-      this[this.edges.length] = edge;
-      this.edges.push(edge);
-      this.polygon = this.envelope = undefined;
-    }
-
-    /** Get Edge.
-     *
-     * @param {Number} i - Index
-     * @returns {Edge} - Edge in the i position
-     */
-
-  }, {
-    key: 'get',
-    value: function get$$1(i) {
-      return this.edges[i];
-    }
-
-    /** Getter of length property.
-     *
-     * @returns {Number} - Length of the edge ring.
-     */
-
-  }, {
-    key: 'forEach',
-
-
-    /** Similar to Array.prototype.forEach for the list of Edges in the EdgeRing.
-     *
-     * @param {Function} f - The same function to be passed to Array.prototype.forEach
-     */
-    value: function forEach(f) {
-      this.edges.forEach(f);
-    }
-
-    /** Similar to Array.prototype.map for the list of Edges in the EdgeRing.
-     *
-     * @param {Function} f - The same function to be passed to Array.prototype.map
-     * @returns {Array} - The mapped values in the function
-     */
-
-  }, {
-    key: 'map',
-    value: function map(f) {
-      return this.edges.map(f);
-    }
-
-    /** Similar to Array.prototype.some for the list of Edges in the EdgeRing.
-     *
-     * @param {Function} f - The same function to be passed to Array.prototype.some
-     * @returns {Boolean} - True if an Edge check the condition
-     */
-
-  }, {
-    key: 'some',
-    value: function some(f) {
-      return this.edges.some(f);
-    }
-
-    /** Check if the ring is valid in geomtry terms.
-     * A ring must have either 0 or 4 or more points. The first and the last must be
-     * equal (in 2D)
-     * geos::geom::LinearRing::validateConstruction
-     *
-     * @returns {Boolean} - Validity of the EdgeRing
-     */
-
-  }, {
-    key: 'isValid',
-    value: function isValid() {
-      // TODO: stub
-      return true;
-    }
-
-    /** Tests whether this ring is a hole.
-     * A ring is a hole if it is oriented counter-clockwise.
-     * Similar implementation of geos::algorithm::CGAlgorithms::isCCW
-     * @returns {Boolean} - true: if it is a hole
-     */
-
-  }, {
-    key: 'isHole',
-    value: function isHole() {
-      var _this = this;
-
-      // XXX: Assuming Ring is valid
-      // Find highest point
-      var hiIndex = this.edges.reduce(function (high, edge, i) {
-        if (edge.from.coordinates[1] > _this.edges[high].from.coordinates[1]) high = i;
-        return high;
-      }, 0),
-          iPrev = (hiIndex === 0 ? this.length : hiIndex) - 1,
-          iNext = (hiIndex + 1) % this.length,
-          disc = orientationIndex(this.edges[iPrev].from.coordinates, this.edges[hiIndex].from.coordinates, this.edges[iNext].from.coordinates);
-
-      if (disc === 0) return this.edges[iPrev].from.coordinates[0] > this.edges[iNext].from.coordinates[0];
-      return disc > 0;
-    }
-
-    /** Creates a MultiPoint representing the EdgeRing (discarts edges directions).
-     * @returns {Feature<MultiPoint>} - Multipoint representation of the EdgeRing
-     */
-
-  }, {
-    key: 'toMultiPoint',
-    value: function toMultiPoint() {
-      return multiPoint(this.edges.map(function (edge) {
-        return edge.from.coordinates;
-      }));
-    }
-
-    /** Creates a Polygon representing the EdgeRing.
-     * @returns {Feature<Polygon>} - Polygon representation of the Edge Ring
-     */
-
-  }, {
-    key: 'toPolygon',
-    value: function toPolygon() {
-      if (this.polygon) return this.polygon;
-      var coordinates = this.edges.map(function (edge) {
-        return edge.from.coordinates;
-      });
-      coordinates.push(this.edges[0].from.coordinates);
-      return this.polygon = polygon([coordinates]);
-    }
-
-    /** Calculates the envelope of the EdgeRing.
-     * @returns {Feature<Polygon>} - envelope
-     */
-
-  }, {
-    key: 'getEnvelope',
-    value: function getEnvelope() {
-      if (this.envelope) return this.envelope;
-      return this.envelope = envelope(this.toPolygon());
-    }
-
-    /**
-     * `geos::operation::polygonize::EdgeRing::findEdgeRingContaining`
-     *
-     * @param {EdgeRing} testEdgeRing - EdgeRing to look in the list
-     * @param {EdgeRing[]} shellList - List of EdgeRing in which to search
-     *
-     * @returns {EdgeRing} - EdgeRing which contains the testEdgeRing
-     */
-
-  }, {
-    key: 'inside',
-
-
-    /** Checks if the point is inside the edgeRing
-     *
-     * @param {Feature<Point>} point - Point to check if it is inside the edgeRing
-     * @returns {Boolean} - True if it is inside, False otherwise
-     */
-    value: function inside$$1(point$$1) {
-      return inside(point$$1, this.toPolygon());
-    }
-  }, {
-    key: 'length',
-    get: function get$$1() {
-      return this.edges.length;
-    }
-  }], [{
-    key: 'findEdgeRingContaining',
-    value: function findEdgeRingContaining(testEdgeRing, shellList) {
-      var testEnvelope = testEdgeRing.getEnvelope();
-
-      var minEnvelope, minShell;
-      shellList.forEach(function (shell) {
-        var tryEnvelope = shell.getEnvelope();
-
-        if (minShell) minEnvelope = minShell.getEnvelope();
-
-        // the hole envelope cannot equal the shell envelope
-        if (envelopeIsEqual(tryEnvelope, testEnvelope)) return;
-
-        if (envelopeContains(tryEnvelope, testEnvelope)) {
-          var testPoint = testEdgeRing.map(function (edge) {
-            return edge.from.coordinates;
-          }).find(function (pt) {
-            return !shell.some(function (edge) {
-              return coordinatesEqual(pt, edge.from.coordinates);
-            });
-          });
-
-          if (testPoint && shell.inside(point(testPoint))) {
-            if (!minShell || envelopeContains(minEnvelope, tryEnvelope)) minShell = shell;
-          }
-        }
-      });
-
-      return minShell;
-    }
-  }]);
-  return EdgeRing;
-}();
-
-/** Validates the geoJson.
- *
- * @param {Geojson} geoJson - input geoJson.
- * @throws {Error} if geoJson is invalid.
- */
-function validateGeoJson(geoJson) {
-  if (!geoJson) throw new Error('No geojson passed');
-
-  if (geoJson.type !== 'FeatureCollection' && geoJson.type !== 'GeometryCollection' && geoJson.type !== 'MultiLineString' && geoJson.type !== 'LineString' && geoJson.type !== 'Feature') throw new Error('Invalid input type \'' + geoJson.type + '\'. Geojson must be FeatureCollection, GeometryCollection, LineString, MultiLineString or Feature');
-}
-
-/** Represents a planar graph of edges and nodes that can be used to compute a
- * polygonization.
- *
- * Although, this class is inspired by GEOS's `geos::operation::polygonize::PolygonizeGraph`,
- * it isn't a rewrite. As regards algorithm, this class implements the same logic, but it
- * isn't a javascript transcription of the C++ source.
- *
- * This graph is directed (both directions are created)
- */
-
-var Graph = function () {
-  createClass(Graph, [{
-    key: 'getNode',
-
-
-    /** Creates or get a Node.
-     *
-     * @param {Number[]} coordinates - Coordinates of the node
-     * @returns {Node} - The created or stored node
-     */
-    value: function getNode(coordinates) {
-      var id = Node$4.buildId(coordinates);
-      var node = this.nodes[id];
-      if (!node) node = this.nodes[id] = new Node$4(coordinates);
-
-      return node;
-    }
-
-    /** Adds an Edge and its symetricall.
-     * Edges are added symetrically, i.e.: we also add its symetric
-     *
-     * @param {Node} from - Node which starts the Edge
-     * @param {Node} to - Node which ends the Edge
-     */
-
-  }, {
-    key: 'addEdge',
-    value: function addEdge(from, to) {
-      var edge = new Edge$2(from, to),
-          symetricEdge = edge.getSymetric();
-
-      this.edges.push(edge);
-      this.edges.push(symetricEdge);
-    }
-  }], [{
-    key: 'fromGeoJson',
-
-    /** Creates a graph from a GeoJSON.
-     *
-     * @param {FeatureCollection<LineString>} geoJson - it must comply with the restrictions detailed in the index
-     * @returns {Graph} - The newly created graph
-     * @throws {Error} if geoJson is invalid.
-     */
-    value: function fromGeoJson(geoJson) {
-      validateGeoJson(geoJson);
-
-      var graph = new Graph();
-      flattenEach(geoJson, function (feature) {
-        featureOf(feature, 'LineString', 'Graph::fromGeoJson');
-        // When a LineString if formed by many segments, split them
-        coordReduce(feature, function (prev, cur) {
-          if (prev) {
-            var start = graph.getNode(prev),
-                end = graph.getNode(cur);
-
-            graph.addEdge(start, end);
-          }
-          return cur;
-        });
-      });
-
-      return graph;
-    }
-  }]);
-
-  function Graph() {
-    classCallCheck(this, Graph);
-
-    this.edges = []; //< {Edge[]} dirEdges
-
-    // The key is the `id` of the Node (ie: coordinates.join(','))
-    this.nodes = {};
-  }
-
-  /** Removes Dangle Nodes (nodes with grade 1).
-   */
-
-
-  createClass(Graph, [{
-    key: 'deleteDangles',
-    value: function deleteDangles() {
-      var _this = this;
-
-      Object.keys(this.nodes).map(function (id) {
-        return _this.nodes[id];
-      }).forEach(function (node) {
-        return _this._removeIfDangle(node);
-      });
-    }
-
-    /** Check if node is dangle, if so, remove it.
-     * It calls itself recursively, removing a dangling node might cause another dangling node
-     *
-     * @param {Node} node - Node to check if it's a dangle
-     */
-
-  }, {
-    key: '_removeIfDangle',
-    value: function _removeIfDangle(node) {
-      var _this2 = this;
-
-      // As edges are directed and symetrical, we count only innerEdges
-      if (node.innerEdges.length <= 1) {
-        var outerNodes = node.getOuterEdges().map(function (e) {
-          return e.to;
-        });
-        this.removeNode(node);
-        outerNodes.forEach(function (n) {
-          return _this2._removeIfDangle(n);
-        });
-      }
-    }
-
-    /** Delete cut-edges (bridge edges).
-     *
-     * The graph will be traversed, all the edges will be labeled according the ring
-     * in which they are. (The label is a number incremented by 1). Edges with the same
-     * label are cut-edges.
-     */
-
-  }, {
-    key: 'deleteCutEdges',
-    value: function deleteCutEdges() {
-      var _this3 = this;
-
-      this._computeNextCWEdges();
-      this._findLabeledEdgeRings();
-
-      // Cut-edges (bridges) are edges where both edges have the same label
-      this.edges.forEach(function (edge) {
-        if (edge.label === edge.symetric.label) {
-          _this3.removeEdge(edge.symetric);
-          _this3.removeEdge(edge);
-        }
-      });
-    }
-
-    /** Set the `next` property of each Edge.
-     * The graph will be transversed in a CW form, so, we set the next of the symetrical edge as the previous one.
-     * OuterEdges are sorted CCW.
-     *
-     * @param {Node} [node] - If no node is passed, the function calls itself for every node in the Graph
-     */
-
-  }, {
-    key: '_computeNextCWEdges',
-    value: function _computeNextCWEdges(node) {
-      var _this4 = this;
-
-      if (typeof node === 'undefined') {
-        Object.keys(this.nodes).forEach(function (id) {
-          return _this4._computeNextCWEdges(_this4.nodes[id]);
-        });
-      } else {
-        node.getOuterEdges().forEach(function (edge, i) {
-          node.getOuterEdge((i === 0 ? node.getOuterEdges().length : i) - 1).symetric.next = edge;
-        });
-      }
-    }
-
-    /** Computes the next edge pointers going CCW around the given node, for the given edgering label.
-     * This algorithm has the effect of converting maximal edgerings into minimal edgerings
-     *
-     * XXX: method literally transcribed from `geos::operation::polygonize::PolygonizeGraph::computeNextCCWEdges`,
-     * could be written in a more javascript way.
-     *
-     * @param {Node} node - Node
-     * @param {Number} label - Ring's label
-     */
-
-  }, {
-    key: '_computeNextCCWEdges',
-    value: function _computeNextCCWEdges(node, label) {
-      var edges = node.getOuterEdges();
-      var firstOutDE, prevInDE;
-
-      for (var i = edges.length - 1; i >= 0; --i) {
-        var de = edges[i],
-            sym = de.symetric,
-            outDE,
-            inDE;
-
-        if (de.label === label) outDE = de;
-
-        if (sym.label === label) inDE = sym;
-
-        if (!outDE || !inDE) // This edge is not in edgering
-          continue;
-
-        if (inDE) prevInDE = inDE;
-
-        if (outDE) {
-          if (prevInDE) {
-            prevInDE.next = outDE;
-            prevInDE = undefined;
-          }
-
-          if (!firstOutDE) firstOutDE = outDE;
-        }
-      }
-
-      if (prevInDE) prevInDE.next = firstOutDE;
-    }
-
-    /** Finds rings and labels edges according to which rings are.
-     * The label is a number which is increased for each ring.
-     *
-     * @returns {Edge[]} edges that start rings
-     */
-
-  }, {
-    key: '_findLabeledEdgeRings',
-    value: function _findLabeledEdgeRings() {
-      var edgeRingStarts = [];
-      var label = 0;
-      this.edges.forEach(function (edge) {
-        if (edge.label >= 0) return;
-
-        edgeRingStarts.push(edge);
-
-        var e = edge;
-        do {
-          e.label = label;
-          e = e.next;
-        } while (!edge.isEqual(e));
-
-        label++;
-      });
-
-      return edgeRingStarts;
-    }
-
-    /** Computes the EdgeRings formed by the edges in this graph.
-     *
-     * @returns {EdgeRing[]} - A list of all the EdgeRings in the graph.
-     */
-
-  }, {
-    key: 'getEdgeRings',
-    value: function getEdgeRings() {
-      var _this5 = this;
-
-      this._computeNextCWEdges();
-
-      // Clear labels
-      this.edges.forEach(function (edge) {
-        edge.label = undefined;
-      });
-
-      this._findLabeledEdgeRings().forEach(function (edge) {
-        // convertMaximalToMinimalEdgeRings
-        _this5._findIntersectionNodes(edge).forEach(function (node) {
-          _this5._computeNextCCWEdges(node, edge.label);
-        });
-      });
-
-      var edgeRingList = [];
-
-      // find all edgerings
-      this.edges.forEach(function (edge) {
-        if (edge.ring) return;
-        edgeRingList.push(_this5._findEdgeRing(edge));
-      });
-
-      return edgeRingList;
-    }
-
-    /** Find all nodes in a Maxima EdgeRing which are self-intersection nodes.
-     *
-     * @param {Node} startEdge - Start Edge of the Ring
-     * @returns {Node[]} - intersection nodes
-     */
-
-  }, {
-    key: '_findIntersectionNodes',
-    value: function _findIntersectionNodes(startEdge) {
-      var intersectionNodes = [];
-      var edge = startEdge;
-      do {
-        // getDegree
-        var degree = 0;
-        edge.from.getOuterEdges().forEach(function (e) {
-          if (e.label === startEdge.label) ++degree;
-        });
-
-        if (degree > 1) intersectionNodes.push(edge.from);
-
-        edge = edge.next;
-      } while (!startEdge.isEqual(edge));
-
-      return intersectionNodes;
-    }
-
-    /** Get the edge-ring which starts from the provided Edge.
-     *
-     * @param {Edge} startEdge - starting edge of the edge ring
-     * @returns {EdgeRing} - EdgeRing which start Edge is the provided one.
-     */
-
-  }, {
-    key: '_findEdgeRing',
-    value: function _findEdgeRing(startEdge) {
-      var edge = startEdge;
-      var edgeRing = new EdgeRing$2();
-
-      do {
-        edgeRing.push(edge);
-        edge.ring = edgeRing;
-        edge = edge.next;
-      } while (!startEdge.isEqual(edge));
-
-      return edgeRing;
-    }
-
-    /** Removes a node from the Graph.
-     *
-     * It also removes edges asociated to that node
-     * @param {Node} node - Node to be removed
-     */
-
-  }, {
-    key: 'removeNode',
-    value: function removeNode(node) {
-      var _this6 = this;
-
-      node.getOuterEdges().forEach(function (edge) {
-        return _this6.removeEdge(edge);
-      });
-      node.innerEdges.forEach(function (edge) {
-        return _this6.removeEdge(edge);
-      });
-      delete this.nodes[node.id];
-    }
-
-    /** Remove edge from the graph and deletes the edge.
-     *
-     * @param {Edge} edge - Edge to be removed
-     */
-
-  }, {
-    key: 'removeEdge',
-    value: function removeEdge(edge) {
-      this.edges = this.edges.filter(function (e) {
-        return !e.isEqual(edge);
-      });
-      edge.deleteEdge();
-    }
-  }]);
-  return Graph;
-}();
-
-/**
- * Polygonizes {@link LineString|(Multi)LineString(s)} into {@link Polygons}. Implementation of GEOSPolygonize function (`geos::operation::polygonize::Polygonizer`).
- * Polygonizes a set of lines that represents edges in a planar graph. Edges must be correctly
- * noded, i.e., they must only meet at their endpoints. (NOTE: while TurfJS has no specific function, an easy way to
- * ensure this is to use the QGis library and call unaryUnion() on the set of input geometries and then pass the
- * result to turf-polygonize).
- * The implementation correctly handles:
- * - Dangles: edges which have one or both ends which are not incident on another edge endpoint.
- * - Cut Edges (bridges): edges that are connected at both ends but which do not form part of a polygon.
- *
- * @name polygonize
- * @param {FeatureCollection|Geometry|Feature<LineString|MultiLineString>} geojson Lines in order to polygonize
- * @returns {FeatureCollection<Polygon>} Polygons created
- * @throws {Error} if GeoJSON is invalid.
- * @example
- * var lines = {
- *  "type": "FeatureCollection",
- *  "features": [
- *    {
- *      "type": "Feature",
- *      "properties": {},
- *      "geometry": {
- *        "type": "LineString",
- *        "coordinates": [
- *          [
- *            119.00390625,
- *            -22.024545601240337
- *          ],
- *          [
- *            120.58593749999999,
- *            -28.613459424004414
- *          ],
- *          [
- *            125.595703125,
- *            -32.99023555965107
- *          ],
- *          [
- *            133.330078125,
- *            -32.99023555965107
- *          ],
- *          [
- *            142.646484375,
- *            -30.977609093348676
- *          ],
- *          [
- *            142.294921875,
- *            -24.126701958681668
- *          ],
- *          [
- *            139.04296875,
- *            -16.299051014581817
- *          ],
- *          [
- *            128.84765625,
- *            -15.199386048559994
- *          ]
- *        ]
- *      }
- *    },
- *    {
- *      "type": "Feature",
- *      "properties": {},
- *      "geometry": {
- *        "type": "LineString",
- *        "coordinates": [
- *          [
- *            142.646484375,
- *            -30.977609093348676
- *          ],
- *          [
- *            132.451171875,
- *            -27.449790329784214
- *          ],
- *          [
- *            128.671875,
- *            -23.1605633090483
- *          ],
- *          [
- *            119.00390625,
- *            -22.024545601240337
- *          ]
- *        ]
- *      }
- *    }
- *  ]
- * }
- * var outPolygon = turf.polygonize(lines)
- * //addToMap
- * var addToMap = [lines, outPolygon];
- */
-
-var GeojsonEquality = require('geojson-equality');
-
-var GeojsonEquality$1 = require('geojson-equality');
-
-var clustering = require('density-clustering');
-
-var skmeans = require('skmeans');
-
-// javascript-astar 0.4.1
-// http://github.com/bgrins/javascript-astar
-// Freely distributable under the MIT License.
-// Implements the astar search algorithm in javascript using a Binary Heap.
-// Includes Binary Heap (with modifications) from Marijn Haverbeke.
-// http://eloquentjavascript.net/appendix2.html
-
-/**
- * Astar
- * @private
- */
-
-
-/**
- * A graph memory structure
- *
- * @private
- * @param {Array} gridIn 2D array of input weights
- * @param {Object} [options] Options
- * @param {boolean} [options.diagonal] Specifies whether diagonal moves are allowed
- * @returns {void} Graph
- */
-
-/**
- * Returns a random position within a {@link bounding box}.
- *
- * @name randomPosition
- * @param {Array<number>} [bbox=[-180, -90, 180, 90]] a bounding box inside of which positions are placed.
- * @returns {Array<number>} Position [longitude, latitude]
- * @example
- * var position = turf.randomPosition([-180, -90, 180, 90])
- * //=position
- */
-
-
-/**
- * Returns a random {@link point}.
- *
- * @name randomPoint
- * @param {number} [count=1] how many geometries will be generated
- * @param {Object} [options={}] Optional parameters
- * @param {Array<number>} [options.bbox=[-180, -90, 180, 90]] a bounding box inside of which geometries are placed.
- * @returns {FeatureCollection<Point>} GeoJSON FeatureCollection of points
- * @example
- * var points = turf.randomPoint(25, {bbox: [-180, -90, 180, 90]})
- * //=points
- */
-
-
-/**
- * Returns a random {@link polygon}.
- *
- * @name randomPolygon
- * @param {number} [count=1] how many geometries will be generated
- * @param {Object} [options={}] Optional parameters
- * @param {Array<number>} [options.bbox=[-180, -90, 180, 90]] a bounding box inside of which geometries are placed.
- * @param {number} [options.num_vertices=10] is how many coordinates each LineString will contain.
- * @param {number} [options.max_radial_length=10] is the maximum number of decimal degrees latitude or longitude that a vertex can reach out of the center of the Polygon.
- * @returns {FeatureCollection<Point>} GeoJSON FeatureCollection of points
- * @example
- * var polygons = turf.randomPolygon(25, {bbox: [-180, -90, 180, 90]})
- * //=polygons
- */
-
-
-/**
- * Returns a random {@link linestring}.
- *
- * @name randomLineString
- * @param {number} [count=1] how many geometries will be generated
- * @param {Object} [options={}] Optional parameters
- * @param {Array<number>} [options.bbox=[-180, -90, 180, 90]] a bounding box inside of which geometries are placed.
- * @param {number} [options.num_vertices=10] is how many coordinates each LineString will contain.
- * @param {number} [options.max_length=0.0001] is the maximum number of decimal degrees that a vertex can be from its predecessor
- * @param {number} [options.max_rotation=Math.PI / 8] is the maximum number of radians that a line segment can turn from the previous segment.
- * @returns {FeatureCollection<Point>} GeoJSON FeatureCollection of points
- * @example
- * var lineStrings = turf.randomLineString(25, {bbox: [-180, -90, 180, 90]})
- * //=lineStrings
- */
-
-/**
- * Get Cluster
- *
- * @name getCluster
- * @param {FeatureCollection} geojson GeoJSON Features
- * @param {*} filter Filter used on GeoJSON properties to get Cluster
- * @returns {FeatureCollection} Single Cluster filtered by GeoJSON Properties
- * @example
- * var geojson = turf.featureCollection([
- *     turf.point([0, 0], {'marker-symbol': 'circle'}),
- *     turf.point([2, 4], {'marker-symbol': 'star'}),
- *     turf.point([3, 6], {'marker-symbol': 'star'}),
- *     turf.point([5, 1], {'marker-symbol': 'square'}),
- *     turf.point([4, 2], {'marker-symbol': 'circle'})
- * ]);
- *
- * // Create a cluster using K-Means (adds `cluster` to GeoJSON properties)
- * var clustered = turf.clustersKmeans(geojson);
- *
- * // Retrieve first cluster (0)
- * var cluster = turf.getCluster(clustered, {cluster: 0});
- * //= cluster
- *
- * // Retrieve cluster based on custom properties
- * turf.getCluster(clustered, {'marker-symbol': 'circle'}).length;
- * //= 2
- * turf.getCluster(clustered, {'marker-symbol': 'square'}).length;
- * //= 1
- */
-
-
-/**
- * Callback for clusterEach
- *
- * @callback clusterEachCallback
- * @param {FeatureCollection} [cluster] The current cluster being processed.
- * @param {*} [clusterValue] Value used to create cluster being processed.
- * @param {number} [currentIndex] The index of the current element being processed in the array.Starts at index 0
- * @returns {void}
- */
-
-/**
- * clusterEach
- *
- * @name clusterEach
- * @param {FeatureCollection} geojson GeoJSON Features
- * @param {string|number} property GeoJSON property key/value used to create clusters
- * @param {Function} callback a method that takes (cluster, clusterValue, currentIndex)
- * @returns {void}
- * @example
- * var geojson = turf.featureCollection([
- *     turf.point([0, 0]),
- *     turf.point([2, 4]),
- *     turf.point([3, 6]),
- *     turf.point([5, 1]),
- *     turf.point([4, 2])
- * ]);
- *
- * // Create a cluster using K-Means (adds `cluster` to GeoJSON properties)
- * var clustered = turf.clustersKmeans(geojson);
- *
- * // Iterate over each cluster
- * turf.clusterEach(clustered, 'cluster', function (cluster, clusterValue, currentIndex) {
- *     //= cluster
- *     //= clusterValue
- *     //= currentIndex
- * })
- *
- * // Calculate the total number of clusters
- * var total = 0
- * turf.clusterEach(clustered, 'cluster', function () {
- *     total++;
- * });
- *
- * // Create an Array of all the values retrieved from the 'cluster' property
- * var values = []
- * turf.clusterEach(clustered, 'cluster', function (cluster, clusterValue) {
- *     values.push(clusterValue);
- * });
- */
-
-
-/**
- * Callback for clusterReduce
- *
- * The first time the callback function is called, the values provided as arguments depend
- * on whether the reduce method has an initialValue argument.
- *
- * If an initialValue is provided to the reduce method:
- *  - The previousValue argument is initialValue.
- *  - The currentValue argument is the value of the first element present in the array.
- *
- * If an initialValue is not provided:
- *  - The previousValue argument is the value of the first element present in the array.
- *  - The currentValue argument is the value of the second element present in the array.
- *
- * @callback clusterReduceCallback
- * @param {*} [previousValue] The accumulated value previously returned in the last invocation
- * of the callback, or initialValue, if supplied.
- * @param {FeatureCollection} [cluster] The current cluster being processed.
- * @param {*} [clusterValue] Value used to create cluster being processed.
- * @param {number} [currentIndex] The index of the current element being processed in the
- * array. Starts at index 0, if an initialValue is provided, and at index 1 otherwise.
- */
-
-/**
- * Reduce clusters in GeoJSON Features, similar to Array.reduce()
- *
- * @name clusterReduce
- * @param {FeatureCollection} geojson GeoJSON Features
- * @param {string|number} property GeoJSON property key/value used to create clusters
- * @param {Function} callback a method that takes (previousValue, cluster, clusterValue, currentIndex)
- * @param {*} [initialValue] Value to use as the first argument to the first call of the callback.
- * @returns {*} The value that results from the reduction.
- * @example
- * var geojson = turf.featureCollection([
- *     turf.point([0, 0]),
- *     turf.point([2, 4]),
- *     turf.point([3, 6]),
- *     turf.point([5, 1]),
- *     turf.point([4, 2])
- * ]);
- *
- * // Create a cluster using K-Means (adds `cluster` to GeoJSON properties)
- * var clustered = turf.clustersKmeans(geojson);
- *
- * // Iterate over each cluster and perform a calculation
- * var initialValue = 0
- * turf.clusterReduce(clustered, 'cluster', function (previousValue, cluster, clusterValue, currentIndex) {
- *     //=previousValue
- *     //=cluster
- *     //=clusterValue
- *     //=currentIndex
- *     return previousValue++;
- * }, initialValue);
- *
- * // Calculate the total number of clusters
- * var total = turf.clusterReduce(clustered, 'cluster', function (previousValue) {
- *     return previousValue++;
- * }, 0);
- *
- * // Create an Array of all the values retrieved from the 'cluster' property
- * var values = turf.clusterReduce(clustered, 'cluster', function (previousValue, cluster, clusterValue) {
- *     return previousValue.concat(clusterValue);
- * }, []);
- */
-
-
-/**
- * Create Bins
- *
- * @private
- * @param {FeatureCollection} geojson GeoJSON Features
- * @param {string|number} property Property values are used to create bins
- * @returns {Object} bins with Feature IDs
- * @example
- * var geojson = turf.featureCollection([
- *     turf.point([0, 0], {cluster: 0, foo: 'null'}),
- *     turf.point([2, 4], {cluster: 1, foo: 'bar'}),
- *     turf.point([5, 1], {0: 'foo'}),
- *     turf.point([3, 6], {cluster: 1}),
- * ]);
- * createBins(geojson, 'cluster');
- * //= { '0': [ 0 ], '1': [ 1, 3 ] }
- */
-
-
-/**
- * Apply Filter
- *
- * @private
- * @param {*} properties Properties
- * @param {*} filter Filter
- * @returns {boolean} applied Filter to properties
- */
-
-
-/**
- * Properties contains filter (does not apply deepEqual operations)
- *
- * @private
- * @param {*} properties Properties
- * @param {Object} filter Filter
- * @returns {boolean} does filter equal Properties
- * @example
- * propertiesContainsFilter({foo: 'bar', cluster: 0}, {cluster: 0})
- * //= true
- * propertiesContainsFilter({foo: 'bar', cluster: 0}, {cluster: 1})
- * //= false
- */
-
-
-/**
- * Filter Properties
- *
- * @private
- * @param {*} properties Properties
- * @param {string[]} keys Used to filter Properties
- * @returns {*} filtered Properties
- * @example
- * filterProperties({foo: 'bar', cluster: 0}, ['cluster'])
- * //= {cluster: 0}
- */
-
-/**
- * @license get-closest https://github.com/cosmosio/get-closest
- *
- * The MIT License (MIT)
- *
- * Copyright (c) 2014-2017 Olivier Scherrer <pode.fr@gmail.com>
- */
-
-/**
- * Get the closest number in an array
- *
- * @private
- * @param {number} item the base number
- * @param {Array} array the array to search into
- * @param {Function} getDiff returns the difference between the base number and
- *   and the currently read item in the array. The item which returned the smallest difference wins.
- * @returns {Object} Get Closest
- */
-/**
- * Get the closest number in an array given a base number
- *
- * @private
- * @param {number} item the base number
- * @param {Array<number>} array the array of numbers to search into
- * @returns {number} the index of the closest item in the array
- * @example
- * closestNumber(30, [20, 0, 50, 29])
- * //= will return 3 as 29 is the closest item
- */
-
-
-/**
- * Get the closest greater number in an array given a base number
- *
- * @private
- * @param {number} item the base number
- * @param {Array<number>} array the array of numbers to search into
- * @returns {number} the index of the closest item in the array
- * @example
- * closestGreaterNumber(30, [20, 0, 50, 29])
- * //= will return 2 as 50 is the closest greater item
- */
-
-
-/**
- * Get the closest lower number in an array given a base number
- *
- * @private
- * @param {number} item the base number
- * @param {Array<number>} array the array of numbers to search into
- * @returns {number} the index of the closest item in the array
- * @example
- * closestLowerNumber(30, [20, 0, 50, 29])
- * //= will return 0 as 20 is the closest lower item
- */
-
-
-/**
- * Get the closest item in an array given a base item and a comparator function
- *
- * @private
- * @param {*} item the base item
- * @param {Array} array an array of items
- * @param {Function} comparator a comparatof function to compare the items
- * @returns {Object} Closest Custom
- * @example
- * closestCustom("lundi", ["mundi", "mardi"], getLevenshteinDistance)
- * //= will return 0 for "lundi"
- *
- * // The function looks like:
- *
- * // comparedItem comes from the array
- * // baseItem is the item to compare the others to
- * // It returns a number
- * function comparator(comparedItem, baseItem) {
- *     return comparedItem - baseItem;
- * }
- */
-
-// Adds floating point numbers with twice the normal precision.
-// Reference: J. R. Shewchuk, Adaptive Precision Floating-Point Arithmetic and
-// Fast Robust Geometric Predicates, Discrete & Computational Geometry 18(3)
-// 305–363 (1997).
-// Code adapted from GeographicLib by Charles F. F. Karney,
-// http://geographiclib.sourceforge.net/
-
-var adder = function () {
-  return new Adder();
-};
-
-function Adder() {
-  this.reset();
-}
-
-Adder.prototype = {
-  constructor: Adder,
-  reset: function reset() {
-    this.s = // rounded value
-    this.t = 0; // exact error
-  },
-  add: function add(y) {
-    _add(temp, y, this.t);
-    _add(this, temp.s, this.s);
-    if (this.s) this.t += temp.t;else this.s = temp.t;
-  },
-  valueOf: function valueOf() {
-    return this.s;
-  }
-};
-
-var temp = new Adder();
-
-function _add(adder, a, b) {
-  var x = adder.s = a + b,
-      bv = x - a,
-      av = x - bv;
-  adder.t = a - av + (b - bv);
-}
-
-var epsilon$1 = 1e-6;
-
-var pi = Math.PI;
-var halfPi = pi / 2;
-var quarterPi = pi / 4;
-var tau = pi * 2;
-
-var degrees = 180 / pi;
-var radians = pi / 180;
-
-var abs = Math.abs;
-var atan = Math.atan;
-var atan2 = Math.atan2;
-var cos = Math.cos;
-
-var exp = Math.exp;
-
-var log = Math.log;
-
-var sin = Math.sin;
-
-var sqrt = Math.sqrt;
-var tan = Math.tan;
-
-function acos(x) {
-  return x > 1 ? 0 : x < -1 ? pi : Math.acos(x);
-}
-
-function asin(x) {
-  return x > 1 ? halfPi : x < -1 ? -halfPi : Math.asin(x);
-}
-
-function noop() {}
-
-function streamGeometry(geometry, stream) {
-  if (geometry && streamGeometryType.hasOwnProperty(geometry.type)) {
-    streamGeometryType[geometry.type](geometry, stream);
-  }
-}
-
-var streamObjectType = {
-  Feature: function Feature(object, stream) {
-    streamGeometry(object.geometry, stream);
-  },
-  FeatureCollection: function FeatureCollection(object, stream) {
-    var features = object.features,
-        i = -1,
-        n = features.length;
-    while (++i < n) {
-      streamGeometry(features[i].geometry, stream);
-    }
-  }
-};
-
-var streamGeometryType = {
-  Sphere: function Sphere(object, stream) {
-    stream.sphere();
-  },
-  Point: function Point(object, stream) {
-    object = object.coordinates;
-    stream.point(object[0], object[1], object[2]);
-  },
-  MultiPoint: function MultiPoint(object, stream) {
-    var coordinates = object.coordinates,
-        i = -1,
-        n = coordinates.length;
-    while (++i < n) {
-      object = coordinates[i], stream.point(object[0], object[1], object[2]);
-    }
-  },
-  LineString: function LineString(object, stream) {
-    streamLine(object.coordinates, stream, 0);
-  },
-  MultiLineString: function MultiLineString(object, stream) {
-    var coordinates = object.coordinates,
-        i = -1,
-        n = coordinates.length;
-    while (++i < n) {
-      streamLine(coordinates[i], stream, 0);
-    }
-  },
-  Polygon: function Polygon(object, stream) {
-    streamPolygon(object.coordinates, stream);
-  },
-  MultiPolygon: function MultiPolygon(object, stream) {
-    var coordinates = object.coordinates,
-        i = -1,
-        n = coordinates.length;
-    while (++i < n) {
-      streamPolygon(coordinates[i], stream);
-    }
-  },
-  GeometryCollection: function GeometryCollection(object, stream) {
-    var geometries = object.geometries,
-        i = -1,
-        n = geometries.length;
-    while (++i < n) {
-      streamGeometry(geometries[i], stream);
-    }
-  }
-};
-
-function streamLine(coordinates, stream, closed) {
-  var i = -1,
-      n = coordinates.length - closed,
-      coordinate;
-  stream.lineStart();
-  while (++i < n) {
-    coordinate = coordinates[i], stream.point(coordinate[0], coordinate[1], coordinate[2]);
-  }stream.lineEnd();
-}
-
-function streamPolygon(coordinates, stream) {
-  var i = -1,
-      n = coordinates.length;
-  stream.polygonStart();
-  while (++i < n) {
-    streamLine(coordinates[i], stream, 1);
-  }stream.polygonEnd();
-}
-
-var geoStream = function (object, stream) {
-  if (object && streamObjectType.hasOwnProperty(object.type)) {
-    streamObjectType[object.type](object, stream);
-  } else {
-    streamGeometry(object, stream);
-  }
-};
-
-var areaRingSum = adder();
-
-var areaSum = adder();
-
-function spherical(cartesian) {
-  return [atan2(cartesian[1], cartesian[0]), asin(cartesian[2])];
-}
-
-function cartesian(spherical) {
-  var lambda = spherical[0],
-      phi = spherical[1],
-      cosPhi = cos(phi);
-  return [cosPhi * cos(lambda), cosPhi * sin(lambda), sin(phi)];
-}
-
-function cartesianDot(a, b) {
-  return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
-}
-
-function cartesianCross(a, b) {
-  return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
-}
-
-// TODO return a
-function cartesianAddInPlace(a, b) {
-  a[0] += b[0], a[1] += b[1], a[2] += b[2];
-}
-
-function cartesianScale(vector, k) {
-  return [vector[0] * k, vector[1] * k, vector[2] * k];
-}
-
-// TODO return d
-function cartesianNormalizeInPlace(d) {
-  var l = sqrt(d[0] * d[0] + d[1] * d[1] + d[2] * d[2]);
-  d[0] /= l, d[1] /= l, d[2] /= l;
-}
-
-var deltaSum = adder();
-
-var compose = function (a, b) {
-
-  function compose(x, y) {
-    return x = a(x, y), b(x[0], x[1]);
-  }
-
-  if (a.invert && b.invert) compose.invert = function (x, y) {
-    return x = b.invert(x, y), x && a.invert(x[0], x[1]);
-  };
-
-  return compose;
-};
-
-function rotationIdentity(lambda, phi) {
-  return [lambda > pi ? lambda - tau : lambda < -pi ? lambda + tau : lambda, phi];
-}
-
-rotationIdentity.invert = rotationIdentity;
-
-function rotateRadians(deltaLambda, deltaPhi, deltaGamma) {
-  return (deltaLambda %= tau) ? deltaPhi || deltaGamma ? compose(rotationLambda(deltaLambda), rotationPhiGamma(deltaPhi, deltaGamma)) : rotationLambda(deltaLambda) : deltaPhi || deltaGamma ? rotationPhiGamma(deltaPhi, deltaGamma) : rotationIdentity;
-}
-
-function forwardRotationLambda(deltaLambda) {
-  return function (lambda, phi) {
-    return lambda += deltaLambda, [lambda > pi ? lambda - tau : lambda < -pi ? lambda + tau : lambda, phi];
-  };
-}
-
-function rotationLambda(deltaLambda) {
-  var rotation = forwardRotationLambda(deltaLambda);
-  rotation.invert = forwardRotationLambda(-deltaLambda);
-  return rotation;
-}
-
-function rotationPhiGamma(deltaPhi, deltaGamma) {
-  var cosDeltaPhi = cos(deltaPhi),
-      sinDeltaPhi = sin(deltaPhi),
-      cosDeltaGamma = cos(deltaGamma),
-      sinDeltaGamma = sin(deltaGamma);
-
-  function rotation(lambda, phi) {
-    var cosPhi = cos(phi),
-        x = cos(lambda) * cosPhi,
-        y = sin(lambda) * cosPhi,
-        z = sin(phi),
-        k = z * cosDeltaPhi + x * sinDeltaPhi;
-    return [atan2(y * cosDeltaGamma - k * sinDeltaGamma, x * cosDeltaPhi - z * sinDeltaPhi), asin(k * cosDeltaGamma + y * sinDeltaGamma)];
-  }
-
-  rotation.invert = function (lambda, phi) {
-    var cosPhi = cos(phi),
-        x = cos(lambda) * cosPhi,
-        y = sin(lambda) * cosPhi,
-        z = sin(phi),
-        k = z * cosDeltaGamma - y * sinDeltaGamma;
-    return [atan2(y * cosDeltaGamma + z * sinDeltaGamma, x * cosDeltaPhi + k * sinDeltaPhi), asin(k * cosDeltaPhi - x * sinDeltaPhi)];
-  };
-
-  return rotation;
-}
-
-var rotation = function (rotate) {
-  rotate = rotateRadians(rotate[0] * radians, rotate[1] * radians, rotate.length > 2 ? rotate[2] * radians : 0);
-
-  function forward(coordinates) {
-    coordinates = rotate(coordinates[0] * radians, coordinates[1] * radians);
-    return coordinates[0] *= degrees, coordinates[1] *= degrees, coordinates;
-  }
-
-  forward.invert = function (coordinates) {
-    coordinates = rotate.invert(coordinates[0] * radians, coordinates[1] * radians);
-    return coordinates[0] *= degrees, coordinates[1] *= degrees, coordinates;
-  };
-
-  return forward;
-};
-
-// Generates a circle centered at [0°, 0°], with a given radius and precision.
-function circleStream(stream, radius, delta, direction, t0, t1) {
-  if (!delta) return;
-  var cosRadius = cos(radius),
-      sinRadius = sin(radius),
-      step = direction * delta;
-  if (t0 == null) {
-    t0 = radius + direction * tau;
-    t1 = radius - step / 2;
-  } else {
-    t0 = circleRadius(cosRadius, t0);
-    t1 = circleRadius(cosRadius, t1);
-    if (direction > 0 ? t0 < t1 : t0 > t1) t0 += direction * tau;
-  }
-  for (var point, t = t0; direction > 0 ? t > t1 : t < t1; t -= step) {
-    point = spherical([cosRadius, -sinRadius * cos(t), -sinRadius * sin(t)]);
-    stream.point(point[0], point[1]);
-  }
-}
-
-// Returns the signed angle of a cartesian point relative to [cosRadius, 0, 0].
-function circleRadius(cosRadius, point) {
-  point = cartesian(point), point[0] -= cosRadius;
-  cartesianNormalizeInPlace(point);
-  var radius = acos(-point[1]);
-  return ((-point[2] < 0 ? -radius : radius) + tau - epsilon$1) % tau;
-}
-
-var clipBuffer = function () {
-  var lines = [],
-      line;
-  return {
-    point: function point(x, y) {
-      line.push([x, y]);
-    },
-    lineStart: function lineStart() {
-      lines.push(line = []);
-    },
-    lineEnd: noop,
-    rejoin: function rejoin() {
-      if (lines.length > 1) lines.push(lines.pop().concat(lines.shift()));
-    },
-    result: function result() {
-      var result = lines;
-      lines = [];
-      line = null;
-      return result;
-    }
-  };
-};
-
-var clipLine = function (a, b, x0, y0, x1, y1) {
-  var ax = a[0],
-      ay = a[1],
-      bx = b[0],
-      by = b[1],
-      t0 = 0,
-      t1 = 1,
-      dx = bx - ax,
-      dy = by - ay,
-      r;
-
-  r = x0 - ax;
-  if (!dx && r > 0) return;
-  r /= dx;
-  if (dx < 0) {
-    if (r < t0) return;
-    if (r < t1) t1 = r;
-  } else if (dx > 0) {
-    if (r > t1) return;
-    if (r > t0) t0 = r;
-  }
-
-  r = x1 - ax;
-  if (!dx && r < 0) return;
-  r /= dx;
-  if (dx < 0) {
-    if (r > t1) return;
-    if (r > t0) t0 = r;
-  } else if (dx > 0) {
-    if (r < t0) return;
-    if (r < t1) t1 = r;
-  }
-
-  r = y0 - ay;
-  if (!dy && r > 0) return;
-  r /= dy;
-  if (dy < 0) {
-    if (r < t0) return;
-    if (r < t1) t1 = r;
-  } else if (dy > 0) {
-    if (r > t1) return;
-    if (r > t0) t0 = r;
-  }
-
-  r = y1 - ay;
-  if (!dy && r < 0) return;
-  r /= dy;
-  if (dy < 0) {
-    if (r > t1) return;
-    if (r > t0) t0 = r;
-  } else if (dy > 0) {
-    if (r < t0) return;
-    if (r < t1) t1 = r;
-  }
-
-  if (t0 > 0) a[0] = ax + t0 * dx, a[1] = ay + t0 * dy;
-  if (t1 < 1) b[0] = ax + t1 * dx, b[1] = ay + t1 * dy;
-  return true;
-};
-
-var pointEqual = function (a, b) {
-  return abs(a[0] - b[0]) < epsilon$1 && abs(a[1] - b[1]) < epsilon$1;
-};
-
-function Intersection(point, points, other, entry) {
-  this.x = point;
-  this.z = points;
-  this.o = other; // another intersection
-  this.e = entry; // is an entry?
-  this.v = false; // visited
-  this.n = this.p = null; // next & previous
-}
-
-// A generalized polygon clipping algorithm: given a polygon that has been cut
-// into its visible line segments, and rejoins the segments by interpolating
-// along the clip edge.
-var clipPolygon$1 = function (segments, compareIntersection, startInside, interpolate, stream) {
-  var subject = [],
-      clip = [],
-      i,
-      n;
-
-  segments.forEach(function (segment) {
-    if ((n = segment.length - 1) <= 0) return;
-    var n,
-        p0 = segment[0],
-        p1 = segment[n],
-        x;
-
-    // If the first and last points of a segment are coincident, then treat as a
-    // closed ring. TODO if all rings are closed, then the winding order of the
-    // exterior ring should be checked.
-    if (pointEqual(p0, p1)) {
-      stream.lineStart();
-      for (i = 0; i < n; ++i) {
-        stream.point((p0 = segment[i])[0], p0[1]);
-      }stream.lineEnd();
-      return;
-    }
-
-    subject.push(x = new Intersection(p0, segment, null, true));
-    clip.push(x.o = new Intersection(p0, null, x, false));
-    subject.push(x = new Intersection(p1, segment, null, false));
-    clip.push(x.o = new Intersection(p1, null, x, true));
-  });
-
-  if (!subject.length) return;
-
-  clip.sort(compareIntersection);
-  link(subject);
-  link(clip);
-
-  for (i = 0, n = clip.length; i < n; ++i) {
-    clip[i].e = startInside = !startInside;
-  }
-
-  var start = subject[0],
-      points,
-      point;
-
-  while (1) {
-    // Find first unvisited intersection.
-    var current = start,
-        isSubject = true;
-    while (current.v) {
-      if ((current = current.n) === start) return;
-    }points = current.z;
-    stream.lineStart();
-    do {
-      current.v = current.o.v = true;
-      if (current.e) {
-        if (isSubject) {
-          for (i = 0, n = points.length; i < n; ++i) {
-            stream.point((point = points[i])[0], point[1]);
-          }
-        } else {
-          interpolate(current.x, current.n.x, 1, stream);
-        }
-        current = current.n;
-      } else {
-        if (isSubject) {
-          points = current.p.z;
-          for (i = points.length - 1; i >= 0; --i) {
-            stream.point((point = points[i])[0], point[1]);
-          }
-        } else {
-          interpolate(current.x, current.p.x, -1, stream);
-        }
-        current = current.p;
-      }
-      current = current.o;
-      points = current.z;
-      isSubject = !isSubject;
-    } while (!current.v);
-    stream.lineEnd();
-  }
-};
-
-function link(array) {
-  if (!(n = array.length)) return;
-  var n,
-      i = 0,
-      a = array[0],
-      b;
-  while (++i < n) {
-    a.n = b = array[i];
-    b.p = a;
-    a = b;
-  }
-  a.n = b = array[0];
-  b.p = a;
-}
-
-var ascending = function (a, b) {
-  return a < b ? -1 : a > b ? 1 : a >= b ? 0 : NaN;
-};
-
-var bisector = function (compare) {
-  if (compare.length === 1) compare = ascendingComparator(compare);
-  return {
-    left: function left(a, x, lo, hi) {
-      if (lo == null) lo = 0;
-      if (hi == null) hi = a.length;
-      while (lo < hi) {
-        var mid = lo + hi >>> 1;
-        if (compare(a[mid], x) < 0) lo = mid + 1;else hi = mid;
-      }
-      return lo;
-    },
-    right: function right(a, x, lo, hi) {
-      if (lo == null) lo = 0;
-      if (hi == null) hi = a.length;
-      while (lo < hi) {
-        var mid = lo + hi >>> 1;
-        if (compare(a[mid], x) > 0) hi = mid;else lo = mid + 1;
-      }
-      return lo;
-    }
-  };
-};
-
-function ascendingComparator(f) {
-  return function (d, x) {
-    return ascending(f(d), x);
-  };
-}
-
-var ascendingBisect = bisector(ascending);
-
-var merge$1 = function (arrays) {
-  var n = arrays.length,
-      m,
-      i = -1,
-      j = 0,
-      merged,
-      array;
-
-  while (++i < n) {
-    j += arrays[i].length;
-  }merged = new Array(j);
-
-  while (--n >= 0) {
-    array = arrays[n];
-    m = array.length;
-    while (--m >= 0) {
-      merged[--j] = array[m];
-    }
-  }
-
-  return merged;
-};
-
-var clipMax = 1e9;
-var clipMin = -clipMax;
-
-// TODO Use d3-polygon’s polygonContains here for the ring check?
-// TODO Eliminate duplicate buffering in clipBuffer and polygon.push?
-
-function clipExtent(x0, y0, x1, y1) {
-
-  function visible(x, y) {
-    return x0 <= x && x <= x1 && y0 <= y && y <= y1;
-  }
-
-  function interpolate(from, to, direction, stream) {
-    var a = 0,
-        a1 = 0;
-    if (from == null || (a = corner(from, direction)) !== (a1 = corner(to, direction)) || comparePoint(from, to) < 0 ^ direction > 0) {
-      do {
-        stream.point(a === 0 || a === 3 ? x0 : x1, a > 1 ? y1 : y0);
-      } while ((a = (a + direction + 4) % 4) !== a1);
-    } else {
-      stream.point(to[0], to[1]);
-    }
-  }
-
-  function corner(p, direction) {
-    return abs(p[0] - x0) < epsilon$1 ? direction > 0 ? 0 : 3 : abs(p[0] - x1) < epsilon$1 ? direction > 0 ? 2 : 1 : abs(p[1] - y0) < epsilon$1 ? direction > 0 ? 1 : 0 : direction > 0 ? 3 : 2; // abs(p[1] - y1) < epsilon
-  }
-
-  function compareIntersection(a, b) {
-    return comparePoint(a.x, b.x);
-  }
-
-  function comparePoint(a, b) {
-    var ca = corner(a, 1),
-        cb = corner(b, 1);
-    return ca !== cb ? ca - cb : ca === 0 ? b[1] - a[1] : ca === 1 ? a[0] - b[0] : ca === 2 ? a[1] - b[1] : b[0] - a[0];
-  }
-
-  return function (stream) {
-    var activeStream = stream,
-        bufferStream = clipBuffer(),
-        segments,
-        polygon,
-        ring,
-        x__,
-        y__,
-        v__,
-        // first point
-    x_,
-        y_,
-        v_,
-        // previous point
-    first,
-        clean;
-
-    var clipStream = {
-      point: point,
-      lineStart: lineStart,
-      lineEnd: lineEnd,
-      polygonStart: polygonStart,
-      polygonEnd: polygonEnd
-    };
-
-    function point(x, y) {
-      if (visible(x, y)) activeStream.point(x, y);
-    }
-
-    function polygonInside() {
-      var winding = 0;
-
-      for (var i = 0, n = polygon.length; i < n; ++i) {
-        for (var ring = polygon[i], j = 1, m = ring.length, point = ring[0], a0, a1, b0 = point[0], b1 = point[1]; j < m; ++j) {
-          a0 = b0, a1 = b1, point = ring[j], b0 = point[0], b1 = point[1];
-          if (a1 <= y1) {
-            if (b1 > y1 && (b0 - a0) * (y1 - a1) > (b1 - a1) * (x0 - a0)) ++winding;
-          } else {
-            if (b1 <= y1 && (b0 - a0) * (y1 - a1) < (b1 - a1) * (x0 - a0)) --winding;
-          }
-        }
-      }
-
-      return winding;
-    }
-
-    // Buffer geometry within a polygon and then clip it en masse.
-    function polygonStart() {
-      activeStream = bufferStream, segments = [], polygon = [], clean = true;
-    }
-
-    function polygonEnd() {
-      var startInside = polygonInside(),
-          cleanInside = clean && startInside,
-          visible = (segments = merge$1(segments)).length;
-      if (cleanInside || visible) {
-        stream.polygonStart();
-        if (cleanInside) {
-          stream.lineStart();
-          interpolate(null, null, 1, stream);
-          stream.lineEnd();
-        }
-        if (visible) {
-          clipPolygon$1(segments, compareIntersection, startInside, interpolate, stream);
-        }
-        stream.polygonEnd();
-      }
-      activeStream = stream, segments = polygon = ring = null;
-    }
-
-    function lineStart() {
-      clipStream.point = linePoint;
-      if (polygon) polygon.push(ring = []);
-      first = true;
-      v_ = false;
-      x_ = y_ = NaN;
-    }
-
-    // TODO rather than special-case polygons, simply handle them separately.
-    // Ideally, coincident intersection points should be jittered to avoid
-    // clipping issues.
-    function lineEnd() {
-      if (segments) {
-        linePoint(x__, y__);
-        if (v__ && v_) bufferStream.rejoin();
-        segments.push(bufferStream.result());
-      }
-      clipStream.point = point;
-      if (v_) activeStream.lineEnd();
-    }
-
-    function linePoint(x, y) {
-      var v = visible(x, y);
-      if (polygon) ring.push([x, y]);
-      if (first) {
-        x__ = x, y__ = y, v__ = v;
-        first = false;
-        if (v) {
-          activeStream.lineStart();
-          activeStream.point(x, y);
-        }
-      } else {
-        if (v && v_) activeStream.point(x, y);else {
-          var a = [x_ = Math.max(clipMin, Math.min(clipMax, x_)), y_ = Math.max(clipMin, Math.min(clipMax, y_))],
-              b = [x = Math.max(clipMin, Math.min(clipMax, x)), y = Math.max(clipMin, Math.min(clipMax, y))];
-          if (clipLine(a, b, x0, y0, x1, y1)) {
-            if (!v_) {
-              activeStream.lineStart();
-              activeStream.point(a[0], a[1]);
-            }
-            activeStream.point(b[0], b[1]);
-            if (!v) activeStream.lineEnd();
-            clean = false;
-          } else if (v) {
-            activeStream.lineStart();
-            activeStream.point(x, y);
-            clean = false;
-          }
-        }
-      }
-      x_ = x, y_ = y, v_ = v;
-    }
-
-    return clipStream;
-  };
-}
-
-var sum$1 = adder();
-
-var polygonContains = function (polygon, point) {
-  var lambda = point[0],
-      phi = point[1],
-      normal = [sin(lambda), -cos(lambda), 0],
-      angle = 0,
-      winding = 0;
-
-  sum$1.reset();
-
-  for (var i = 0, n = polygon.length; i < n; ++i) {
-    if (!(m = (ring = polygon[i]).length)) continue;
-    var ring,
-        m,
-        point0 = ring[m - 1],
-        lambda0 = point0[0],
-        phi0 = point0[1] / 2 + quarterPi,
-        sinPhi0 = sin(phi0),
-        cosPhi0 = cos(phi0);
-
-    for (var j = 0; j < m; ++j, lambda0 = lambda1, sinPhi0 = sinPhi1, cosPhi0 = cosPhi1, point0 = point1) {
-      var point1 = ring[j],
-          lambda1 = point1[0],
-          phi1 = point1[1] / 2 + quarterPi,
-          sinPhi1 = sin(phi1),
-          cosPhi1 = cos(phi1),
-          delta = lambda1 - lambda0,
-          sign = delta >= 0 ? 1 : -1,
-          absDelta = sign * delta,
-          antimeridian = absDelta > pi,
-          k = sinPhi0 * sinPhi1;
-
-      sum$1.add(atan2(k * sign * sin(absDelta), cosPhi0 * cosPhi1 + k * cos(absDelta)));
-      angle += antimeridian ? delta + sign * tau : delta;
-
-      // Are the longitudes either side of the point’s meridian (lambda),
-      // and are the latitudes smaller than the parallel (phi)?
-      if (antimeridian ^ lambda0 >= lambda ^ lambda1 >= lambda) {
-        var arc = cartesianCross(cartesian(point0), cartesian(point1));
-        cartesianNormalizeInPlace(arc);
-        var intersection = cartesianCross(normal, arc);
-        cartesianNormalizeInPlace(intersection);
-        var phiArc = (antimeridian ^ delta >= 0 ? -1 : 1) * asin(intersection[2]);
-        if (phi > phiArc || phi === phiArc && (arc[0] || arc[1])) {
-          winding += antimeridian ^ delta >= 0 ? 1 : -1;
-        }
-      }
-    }
-  }
-
-  // First, determine whether the South pole is inside or outside:
-  //
-  // It is inside if:
-  // * the polygon winds around it in a clockwise direction.
-  // * the polygon does not (cumulatively) wind around it, but has a negative
-  //   (counter-clockwise) area.
-  //
-  // Second, count the (signed) number of times a segment crosses a lambda
-  // from the point to the South pole.  If it is zero, then the point is the
-  // same side as the South pole.
-
-  return (angle < -epsilon$1 || angle < epsilon$1 && sum$1 < -epsilon$1) ^ winding & 1;
-};
-
-var lengthSum = adder();
-
-var identity$4 = function (x) {
-  return x;
-};
-
-var areaSum$1 = adder();
-var areaRingSum$1 = adder();
-
-var x0$2 = Infinity;
-var y0$2 = x0$2;
-var x1 = -x0$2;
-var y1 = x1;
-
-var boundsStream$1 = {
-  point: boundsPoint$1,
-  lineStart: noop,
-  lineEnd: noop,
-  polygonStart: noop,
-  polygonEnd: noop,
-  result: function result() {
-    var bounds = [[x0$2, y0$2], [x1, y1]];
-    x1 = y1 = -(y0$2 = x0$2 = Infinity);
-    return bounds;
-  }
-};
-
-function boundsPoint$1(x, y) {
-  if (x < x0$2) x0$2 = x;
-  if (x > x1) x1 = x;
-  if (y < y0$2) y0$2 = y;
-  if (y > y1) y1 = y;
-}
-
-var lengthSum$1 = adder();
-
-var clip = function (pointVisible, clipLine, interpolate, start) {
-  return function (rotate, sink) {
-    var line = clipLine(sink),
-        rotatedStart = rotate.invert(start[0], start[1]),
-        ringBuffer = clipBuffer(),
-        ringSink = clipLine(ringBuffer),
-        polygonStarted = false,
-        polygon,
-        segments,
-        ring;
-
-    var clip = {
-      point: point,
-      lineStart: lineStart,
-      lineEnd: lineEnd,
-      polygonStart: function polygonStart() {
-        clip.point = pointRing;
-        clip.lineStart = ringStart;
-        clip.lineEnd = ringEnd;
-        segments = [];
-        polygon = [];
-      },
-      polygonEnd: function polygonEnd() {
-        clip.point = point;
-        clip.lineStart = lineStart;
-        clip.lineEnd = lineEnd;
-        segments = merge$1(segments);
-        var startInside = polygonContains(polygon, rotatedStart);
-        if (segments.length) {
-          if (!polygonStarted) sink.polygonStart(), polygonStarted = true;
-          clipPolygon$1(segments, compareIntersection, startInside, interpolate, sink);
-        } else if (startInside) {
-          if (!polygonStarted) sink.polygonStart(), polygonStarted = true;
-          sink.lineStart();
-          interpolate(null, null, 1, sink);
-          sink.lineEnd();
-        }
-        if (polygonStarted) sink.polygonEnd(), polygonStarted = false;
-        segments = polygon = null;
-      },
-      sphere: function sphere() {
-        sink.polygonStart();
-        sink.lineStart();
-        interpolate(null, null, 1, sink);
-        sink.lineEnd();
-        sink.polygonEnd();
-      }
-    };
-
-    function point(lambda, phi) {
-      var point = rotate(lambda, phi);
-      if (pointVisible(lambda = point[0], phi = point[1])) sink.point(lambda, phi);
-    }
-
-    function pointLine(lambda, phi) {
-      var point = rotate(lambda, phi);
-      line.point(point[0], point[1]);
-    }
-
-    function lineStart() {
-      clip.point = pointLine;
-      line.lineStart();
-    }
-
-    function lineEnd() {
-      clip.point = point;
-      line.lineEnd();
-    }
-
-    function pointRing(lambda, phi) {
-      ring.push([lambda, phi]);
-      var point = rotate(lambda, phi);
-      ringSink.point(point[0], point[1]);
-    }
-
-    function ringStart() {
-      ringSink.lineStart();
-      ring = [];
-    }
-
-    function ringEnd() {
-      pointRing(ring[0][0], ring[0][1]);
-      ringSink.lineEnd();
-
-      var clean = ringSink.clean(),
-          ringSegments = ringBuffer.result(),
-          i,
-          n = ringSegments.length,
-          m,
-          segment,
-          point;
-
-      ring.pop();
-      polygon.push(ring);
-      ring = null;
-
-      if (!n) return;
-
-      // No intersections.
-      if (clean & 1) {
-        segment = ringSegments[0];
-        if ((m = segment.length - 1) > 0) {
-          if (!polygonStarted) sink.polygonStart(), polygonStarted = true;
-          sink.lineStart();
-          for (i = 0; i < m; ++i) {
-            sink.point((point = segment[i])[0], point[1]);
-          }sink.lineEnd();
-        }
-        return;
-      }
-
-      // Rejoin connected segments.
-      // TODO reuse ringBuffer.rejoin()?
-      if (n > 1 && clean & 2) ringSegments.push(ringSegments.pop().concat(ringSegments.shift()));
-
-      segments.push(ringSegments.filter(validSegment));
-    }
-
-    return clip;
-  };
-};
-
-function validSegment(segment) {
-  return segment.length > 1;
-}
-
-// Intersections are sorted along the clip edge. For both antimeridian cutting
-// and circle clipping, the same comparison is used.
-function compareIntersection(a, b) {
-  return ((a = a.x)[0] < 0 ? a[1] - halfPi - epsilon$1 : halfPi - a[1]) - ((b = b.x)[0] < 0 ? b[1] - halfPi - epsilon$1 : halfPi - b[1]);
-}
-
-var clipAntimeridian = clip(function () {
-  return true;
-}, clipAntimeridianLine, clipAntimeridianInterpolate, [-pi, -halfPi]);
-
-// Takes a line and cuts into visible segments. Return values: 0 - there were
-// intersections or the line was empty; 1 - no intersections; 2 - there were
-// intersections, and the first and last segments should be rejoined.
-function clipAntimeridianLine(stream) {
-  var lambda0 = NaN,
-      phi0 = NaN,
-      sign0 = NaN,
-      _clean; // no intersections
-
-  return {
-    lineStart: function lineStart() {
-      stream.lineStart();
-      _clean = 1;
-    },
-    point: function point(lambda1, phi1) {
-      var sign1 = lambda1 > 0 ? pi : -pi,
-          delta = abs(lambda1 - lambda0);
-      if (abs(delta - pi) < epsilon$1) {
-        // line crosses a pole
-        stream.point(lambda0, phi0 = (phi0 + phi1) / 2 > 0 ? halfPi : -halfPi);
-        stream.point(sign0, phi0);
-        stream.lineEnd();
-        stream.lineStart();
-        stream.point(sign1, phi0);
-        stream.point(lambda1, phi0);
-        _clean = 0;
-      } else if (sign0 !== sign1 && delta >= pi) {
-        // line crosses antimeridian
-        if (abs(lambda0 - sign0) < epsilon$1) lambda0 -= sign0 * epsilon$1; // handle degeneracies
-        if (abs(lambda1 - sign1) < epsilon$1) lambda1 -= sign1 * epsilon$1;
-        phi0 = clipAntimeridianIntersect(lambda0, phi0, lambda1, phi1);
-        stream.point(sign0, phi0);
-        stream.lineEnd();
-        stream.lineStart();
-        stream.point(sign1, phi0);
-        _clean = 0;
-      }
-      stream.point(lambda0 = lambda1, phi0 = phi1);
-      sign0 = sign1;
-    },
-    lineEnd: function lineEnd() {
-      stream.lineEnd();
-      lambda0 = phi0 = NaN;
-    },
-    clean: function clean() {
-      return 2 - _clean; // if intersections, rejoin first and last segments
-    }
-  };
-}
-
-function clipAntimeridianIntersect(lambda0, phi0, lambda1, phi1) {
-  var cosPhi0,
-      cosPhi1,
-      sinLambda0Lambda1 = sin(lambda0 - lambda1);
-  return abs(sinLambda0Lambda1) > epsilon$1 ? atan((sin(phi0) * (cosPhi1 = cos(phi1)) * sin(lambda1) - sin(phi1) * (cosPhi0 = cos(phi0)) * sin(lambda0)) / (cosPhi0 * cosPhi1 * sinLambda0Lambda1)) : (phi0 + phi1) / 2;
-}
-
-function clipAntimeridianInterpolate(from, to, direction, stream) {
-  var phi;
-  if (from == null) {
-    phi = direction * halfPi;
-    stream.point(-pi, phi);
-    stream.point(0, phi);
-    stream.point(pi, phi);
-    stream.point(pi, 0);
-    stream.point(pi, -phi);
-    stream.point(0, -phi);
-    stream.point(-pi, -phi);
-    stream.point(-pi, 0);
-    stream.point(-pi, phi);
-  } else if (abs(from[0] - to[0]) > epsilon$1) {
-    var lambda = from[0] < to[0] ? pi : -pi;
-    phi = direction * lambda / 2;
-    stream.point(-lambda, phi);
-    stream.point(0, phi);
-    stream.point(lambda, phi);
-  } else {
-    stream.point(to[0], to[1]);
-  }
-}
-
-var clipCircle = function (radius, delta) {
-  var cr = cos(radius),
-      smallRadius = cr > 0,
-      notHemisphere = abs(cr) > epsilon$1; // TODO optimise for this common case
-
-  function interpolate(from, to, direction, stream) {
-    circleStream(stream, radius, delta, direction, from, to);
-  }
-
-  function visible(lambda, phi) {
-    return cos(lambda) * cos(phi) > cr;
-  }
-
-  // Takes a line and cuts into visible segments. Return values used for polygon
-  // clipping: 0 - there were intersections or the line was empty; 1 - no
-  // intersections 2 - there were intersections, and the first and last segments
-  // should be rejoined.
-  function clipLine(stream) {
-    var point0, // previous point
-    c0, // code for previous point
-    v0, // visibility of previous point
-    v00, // visibility of first point
-    _clean; // no intersections
-    return {
-      lineStart: function lineStart() {
-        v00 = v0 = false;
-        _clean = 1;
-      },
-      point: function point(lambda, phi) {
-        var point1 = [lambda, phi],
-            point2,
-            v = visible(lambda, phi),
-            c = smallRadius ? v ? 0 : code(lambda, phi) : v ? code(lambda + (lambda < 0 ? pi : -pi), phi) : 0;
-        if (!point0 && (v00 = v0 = v)) stream.lineStart();
-        // Handle degeneracies.
-        // TODO ignore if not clipping polygons.
-        if (v !== v0) {
-          point2 = intersect(point0, point1);
-          if (!point2 || pointEqual(point0, point2) || pointEqual(point1, point2)) {
-            point1[0] += epsilon$1;
-            point1[1] += epsilon$1;
-            v = visible(point1[0], point1[1]);
-          }
-        }
-        if (v !== v0) {
-          _clean = 0;
-          if (v) {
-            // outside going in
-            stream.lineStart();
-            point2 = intersect(point1, point0);
-            stream.point(point2[0], point2[1]);
-          } else {
-            // inside going out
-            point2 = intersect(point0, point1);
-            stream.point(point2[0], point2[1]);
-            stream.lineEnd();
-          }
-          point0 = point2;
-        } else if (notHemisphere && point0 && smallRadius ^ v) {
-          var t;
-          // If the codes for two points are different, or are both zero,
-          // and there this segment intersects with the small circle.
-          if (!(c & c0) && (t = intersect(point1, point0, true))) {
-            _clean = 0;
-            if (smallRadius) {
-              stream.lineStart();
-              stream.point(t[0][0], t[0][1]);
-              stream.point(t[1][0], t[1][1]);
-              stream.lineEnd();
-            } else {
-              stream.point(t[1][0], t[1][1]);
-              stream.lineEnd();
-              stream.lineStart();
-              stream.point(t[0][0], t[0][1]);
-            }
-          }
-        }
-        if (v && (!point0 || !pointEqual(point0, point1))) {
-          stream.point(point1[0], point1[1]);
-        }
-        point0 = point1, v0 = v, c0 = c;
-      },
-      lineEnd: function lineEnd() {
-        if (v0) stream.lineEnd();
-        point0 = null;
-      },
-      // Rejoin first and last segments if there were intersections and the first
-      // and last points were visible.
-      clean: function clean() {
-        return _clean | (v00 && v0) << 1;
-      }
-    };
-  }
-
-  // Intersects the great circle between a and b with the clip circle.
-  function intersect(a, b, two) {
-    var pa = cartesian(a),
-        pb = cartesian(b);
-
-    // We have two planes, n1.p = d1 and n2.p = d2.
-    // Find intersection line p(t) = c1 n1 + c2 n2 + t (n1 ⨯ n2).
-    var n1 = [1, 0, 0],
-        // normal
-    n2 = cartesianCross(pa, pb),
-        n2n2 = cartesianDot(n2, n2),
-        n1n2 = n2[0],
-        // cartesianDot(n1, n2),
-    determinant = n2n2 - n1n2 * n1n2;
-
-    // Two polar points.
-    if (!determinant) return !two && a;
-
-    var c1 = cr * n2n2 / determinant,
-        c2 = -cr * n1n2 / determinant,
-        n1xn2 = cartesianCross(n1, n2),
-        A = cartesianScale(n1, c1),
-        B = cartesianScale(n2, c2);
-    cartesianAddInPlace(A, B);
-
-    // Solve |p(t)|^2 = 1.
-    var u = n1xn2,
-        w = cartesianDot(A, u),
-        uu = cartesianDot(u, u),
-        t2 = w * w - uu * (cartesianDot(A, A) - 1);
-
-    if (t2 < 0) return;
-
-    var t = sqrt(t2),
-        q = cartesianScale(u, (-w - t) / uu);
-    cartesianAddInPlace(q, A);
-    q = spherical(q);
-
-    if (!two) return q;
-
-    // Two intersection points.
-    var lambda0 = a[0],
-        lambda1 = b[0],
-        phi0 = a[1],
-        phi1 = b[1],
-        z;
-
-    if (lambda1 < lambda0) z = lambda0, lambda0 = lambda1, lambda1 = z;
-
-    var delta = lambda1 - lambda0,
-        polar = abs(delta - pi) < epsilon$1,
-        meridian = polar || delta < epsilon$1;
-
-    if (!polar && phi1 < phi0) z = phi0, phi0 = phi1, phi1 = z;
-
-    // Check that the first point is between a and b.
-    if (meridian ? polar ? phi0 + phi1 > 0 ^ q[1] < (abs(q[0] - lambda0) < epsilon$1 ? phi0 : phi1) : phi0 <= q[1] && q[1] <= phi1 : delta > pi ^ (lambda0 <= q[0] && q[0] <= lambda1)) {
-      var q1 = cartesianScale(u, (-w + t) / uu);
-      cartesianAddInPlace(q1, A);
-      return [q, spherical(q1)];
-    }
-  }
-
-  // Generates a 4-bit vector representing the location of a point relative to
-  // the small circle's bounding box.
-  function code(lambda, phi) {
-    var r = smallRadius ? radius : pi - radius,
-        code = 0;
-    if (lambda < -r) code |= 1; // left
-    else if (lambda > r) code |= 2; // right
-    if (phi < -r) code |= 4; // below
-    else if (phi > r) code |= 8; // above
-    return code;
-  }
-
-  return clip(visible, clipLine, interpolate, smallRadius ? [0, -radius] : [-pi, radius - pi]);
-};
-
-function transformer(methods) {
-  return function (stream) {
-    var s = new TransformStream();
-    for (var key in methods) {
-      s[key] = methods[key];
-    }s.stream = stream;
-    return s;
-  };
-}
-
-function TransformStream() {}
-
-TransformStream.prototype = {
-  constructor: TransformStream,
-  point: function point(x, y) {
-    this.stream.point(x, y);
-  },
-  sphere: function sphere() {
-    this.stream.sphere();
-  },
-  lineStart: function lineStart() {
-    this.stream.lineStart();
-  },
-  lineEnd: function lineEnd() {
-    this.stream.lineEnd();
-  },
-  polygonStart: function polygonStart() {
-    this.stream.polygonStart();
-  },
-  polygonEnd: function polygonEnd() {
-    this.stream.polygonEnd();
-  }
-};
-
-function fitExtent(projection, extent, object) {
-    var w = extent[1][0] - extent[0][0],
-        h = extent[1][1] - extent[0][1],
-        clip = projection.clipExtent && projection.clipExtent();
-
-    projection.scale(150).translate([0, 0]);
-
-    if (clip != null) projection.clipExtent(null);
-
-    geoStream(object, projection.stream(boundsStream$1));
-
-    var b = boundsStream$1.result(),
-        k = Math.min(w / (b[1][0] - b[0][0]), h / (b[1][1] - b[0][1])),
-        x = +extent[0][0] + (w - k * (b[1][0] + b[0][0])) / 2,
-        y = +extent[0][1] + (h - k * (b[1][1] + b[0][1])) / 2;
-
-    if (clip != null) projection.clipExtent(clip);
-
-    return projection.scale(k * 150).translate([x, y]);
-}
-
-function fitSize(projection, size, object) {
-    return fitExtent(projection, [[0, 0], size], object);
-}
-
-var maxDepth = 16;
-var cosMinDistance = cos(30 * radians); // cos(minimum angular distance)
-
-var resample = function (project, delta2) {
-  return +delta2 ? resample$1(project, delta2) : resampleNone(project);
-};
-
-function resampleNone(project) {
-  return transformer({
-    point: function point(x, y) {
-      x = project(x, y);
-      this.stream.point(x[0], x[1]);
-    }
-  });
-}
-
-function resample$1(project, delta2) {
-
-  function resampleLineTo(x0, y0, lambda0, a0, b0, c0, x1, y1, lambda1, a1, b1, c1, depth, stream) {
-    var dx = x1 - x0,
-        dy = y1 - y0,
-        d2 = dx * dx + dy * dy;
-    if (d2 > 4 * delta2 && depth--) {
-      var a = a0 + a1,
-          b = b0 + b1,
-          c = c0 + c1,
-          m = sqrt(a * a + b * b + c * c),
-          phi2 = asin(c /= m),
-          lambda2 = abs(abs(c) - 1) < epsilon$1 || abs(lambda0 - lambda1) < epsilon$1 ? (lambda0 + lambda1) / 2 : atan2(b, a),
-          p = project(lambda2, phi2),
-          x2 = p[0],
-          y2 = p[1],
-          dx2 = x2 - x0,
-          dy2 = y2 - y0,
-          dz = dy * dx2 - dx * dy2;
-      if (dz * dz / d2 > delta2 // perpendicular projected distance
-      || abs((dx * dx2 + dy * dy2) / d2 - 0.5) > 0.3 // midpoint close to an end
-      || a0 * a1 + b0 * b1 + c0 * c1 < cosMinDistance) {
-        // angular distance
-        resampleLineTo(x0, y0, lambda0, a0, b0, c0, x2, y2, lambda2, a /= m, b /= m, c, depth, stream);
-        stream.point(x2, y2);
-        resampleLineTo(x2, y2, lambda2, a, b, c, x1, y1, lambda1, a1, b1, c1, depth, stream);
-      }
-    }
-  }
-  return function (stream) {
-    var lambda00, x00, y00, a00, b00, c00, // first point
-    lambda0, x0, y0, a0, b0, c0; // previous point
-
-    var resampleStream = {
-      point: point,
-      lineStart: lineStart,
-      lineEnd: lineEnd,
-      polygonStart: function polygonStart() {
-        stream.polygonStart();resampleStream.lineStart = ringStart;
-      },
-      polygonEnd: function polygonEnd() {
-        stream.polygonEnd();resampleStream.lineStart = lineStart;
-      }
-    };
-
-    function point(x, y) {
-      x = project(x, y);
-      stream.point(x[0], x[1]);
-    }
-
-    function lineStart() {
-      x0 = NaN;
-      resampleStream.point = linePoint;
-      stream.lineStart();
-    }
-
-    function linePoint(lambda, phi) {
-      var c = cartesian([lambda, phi]),
-          p = project(lambda, phi);
-      resampleLineTo(x0, y0, lambda0, a0, b0, c0, x0 = p[0], y0 = p[1], lambda0 = lambda, a0 = c[0], b0 = c[1], c0 = c[2], maxDepth, stream);
-      stream.point(x0, y0);
-    }
-
-    function lineEnd() {
-      resampleStream.point = point;
-      stream.lineEnd();
-    }
-
-    function ringStart() {
-      lineStart();
-      resampleStream.point = ringPoint;
-      resampleStream.lineEnd = ringEnd;
-    }
-
-    function ringPoint(lambda, phi) {
-      linePoint(lambda00 = lambda, phi), x00 = x0, y00 = y0, a00 = a0, b00 = b0, c00 = c0;
-      resampleStream.point = linePoint;
-    }
-
-    function ringEnd() {
-      resampleLineTo(x0, y0, lambda0, a0, b0, c0, x00, y00, lambda00, a00, b00, c00, maxDepth, stream);
-      resampleStream.lineEnd = lineEnd;
-      lineEnd();
-    }
-
-    return resampleStream;
-  };
-}
-
-var transformRadians = transformer({
-  point: function point(x, y) {
-    this.stream.point(x * radians, y * radians);
-  }
-});
-
-function projection(project) {
-  return projectionMutator(function () {
-    return project;
-  })();
-}
-
-function projectionMutator(projectAt) {
-  var project,
-      k = 150,
-      // scale
-  x = 480,
-      y = 250,
-      // translate
-  dx,
-      dy,
-      lambda = 0,
-      phi = 0,
-      // center
-  deltaLambda = 0,
-      deltaPhi = 0,
-      deltaGamma = 0,
-      rotate,
-      projectRotate,
-      // rotate
-  theta = null,
-      preclip = clipAntimeridian,
-      // clip angle
-  x0 = null,
-      y0,
-      x1,
-      y1,
-      postclip = identity$4,
-      // clip extent
-  delta2 = 0.5,
-      projectResample = resample(projectTransform, delta2),
-      // precision
-  cache,
-      cacheStream;
-
-  function projection(point) {
-    point = projectRotate(point[0] * radians, point[1] * radians);
-    return [point[0] * k + dx, dy - point[1] * k];
-  }
-
-  function invert(point) {
-    point = projectRotate.invert((point[0] - dx) / k, (dy - point[1]) / k);
-    return point && [point[0] * degrees, point[1] * degrees];
-  }
-
-  function projectTransform(x, y) {
-    return x = project(x, y), [x[0] * k + dx, dy - x[1] * k];
-  }
-
-  projection.stream = function (stream) {
-    return cache && cacheStream === stream ? cache : cache = transformRadians(preclip(rotate, projectResample(postclip(cacheStream = stream))));
-  };
-
-  projection.clipAngle = function (_) {
-    return arguments.length ? (preclip = +_ ? clipCircle(theta = _ * radians, 6 * radians) : (theta = null, clipAntimeridian), reset()) : theta * degrees;
-  };
-
-  projection.clipExtent = function (_) {
-    return arguments.length ? (postclip = _ == null ? (x0 = y0 = x1 = y1 = null, identity$4) : clipExtent(x0 = +_[0][0], y0 = +_[0][1], x1 = +_[1][0], y1 = +_[1][1]), reset()) : x0 == null ? null : [[x0, y0], [x1, y1]];
-  };
-
-  projection.scale = function (_) {
-    return arguments.length ? (k = +_, recenter()) : k;
-  };
-
-  projection.translate = function (_) {
-    return arguments.length ? (x = +_[0], y = +_[1], recenter()) : [x, y];
-  };
-
-  projection.center = function (_) {
-    return arguments.length ? (lambda = _[0] % 360 * radians, phi = _[1] % 360 * radians, recenter()) : [lambda * degrees, phi * degrees];
-  };
-
-  projection.rotate = function (_) {
-    return arguments.length ? (deltaLambda = _[0] % 360 * radians, deltaPhi = _[1] % 360 * radians, deltaGamma = _.length > 2 ? _[2] % 360 * radians : 0, recenter()) : [deltaLambda * degrees, deltaPhi * degrees, deltaGamma * degrees];
-  };
-
-  projection.precision = function (_) {
-    return arguments.length ? (projectResample = resample(projectTransform, delta2 = _ * _), reset()) : sqrt(delta2);
-  };
-
-  projection.fitExtent = function (extent$$1, object) {
-    return fitExtent(projection, extent$$1, object);
-  };
-
-  projection.fitSize = function (size, object) {
-    return fitSize(projection, size, object);
-  };
-
-  function recenter() {
-    projectRotate = compose(rotate = rotateRadians(deltaLambda, deltaPhi, deltaGamma), project);
-    var center = project(lambda, phi);
-    dx = x - center[0] * k;
-    dy = y + center[1] * k;
-    return reset();
-  }
-
-  function reset() {
-    cache = cacheStream = null;
-    return projection;
-  }
-
-  return function () {
-    project = projectAt.apply(this, arguments);
-    projection.invert = project.invert && invert;
-    return recenter();
-  };
-}
-
-function mercatorRaw(lambda, phi) {
-  return [lambda, log(tan((halfPi + phi) / 2))];
-}
-
-mercatorRaw.invert = function (x, y) {
-  return [x, 2 * atan(exp(y)) - halfPi];
-};
-
-function mercatorProjection(project) {
-  var m = projection(project),
-      center = m.center,
-      scale = m.scale,
-      translate = m.translate,
-      clipExtent = m.clipExtent,
-      x0 = null,
-      y0,
-      x1,
-      y1; // clip extent
-
-  m.scale = function (_) {
-    return arguments.length ? (scale(_), reclip()) : scale();
-  };
-
-  m.translate = function (_) {
-    return arguments.length ? (translate(_), reclip()) : translate();
-  };
-
-  m.center = function (_) {
-    return arguments.length ? (center(_), reclip()) : center();
-  };
-
-  m.clipExtent = function (_) {
-    return arguments.length ? (_ == null ? x0 = y0 = x1 = y1 = null : (x0 = +_[0][0], y0 = +_[0][1], x1 = +_[1][0], y1 = +_[1][1]), reclip()) : x0 == null ? null : [[x0, y0], [x1, y1]];
-  };
-
-  function reclip() {
-    var k = pi * scale(),
-        t = m(rotation(m.rotate()).invert([0, 0]));
-    return clipExtent(x0 == null ? [[t[0] - k, t[1] - k], [t[0] + k, t[1] + k]] : project === mercatorRaw ? [[Math.max(t[0] - k, x0), y0], [Math.min(t[0] + k, x1), y1]] : [[x0, Math.max(t[1] - k, y0)], [x1, Math.min(t[1] + k, y1)]]);
-  }
-
-  return reclip();
-}
-
-function transverseMercatorRaw(lambda, phi) {
-  return [log(tan((halfPi + phi) / 2)), -lambda];
-}
-
-transverseMercatorRaw.invert = function (x, y) {
-  return [-y, 2 * atan(exp(x)) - halfPi];
-};
-
-var geoTransverseMercator = function () {
-  var m = mercatorProjection(transverseMercatorRaw),
-      center = m.center,
-      rotate = m.rotate;
-
-  m.center = function (_) {
-    return arguments.length ? center([-_[1], _[0]]) : (_ = center(), [_[1], -_[0]]);
-  };
-
-  m.rotate = function (_) {
-    return arguments.length ? rotate([_[0], _[1], _.length > 2 ? _[2] + 90 : 90]) : (_ = rotate(), [_[0], _[1], _[2] - 90]);
-  };
-
-  return rotate([0, 0, 90]).scale(159.155);
-};
-
-/**
- * Calculates a buffer for input features for a given radius. Units supported are miles, kilometers, and degrees.
- *
- * When using a negative radius, the resulting geometry may be invalid if
- * it's too small compared to the radius magnitude. If the input is a
- * FeatureCollection, only valid members will be returned in the output
- * FeatureCollection - i.e., the output collection may have fewer members than
- * the input, or even be empty.
- *
- * @name buffer
- * @param {FeatureCollection|Geometry|Feature<any>} geojson input to be buffered
- * @param {number} radius distance to draw the buffer (negative values are allowed)
- * @param {Object} [options] Optional parameters
- * @param {string} [options.units="kilometers"] any of the options supported by turf units
- * @param {number} [options.steps=64] number of steps
- * @returns {FeatureCollection|Feature<Polygon|MultiPolygon>|undefined} buffered features
- * @example
- * var point = turf.point([-90.548630, 14.616599]);
- * var buffered = turf.buffer(point, 500, {units: 'miles'});
- *
- * //addToMap
- * var addToMap = [point, buffered]
- */
-function buffer$1(geojson, radius, options) {
-    // Optional params
-    options = options || {};
-    var units = options.units;
-    var steps = options.steps || 64;
-
-    // validation
-    if (!geojson) throw new Error('geojson is required');
-    if ((typeof options === 'undefined' ? 'undefined' : _typeof(options)) !== 'object') throw new Error('options must be an object');
-    if (typeof steps !== 'number') throw new Error('steps must be an number');
-
-    // Allow negative buffers ("erosion") or zero-sized buffers ("repair geometry")
-    if (radius === undefined) throw new Error('radius is required');
-    if (steps <= 0) throw new Error('steps must be greater than 0');
-
-    // default params
-    steps = steps || 64;
-    units = units || 'kilometers';
-
-    var results = [];
-    switch (geojson.type) {
-        case 'GeometryCollection':
-            geomEach(geojson, function (geometry$$1) {
-                var buffered = bufferFeature(geometry$$1, radius, units, steps);
-                if (buffered) results.push(buffered);
-            });
-            return featureCollection(results);
-        case 'FeatureCollection':
-            featureEach(geojson, function (feature$$1) {
-                var multiBuffered = bufferFeature(feature$$1, radius, units, steps);
-                if (multiBuffered) {
-                    featureEach(multiBuffered, function (buffered) {
-                        if (buffered) results.push(buffered);
-                    });
-                }
-            });
-            return featureCollection(results);
-    }
-    return bufferFeature(geojson, radius, units, steps);
-}
-
-/**
- * Buffer single Feature/Geometry
- *
- * @private
- * @param {Feature<any>} geojson input to be buffered
- * @param {number} radius distance to draw the buffer
- * @param {string} [units='kilometers'] any of the options supported by turf units
- * @param {number} [steps=64] number of steps
- * @returns {Feature<Polygon|MultiPolygon>} buffered feature
- */
-function bufferFeature(geojson, radius, units, steps) {
-    var properties = geojson.properties || {};
-    var geometry$$1 = geojson.type === 'Feature' ? geojson.geometry : geojson;
-
-    // Geometry Types faster than jsts
-    if (geometry$$1.type === 'GeometryCollection') {
-        var results = [];
-        geomEach(geojson, function (geometry$$1) {
-            var buffered = bufferFeature(geometry$$1, radius, units, steps);
-            if (buffered) results.push(buffered);
-        });
-        return featureCollection(results);
-    }
-
-    // Project GeoJSON to Transverse Mercator projection (convert to Meters)
-    var projected;
-    var bbox$$1 = bbox(geojson);
-    var needsTransverseMercator = bbox$$1[1] > 50 && bbox$$1[3] > 50;
-
-    if (needsTransverseMercator) {
-        projected = {
-            type: geometry$$1.type,
-            coordinates: projectCoords(geometry$$1.coordinates, defineProjection(geometry$$1))
-        };
-    } else {
-        projected = toMercator(geometry$$1);
-    }
-
-    // JSTS buffer operation
-    var reader = new GeoJSONReader();
-    var geom = reader.read(projected);
-    var distance = radiansToLength(lengthToRadians(radius, units), 'meters');
-    var buffered = BufferOp.bufferOp(geom, distance);
-    var writer = new GeoJSONWriter();
-    buffered = writer.write(buffered);
-
-    // Detect if empty geometries
-    if (coordsIsNaN(buffered.coordinates)) return undefined;
-
-    // Unproject coordinates (convert to Degrees)
-    var result;
-    if (needsTransverseMercator) {
-        result = {
-            type: buffered.type,
-            coordinates: unprojectCoords(buffered.coordinates, defineProjection(geometry$$1))
-        };
-    } else {
-        result = toWgs84(buffered);
-    }
-
-    return result.geometry ? result : feature(result, properties);
-}
-
-/**
- * Coordinates isNaN
- *
- * @private
- * @param {Array<any>} coords GeoJSON Coordinates
- * @returns {boolean} if NaN exists
- */
-function coordsIsNaN(coords) {
-    if (Array.isArray(coords[0])) return coordsIsNaN(coords[0]);
-    return isNaN(coords[0]);
-}
-
-/**
- * Project coordinates to projection
- *
- * @private
- * @param {Array<any>} coords to project
- * @param {GeoProjection} proj D3 Geo Projection
- * @returns {Array<any>} projected coordinates
- */
-function projectCoords(coords, proj) {
-    if (_typeof(coords[0]) !== 'object') return proj(coords);
-    return coords.map(function (coord) {
-        return projectCoords(coord, proj);
-    });
-}
-
-/**
- * Un-Project coordinates to projection
- *
- * @private
- * @param {Array<any>} coords to un-project
- * @param {GeoProjection} proj D3 Geo Projection
- * @returns {Array<any>} un-projected coordinates
- */
-function unprojectCoords(coords, proj) {
-    if (_typeof(coords[0]) !== 'object') return proj.invert(coords);
-    return coords.map(function (coord) {
-        return unprojectCoords(coord, proj);
-    });
-}
-
-/**
- * Define Transverse Mercator projection
- *
- * @private
- * @param {Geometry|Feature<any>} geojson Base projection on center of GeoJSON
- * @returns {GeoProjection} D3 Geo Transverse Mercator Projection
- */
-function defineProjection(geojson) {
-    var coords = center(geojson).geometry.coordinates.reverse();
-    var rotate = coords.map(function (coord) {
-        return -coord;
-    });
-    return geoTransverseMercator().center(coords).rotate(rotate).scale(earthRadius);
-}
-
-/**
- * Turf is a modular geospatial analysis engine written in JavaScript. It performs geospatial
- * processing tasks with GeoJSON data and can be run on a server or in a browser.
- *
- * @module turf
- * @summary Geospatial analysis for JavaScript
- */
-
-var debug = console.debug.bind(console, '%c turfHelper' + ':', "color:#00CC00;font-weight:bold;");
-var warn = console.debug.bind(console, '%c turfHelper' + ':', "color:orange;font-weight:bold;");
-
-/**
- * Transforma un array de gmaps.LatLng en un Feature.Polygon
- * @param  {Array.<google.maps.LatLng>} LatLngArray [description]
- * @return {Feature.<Polygon>}             [description]
- */
-function arrayToFeaturePolygon(LatLngArray) {
-
-    var vertices = toCoords(LatLngArray, true);
-
-    return {
-        type: "Feature",
-        properties: {},
-        geometry: {
-            type: "Polygon",
-
-            coordinates: [vertices]
-        }
-    };
-}
-
-/**
- * Transforms a {@link google.maps.Marker} to a {@link Feature<Point>}
- * @param  {google.maps.Marker} marker  - marker object to transform
- * @return {Feature<Point>}    output Feature
- */
-function markerToFeaturePoint(marker) {
-    if (!marker.getPosition || typeof marker.getPosition !== 'function') {
-        throw new Error('input object does not have a getPosition method');
-    }
-    var position = marker.getPosition(),
-        Feature = {
-        type: "Feature",
-        properties: {},
-        geometry: {
-            type: "Point",
-            coordinates: [position.lng(), position.lat()]
-        }
-    };
-
-    return Feature;
-}
-
-/**
- * [polylineToFeatureLinestring description]
- * @param  {Array.<google.maps.LatLng>|google.maps.Polyline} objeto array of positions or a google.maps.Polyline
- * @return {Feature.<LineString>}          [description]
- */
-function polylineToFeatureLinestring(objeto) {
-    var vertices;
-    if (objeto instanceof google.maps.Polyline) {
-        vertices = toCoords(objeto.getPath().getArray());
-    } else {
-        vertices = toCoords(objeto);
-    }
-
-    return lineString(vertices);
-}
-
-/**
- * Receives an object and returns a GeoJson Feature of type Polygon
- * @param  {google.maps.Polygon|Array.<google.maps.LatLng>|Feature.Polygon|Geometry} object object to transform into a Feature.Polygon
- * @return {Feature.Polygon}        [description]
- */
-function polygonToFeaturePolygon(object) {
-    var ring, polygonFeature;
-
-    if (object.type === 'Feature') {
-        polygonFeature = object;
-    } else if (object instanceof google.maps.Polygon) {
-
-        object = object.getPath().getArray();
-        ring = toCoords(object, true);
-        polygonFeature = arrayToFeaturePolygon(ring);
-    } else if (!!(object && object.constructor === Array)) {
-
-        ring = toCoords(object, true);
-        polygonFeature = arrayToFeaturePolygon(ring);
-    } else if (object.geometry) {
-
-        polygonFeature = {
-            type: "Feature",
-            properties: {},
-            geometry: object.geometry
-        };
-    } else {
-        throw new Error('object is not a Feature, google.maps.Polygon nor an array of google.maps.LatLng');
-    }
-
-    polygonFeature.properties = {};
-
-    return polygonFeature;
-}
-
-/**
- * Transforma un array de gmaps.LatLng en un featurecollection geoJson
- * donde cada Feature es un punto del array de entrada
- * @param  {Array<google.maps.LatLng>|google.maps.MVCArray} latLngArray array de posiciones {@link google.maps.LatLng}
- * @return {FeatureCollection}             geojson FeatureCollection
- */
-function arrayToFeaturePoints(latLngArray) {
-
-    var FeatureCollection = {
-        "type": "FeatureCollection",
-        "features": []
-    };
-    latLngArray.forEach(function (latLng) {
-        var Feature = {
-            type: "Feature",
-            geometry: {
-                type: "Point",
-                coordinates: toCoords([latLng])[0]
-            }
-        };
-        FeatureCollection.features.push(Feature);
-    });
-
-    return FeatureCollection;
-}
-
-/**
- * Takes a set of points and returns a concave hull polygon. Internally, this uses turf-tin to generate geometries.
- * @param  {Array<google.maps.LatLng>|Array<google.maps.LatLngLiteral>|google.maps.MVCArray} latLngArray array of google positions
- * @param  {number} maxEdge the size of an edge necessary for part of the hull to become concave (in miles)
- * @param  {string} units degrees, radians, miles, or kilometers
- * @return {Feature.<Polygon>}  a concave hull
- */
-function concave$1(latLngArray, maxEdge, units) {
-
-	var FeatureCollection = arrayToFeaturePoints(latLngArray);
-	return concave(FeatureCollection, {
-		maxEdge: maxEdge,
-		units: units
-	});
-}
-
-/**
- * Simplifies an array of coordinates
- * @param  {Array.<google.maps.LatLng>|Array.<google.maps.LatLngLiteral>} coordArray Array of coordinates
- * @param  {number} tolerance   [description]
- * @param  {boolean} highQuality [description]
- * @return {Array.<Number>}  Array de coordenadas [lng,lat]
- */
-function simplifyPointArray(coordArray, tolerance, highQuality) {
-	tolerance = tolerance || 0.00001;
-	highQuality = highQuality || false;
-	var Feature = lineString(toCoords(coordArray));
-
-	var simplifiedgeom = simplify(Feature, tolerance, highQuality);
-
-	//debug('simplifyPointArray', 'geometry is', Feature.geometry, 'simplifiedgeom is', simplifiedgeom);
-
-	return simplifiedgeom.geometry.coordinates;
-}
-
-/**
- * Simplified a Feature, google.maps.Polygon or google.maps.Polyline
- * @param  {google.maps.Polygon|google.maps.Polyline|Array.<google.maps.LatLng>|Feature.<Polygon>|Feature.<LineString>} object feature to be simplified
- * @param  {string} output either 'feature', 'geometry' or 'object' (google maps). Case insensitive. Defaults to feature
- * @param  {mumber} tolerance   simplification tolerance
- * @param  {boolean} highQuality [description]
- * @return {Feature|Geometry} whether or not to spend more time to create a higher-quality simplification with a different algorithm
- */
-function simplifyFeature(object, output, tolerance, highQuality) {
-
-	output = (output || 'feature').toLowerCase();
-
-	var Feature;
-	if (object instanceof google.maps.Polyline || object instanceof google.maps.Polygon) {
-		var geometry$$1 = Wicket$1().fromObject(object).toJson();
-		Feature = {
-			type: "Feature",
-			properties: {},
-			geometry: geometry$$1
-		};
-	} else if (object.type && object.type === 'Feature' && object.geometry) {
-		Feature = object;
-	} else {
-		Feature = polygonToFeaturePolygon(object);
-	}
-
-	if (Feature.geometry.type === 'MultiPolygon') {
-		Feature.geometry.type = 'Polygon';
-		Feature.geometry.coordinates = Feature.geometry.coordinates[0];
-	}
-	var simplifiedgeom = simplify(Feature, tolerance, highQuality);
-
-	if (simplifiedgeom && simplifiedgeom.geometry) {
-		//debug('Simplified Feature', Feature, 'simplifiedgeom', simplifiedgeom);
-		Feature = simplifiedgeom;
-	} else {
-		warn('Cannot simplify  Feature', Feature);
-	}
-	if (output === 'geometry') {
-		return Feature.geometry;
-	} else if (output === 'object') {
-		return Wicket$1().fromJson(Feature.geometry).toObject();
-	} else {
-		return Feature;
-	}
-}
-
-/**
- * Takes a linestring and returns a {@link Point|point} at a specified distance along the line.
- * @param  {google.maps.Polyline|Array.<google.maps.LatLng>|Array.<google.maps.LatLngLiteral>|Feature<LineString>} object input object
- * @param  {Number} distance    [description]
- * @param  {string} units can be degrees, radians, miles, or kilometers. Defaults to kilometers
- * @return {Feature.<Point>} Point distance units along the line
- */
-function along$1(object, distance, units) {
-	var Feature;
-
-	if (object instanceof google.maps.Polyline) {
-		var geometry$$1 = Wicket$1().fromObject(object).toJson();
-		Feature = {
-			type: "Feature",
-			properties: {},
-			geometry: geometry$$1
-		};
-	} else if (object.type && object.type === 'Feature' && object.geometry) {
-		Feature = object;
-	} else {
-		var arrayCoords = toCoords(object);
-		Feature = lineString(arrayCoords);
-	}
-
-	return along(Feature, distance, units);
-}
-
-/**
- * Superpone dos Feature.<Polygon>
- * @param  {google.maps.Polygon|Array.<google.maps.LatLng>|Feature.Polygon} poly1 object to transform into a Feature.Polygon
- * @param  {google.maps.Polygon|Array.<google.maps.LatLng>|Feature.Polygon} poly1 object to transform into a Feature.Polygon
- * @return {Feature.<Polygon>|Feature.<MultiPolygon>}  result of the union. If inputs are disjoint, returns a Feature.Multipolygon
- */
-function union$1(poly1, poly2) {
-	var featurePolygon1 = polygonToFeaturePolygon(poly1),
-	    featurePolygon2 = polygonToFeaturePolygon(poly2),
-	    FeatureUnion = union(featurePolygon1, featurePolygon2);
-	return FeatureUnion;
-}
-
-/**
- * Calculates a buffer for input features for a given radius. Units supported are miles, kilometers, and degrees.
- * @param  {google.maps.Polygon|google.maps.Polyline|google.maps.Marker|google.maps.LatLng|Array.<google.maps.LatLng>|Feature.<Polygon|Linestring|Point>} object input object
- * @param  {String} output  either 'geometry','object' (google.maps) or 'feature', case insensitive, defaults to 'feature'
- * @param  {Number} distance    [description]
- * @param  {String} units       'meters' or 'miles' etc
- * @return {Feature|Feature.<Geometry>}  A GeoJson Feature or its geometry, according to output parameter
- */
-function createbuffer(object, output, distance, units, comment, steps) {
-    units = units || 'meters';
-    output = (output || 'feature').toLowerCase();
-
-    var Feature;
-    if (object instanceof google.maps.Polyline || object instanceof google.maps.Polygon || object instanceof google.maps.Marker || object instanceof google.maps.LatLng) {
-        var geometry$$1 = Wicket$1().fromObject(object).toJson();
-        Feature = {
-            type: "Feature",
-            properties: {},
-            geometry: geometry$$1
-        };
-    } else if (object.type && object.type === 'Feature' && object.geometry) {
-        Feature = object;
-    } else {
-        Feature = polygonToFeaturePolygon(object);
-    }
-
-    var buffered = buffer$1(Feature, distance, {
-        units: units,
-        steps: steps
-    });
-
-    if (buffered.type === 'FeatureCollection') {
-        buffered = buffered.features[0];
-    }
-
-    if (output === 'geometry') {
-        return buffered.geometry;
-    } else if (output === 'object') {
-        return Wicket$1().fromJson(buffered.geometry).toObject();
-    } else {
-        return buffered;
-    }
-}
-
-/**
- * Filters an array of points returning those who falls inside a given {@link Polygon}
- * @param {Array<google.maps.Marker>} sourceArray array of {@link google.maps.Marker}
- * @param {Polygon|Multipolygon} geojsonPolygon  the polygon thay may contain the points
- * @return {{pointsInside:Array<google.maps.Marker>, pointsOutside:Array<google.maps.Marker>}} an object with the points that fall inside and outside the polygon
- */
-function pointInPolygon(sourceArray, geojsonPolygon) {
-	var pointsInside = [];
-	var pointsOutside = [];
-
-	if (geojsonPolygon.type !== 'Feature') {
-		geojsonPolygon = {
-			"type": "Feature",
-			"properties": {},
-			"geometry": geojsonPolygon
-		};
-	}
-	if (geojsonPolygon.geometry.type === 'Polygon' || geojsonPolygon.geometry.type === 'Multipolygon') {
-		forEach(sourceArray, function (item) {
-
-			var Point = markerToFeaturePoint(item);
-			//console.zlog('Point is', Point);
-			if (booleanPointInPolygon(Point, geojsonPolygon)) {
-				pointsInside.push(item);
-			} else {
-				pointsOutside.push(item);
-			}
-		});
-	}
-
-	return {
-		pointsInside: pointsInside,
-		pointsOutside: pointsOutside
-	};
-}
-
-/**
- * Takes an array of points, google.maps.Polygon or Feature<Polygon> and returns {@link Point|points} at all self-intersections.
- *
- * @name kinks
- * @param  {google.maps.Polyline|google.maps.Polygon|Array.<google.maps.LatLng>|Feature<Polygon>} object array of points, google.maps.Polygon or Feature<Polygon>
- * @returns {FeatureCollection<Point>} self-intersections
- *
- */
-function kinks$1(object) {
-  var Feature;
-  if (object instanceof google.maps.Polyline || object instanceof google.maps.Polygon) {
-    var geometry$$1 = Wicket().fromObject(object).toJson();
-    Feature = {
-      type: "Feature",
-      properties: {},
-      geometry: geometry$$1
-    };
-  } else if (object.type && object.type === 'Feature' && object.geometry) {
-    Feature = object;
-  } else {
-    Feature = polygonToFeaturePolygon(object);
-  }
-
-  return kinks(Feature);
-}
-
 /**
  * Takes a kinked polygon and returns a feature collection of polygons that have no kinks. 
  * @param  {google.maps.Polygon|Array.<google.maps.LatLng>|Feature<Polygon>} object array of points, a google.maps.Polygon or Feature<Polygon>
@@ -42351,10 +39160,10 @@ function kinks$1(object) {
  */
 function unkink(object) {
 
-	var polygonFeature = polygonToFeaturePolygon(object);
-	console.log(polygonFeature);
+  var polygonFeature = polygonToFeaturePolygon(object);
+  console.log(polygonFeature);
 
-	return unkinkPolygon(polygonFeature);
+  return unkinkPolygon(polygonFeature);
 }
 
 /**
@@ -42511,6 +39320,1258 @@ function baseLt(value, other) {
  */
 function min$1(array) {
   return array && array.length ? baseExtremum(array, identity, baseLt) : undefined;
+}
+
+function quickselect$3(arr, k, left, right, compare) {
+    quickselectStep(arr, k, left || 0, right || arr.length - 1, compare || defaultCompare$1);
+}
+
+function quickselectStep(arr, k, left, right, compare) {
+
+    while (right > left) {
+        if (right - left > 600) {
+            var n = right - left + 1;
+            var m = k - left + 1;
+            var z = Math.log(n);
+            var s = 0.5 * Math.exp(2 * z / 3);
+            var sd = 0.5 * Math.sqrt(z * s * (n - s) / n) * (m - n / 2 < 0 ? -1 : 1);
+            var newLeft = Math.max(left, Math.floor(k - m * s / n + sd));
+            var newRight = Math.min(right, Math.floor(k + (n - m) * s / n + sd));
+            quickselectStep(arr, k, newLeft, newRight, compare);
+        }
+
+        var t = arr[k];
+        var i = left;
+        var j = right;
+
+        swap$1(arr, left, k);
+        if (compare(arr[right], t) > 0) swap$1(arr, left, right);
+
+        while (i < j) {
+            swap$1(arr, i, j);
+            i++;
+            j--;
+            while (compare(arr[i], t) < 0) {
+                i++;
+            }while (compare(arr[j], t) > 0) {
+                j--;
+            }
+        }
+
+        if (compare(arr[left], t) === 0) swap$1(arr, left, j);else {
+            j++;
+            swap$1(arr, j, right);
+        }
+
+        if (j <= k) left = j + 1;
+        if (k <= j) right = j - 1;
+    }
+}
+
+function swap$1(arr, i, j) {
+    var tmp = arr[i];
+    arr[i] = arr[j];
+    arr[j] = tmp;
+}
+
+function defaultCompare$1(a, b) {
+    return a < b ? -1 : a > b ? 1 : 0;
+}
+
+function rbush$3(maxEntries, format) {
+    if (!(this instanceof rbush$3)) return new rbush$3(maxEntries, format);
+
+    // max entries in a node is 9 by default; min node fill is 40% for best performance
+    this._maxEntries = Math.max(4, maxEntries || 9);
+    this._minEntries = Math.max(2, Math.ceil(this._maxEntries * 0.4));
+
+    if (format) {
+        this._initFormat(format);
+    }
+
+    this.clear();
+}
+
+rbush$3.prototype = {
+
+    all: function all() {
+        return this._all(this.data, []);
+    },
+
+    search: function search(bbox) {
+
+        var node = this.data,
+            result = [],
+            toBBox = this.toBBox;
+
+        if (!intersects$2(bbox, node)) return result;
+
+        var nodesToSearch = [],
+            i,
+            len,
+            child,
+            childBBox;
+
+        while (node) {
+            for (i = 0, len = node.children.length; i < len; i++) {
+
+                child = node.children[i];
+                childBBox = node.leaf ? toBBox(child) : child;
+
+                if (intersects$2(bbox, childBBox)) {
+                    if (node.leaf) result.push(child);else if (contains$2(bbox, childBBox)) this._all(child, result);else nodesToSearch.push(child);
+                }
+            }
+            node = nodesToSearch.pop();
+        }
+
+        return result;
+    },
+
+    collides: function collides(bbox) {
+
+        var node = this.data,
+            toBBox = this.toBBox;
+
+        if (!intersects$2(bbox, node)) return false;
+
+        var nodesToSearch = [],
+            i,
+            len,
+            child,
+            childBBox;
+
+        while (node) {
+            for (i = 0, len = node.children.length; i < len; i++) {
+
+                child = node.children[i];
+                childBBox = node.leaf ? toBBox(child) : child;
+
+                if (intersects$2(bbox, childBBox)) {
+                    if (node.leaf || contains$2(bbox, childBBox)) return true;
+                    nodesToSearch.push(child);
+                }
+            }
+            node = nodesToSearch.pop();
+        }
+
+        return false;
+    },
+
+    load: function load(data) {
+        if (!(data && data.length)) return this;
+
+        if (data.length < this._minEntries) {
+            for (var i = 0, len = data.length; i < len; i++) {
+                this.insert(data[i]);
+            }
+            return this;
+        }
+
+        // recursively build the tree with the given data from scratch using OMT algorithm
+        var node = this._build(data.slice(), 0, data.length - 1, 0);
+
+        if (!this.data.children.length) {
+            // save as is if tree is empty
+            this.data = node;
+        } else if (this.data.height === node.height) {
+            // split root if trees have the same height
+            this._splitRoot(this.data, node);
+        } else {
+            if (this.data.height < node.height) {
+                // swap trees if inserted one is bigger
+                var tmpNode = this.data;
+                this.data = node;
+                node = tmpNode;
+            }
+
+            // insert the small tree into the large tree at appropriate level
+            this._insert(node, this.data.height - node.height - 1, true);
+        }
+
+        return this;
+    },
+
+    insert: function insert(item) {
+        if (item) this._insert(item, this.data.height - 1);
+        return this;
+    },
+
+    clear: function clear() {
+        this.data = createNode$1([]);
+        return this;
+    },
+
+    remove: function remove(item, equalsFn) {
+        if (!item) return this;
+
+        var node = this.data,
+            bbox = this.toBBox(item),
+            path = [],
+            indexes = [],
+            i,
+            parent,
+            index,
+            goingUp;
+
+        // depth-first iterative tree traversal
+        while (node || path.length) {
+
+            if (!node) {
+                // go up
+                node = path.pop();
+                parent = path[path.length - 1];
+                i = indexes.pop();
+                goingUp = true;
+            }
+
+            if (node.leaf) {
+                // check current node
+                index = findItem$1(item, node.children, equalsFn);
+
+                if (index !== -1) {
+                    // item found, remove the item and condense tree upwards
+                    node.children.splice(index, 1);
+                    path.push(node);
+                    this._condense(path);
+                    return this;
+                }
+            }
+
+            if (!goingUp && !node.leaf && contains$2(node, bbox)) {
+                // go down
+                path.push(node);
+                indexes.push(i);
+                i = 0;
+                parent = node;
+                node = node.children[0];
+            } else if (parent) {
+                // go right
+                i++;
+                node = parent.children[i];
+                goingUp = false;
+            } else node = null; // nothing found
+        }
+
+        return this;
+    },
+
+    toBBox: function toBBox(item) {
+        return item;
+    },
+
+    compareMinX: compareNodeMinX$1,
+    compareMinY: compareNodeMinY$1,
+
+    toJSON: function toJSON() {
+        return this.data;
+    },
+
+    fromJSON: function fromJSON(data) {
+        this.data = data;
+        return this;
+    },
+
+    _all: function _all(node, result) {
+        var nodesToSearch = [];
+        while (node) {
+            if (node.leaf) result.push.apply(result, node.children);else nodesToSearch.push.apply(nodesToSearch, node.children);
+
+            node = nodesToSearch.pop();
+        }
+        return result;
+    },
+
+    _build: function _build(items, left, right, height) {
+
+        var N = right - left + 1,
+            M = this._maxEntries,
+            node;
+
+        if (N <= M) {
+            // reached leaf level; return leaf
+            node = createNode$1(items.slice(left, right + 1));
+            calcBBox$1(node, this.toBBox);
+            return node;
+        }
+
+        if (!height) {
+            // target height of the bulk-loaded tree
+            height = Math.ceil(Math.log(N) / Math.log(M));
+
+            // target number of root entries to maximize storage utilization
+            M = Math.ceil(N / Math.pow(M, height - 1));
+        }
+
+        node = createNode$1([]);
+        node.leaf = false;
+        node.height = height;
+
+        // split the items into M mostly square tiles
+
+        var N2 = Math.ceil(N / M),
+            N1 = N2 * Math.ceil(Math.sqrt(M)),
+            i,
+            j,
+            right2,
+            right3;
+
+        multiSelect$1(items, left, right, N1, this.compareMinX);
+
+        for (i = left; i <= right; i += N1) {
+
+            right2 = Math.min(i + N1 - 1, right);
+
+            multiSelect$1(items, i, right2, N2, this.compareMinY);
+
+            for (j = i; j <= right2; j += N2) {
+
+                right3 = Math.min(j + N2 - 1, right2);
+
+                // pack each entry recursively
+                node.children.push(this._build(items, j, right3, height - 1));
+            }
+        }
+
+        calcBBox$1(node, this.toBBox);
+
+        return node;
+    },
+
+    _chooseSubtree: function _chooseSubtree(bbox, node, level, path) {
+
+        var i, len, child, targetNode, area, enlargement, minArea, minEnlargement;
+
+        while (true) {
+            path.push(node);
+
+            if (node.leaf || path.length - 1 === level) break;
+
+            minArea = minEnlargement = Infinity;
+
+            for (i = 0, len = node.children.length; i < len; i++) {
+                child = node.children[i];
+                area = bboxArea$1(child);
+                enlargement = enlargedArea$1(bbox, child) - area;
+
+                // choose entry with the least area enlargement
+                if (enlargement < minEnlargement) {
+                    minEnlargement = enlargement;
+                    minArea = area < minArea ? area : minArea;
+                    targetNode = child;
+                } else if (enlargement === minEnlargement) {
+                    // otherwise choose one with the smallest area
+                    if (area < minArea) {
+                        minArea = area;
+                        targetNode = child;
+                    }
+                }
+            }
+
+            node = targetNode || node.children[0];
+        }
+
+        return node;
+    },
+
+    _insert: function _insert(item, level, isNode) {
+
+        var toBBox = this.toBBox,
+            bbox = isNode ? item : toBBox(item),
+            insertPath = [];
+
+        // find the best node for accommodating the item, saving all nodes along the path too
+        var node = this._chooseSubtree(bbox, this.data, level, insertPath);
+
+        // put the item into the node
+        node.children.push(item);
+        extend$2(node, bbox);
+
+        // split on node overflow; propagate upwards if necessary
+        while (level >= 0) {
+            if (insertPath[level].children.length > this._maxEntries) {
+                this._split(insertPath, level);
+                level--;
+            } else break;
+        }
+
+        // adjust bboxes along the insertion path
+        this._adjustParentBBoxes(bbox, insertPath, level);
+    },
+
+    // split overflowed node into two
+    _split: function _split(insertPath, level) {
+
+        var node = insertPath[level],
+            M = node.children.length,
+            m = this._minEntries;
+
+        this._chooseSplitAxis(node, m, M);
+
+        var splitIndex = this._chooseSplitIndex(node, m, M);
+
+        var newNode = createNode$1(node.children.splice(splitIndex, node.children.length - splitIndex));
+        newNode.height = node.height;
+        newNode.leaf = node.leaf;
+
+        calcBBox$1(node, this.toBBox);
+        calcBBox$1(newNode, this.toBBox);
+
+        if (level) insertPath[level - 1].children.push(newNode);else this._splitRoot(node, newNode);
+    },
+
+    _splitRoot: function _splitRoot(node, newNode) {
+        // split root node
+        this.data = createNode$1([node, newNode]);
+        this.data.height = node.height + 1;
+        this.data.leaf = false;
+        calcBBox$1(this.data, this.toBBox);
+    },
+
+    _chooseSplitIndex: function _chooseSplitIndex(node, m, M) {
+
+        var i, bbox1, bbox2, overlap, area, minOverlap, minArea, index;
+
+        minOverlap = minArea = Infinity;
+
+        for (i = m; i <= M - m; i++) {
+            bbox1 = distBBox$1(node, 0, i, this.toBBox);
+            bbox2 = distBBox$1(node, i, M, this.toBBox);
+
+            overlap = intersectionArea$1(bbox1, bbox2);
+            area = bboxArea$1(bbox1) + bboxArea$1(bbox2);
+
+            // choose distribution with minimum overlap
+            if (overlap < minOverlap) {
+                minOverlap = overlap;
+                index = i;
+
+                minArea = area < minArea ? area : minArea;
+            } else if (overlap === minOverlap) {
+                // otherwise choose distribution with minimum area
+                if (area < minArea) {
+                    minArea = area;
+                    index = i;
+                }
+            }
+        }
+
+        return index;
+    },
+
+    // sorts node children by the best axis for split
+    _chooseSplitAxis: function _chooseSplitAxis(node, m, M) {
+
+        var compareMinX = node.leaf ? this.compareMinX : compareNodeMinX$1,
+            compareMinY = node.leaf ? this.compareMinY : compareNodeMinY$1,
+            xMargin = this._allDistMargin(node, m, M, compareMinX),
+            yMargin = this._allDistMargin(node, m, M, compareMinY);
+
+        // if total distributions margin value is minimal for x, sort by minX,
+        // otherwise it's already sorted by minY
+        if (xMargin < yMargin) node.children.sort(compareMinX);
+    },
+
+    // total margin of all possible split distributions where each node is at least m full
+    _allDistMargin: function _allDistMargin(node, m, M, compare) {
+
+        node.children.sort(compare);
+
+        var toBBox = this.toBBox,
+            leftBBox = distBBox$1(node, 0, m, toBBox),
+            rightBBox = distBBox$1(node, M - m, M, toBBox),
+            margin = bboxMargin$1(leftBBox) + bboxMargin$1(rightBBox),
+            i,
+            child;
+
+        for (i = m; i < M - m; i++) {
+            child = node.children[i];
+            extend$2(leftBBox, node.leaf ? toBBox(child) : child);
+            margin += bboxMargin$1(leftBBox);
+        }
+
+        for (i = M - m - 1; i >= m; i--) {
+            child = node.children[i];
+            extend$2(rightBBox, node.leaf ? toBBox(child) : child);
+            margin += bboxMargin$1(rightBBox);
+        }
+
+        return margin;
+    },
+
+    _adjustParentBBoxes: function _adjustParentBBoxes(bbox, path, level) {
+        // adjust bboxes along the given tree path
+        for (var i = level; i >= 0; i--) {
+            extend$2(path[i], bbox);
+        }
+    },
+
+    _condense: function _condense(path) {
+        // go through the path, removing empty nodes and updating bboxes
+        for (var i = path.length - 1, siblings; i >= 0; i--) {
+            if (path[i].children.length === 0) {
+                if (i > 0) {
+                    siblings = path[i - 1].children;
+                    siblings.splice(siblings.indexOf(path[i]), 1);
+                } else this.clear();
+            } else calcBBox$1(path[i], this.toBBox);
+        }
+    },
+
+    _initFormat: function _initFormat(format) {
+        // data format (minX, minY, maxX, maxY accessors)
+
+        // uses eval-type function compilation instead of just accepting a toBBox function
+        // because the algorithms are very sensitive to sorting functions performance,
+        // so they should be dead simple and without inner calls
+
+        var compareArr = ['return a', ' - b', ';'];
+
+        this.compareMinX = new Function('a', 'b', compareArr.join(format[0]));
+        this.compareMinY = new Function('a', 'b', compareArr.join(format[1]));
+
+        this.toBBox = new Function('a', 'return {minX: a' + format[0] + ', minY: a' + format[1] + ', maxX: a' + format[2] + ', maxY: a' + format[3] + '};');
+    }
+};
+
+function findItem$1(item, items, equalsFn) {
+    if (!equalsFn) return items.indexOf(item);
+
+    for (var i = 0; i < items.length; i++) {
+        if (equalsFn(item, items[i])) return i;
+    }
+    return -1;
+}
+
+// calculate node's bbox from bboxes of its children
+function calcBBox$1(node, toBBox) {
+    distBBox$1(node, 0, node.children.length, toBBox, node);
+}
+
+// min bounding rectangle of node children from k to p-1
+function distBBox$1(node, k, p, toBBox, destNode) {
+    if (!destNode) destNode = createNode$1(null);
+    destNode.minX = Infinity;
+    destNode.minY = Infinity;
+    destNode.maxX = -Infinity;
+    destNode.maxY = -Infinity;
+
+    for (var i = k, child; i < p; i++) {
+        child = node.children[i];
+        extend$2(destNode, node.leaf ? toBBox(child) : child);
+    }
+
+    return destNode;
+}
+
+function extend$2(a, b) {
+    a.minX = Math.min(a.minX, b.minX);
+    a.minY = Math.min(a.minY, b.minY);
+    a.maxX = Math.max(a.maxX, b.maxX);
+    a.maxY = Math.max(a.maxY, b.maxY);
+    return a;
+}
+
+function compareNodeMinX$1(a, b) {
+    return a.minX - b.minX;
+}
+function compareNodeMinY$1(a, b) {
+    return a.minY - b.minY;
+}
+
+function bboxArea$1(a) {
+    return (a.maxX - a.minX) * (a.maxY - a.minY);
+}
+function bboxMargin$1(a) {
+    return a.maxX - a.minX + (a.maxY - a.minY);
+}
+
+function enlargedArea$1(a, b) {
+    return (Math.max(b.maxX, a.maxX) - Math.min(b.minX, a.minX)) * (Math.max(b.maxY, a.maxY) - Math.min(b.minY, a.minY));
+}
+
+function intersectionArea$1(a, b) {
+    var minX = Math.max(a.minX, b.minX),
+        minY = Math.max(a.minY, b.minY),
+        maxX = Math.min(a.maxX, b.maxX),
+        maxY = Math.min(a.maxY, b.maxY);
+
+    return Math.max(0, maxX - minX) * Math.max(0, maxY - minY);
+}
+
+function contains$2(a, b) {
+    return a.minX <= b.minX && a.minY <= b.minY && b.maxX <= a.maxX && b.maxY <= a.maxY;
+}
+
+function intersects$2(a, b) {
+    return b.minX <= a.maxX && b.minY <= a.maxY && b.maxX >= a.minX && b.maxY >= a.minY;
+}
+
+function createNode$1(children) {
+    return {
+        children: children,
+        height: 1,
+        leaf: true,
+        minX: Infinity,
+        minY: Infinity,
+        maxX: -Infinity,
+        maxY: -Infinity
+    };
+}
+
+// sort an array so that items come in groups of n unsorted items, with groups sorted between each other;
+// combines selection algorithm with binary divide & conquer approach
+
+function multiSelect$1(arr, left, right, n, compare) {
+    var stack = [left, right],
+        mid;
+
+    while (stack.length) {
+        right = stack.pop();
+        left = stack.pop();
+
+        if (right - left <= n) continue;
+
+        mid = left + Math.ceil((right - left) / n / 2) * n;
+        quickselect$3(arr, mid, left, right, compare);
+
+        stack.push(left, mid, mid, right);
+    }
+}
+
+/**
+ * GeoJSON implementation of [RBush](https://github.com/mourner/rbush#rbush) spatial index.
+ *
+ * @name rbush
+ * @param {number} [maxEntries=9] defines the maximum number of entries in a tree node. 9 (used by default) is a
+ * reasonable choice for most applications. Higher value means faster insertion and slower search, and vice versa.
+ * @returns {RBush} GeoJSON RBush
+ * @example
+ * import geojsonRbush from 'geojson-rbush';
+ * var tree = geojsonRbush();
+ */
+function geojsonRbush(maxEntries) {
+    var tree = rbush$3(maxEntries);
+    /**
+     * [insert](https://github.com/mourner/rbush#data-format)
+     *
+     * @param {Feature<any>} feature insert single GeoJSON Feature
+     * @returns {RBush} GeoJSON RBush
+     * @example
+     * var polygon = {
+     *   "type": "Feature",
+     *   "properties": {},
+     *   "geometry": {
+     *     "type": "Polygon",
+     *     "coordinates": [[[-78, 41], [-67, 41], [-67, 48], [-78, 48], [-78, 41]]]
+     *   }
+     * }
+     * tree.insert(polygon)
+     */
+    tree.insert = function (feature) {
+        if (Array.isArray(feature)) {
+            var bbox = feature;
+            feature = bboxPolygon(bbox);
+            feature.bbox = bbox;
+        } else {
+            feature.bbox = feature.bbox ? feature.bbox : turfBBox(feature);
+        }
+        return rbush$3.prototype.insert.call(this, feature);
+    };
+
+    /**
+     * [load](https://github.com/mourner/rbush#bulk-inserting-data)
+     *
+     * @param {BBox[]|FeatureCollection<any>} features load entire GeoJSON FeatureCollection
+     * @returns {RBush} GeoJSON RBush
+     * @example
+     * var polygons = {
+     *   "type": "FeatureCollection",
+     *   "features": [
+     *     {
+     *       "type": "Feature",
+     *       "properties": {},
+     *       "geometry": {
+     *         "type": "Polygon",
+     *         "coordinates": [[[-78, 41], [-67, 41], [-67, 48], [-78, 48], [-78, 41]]]
+     *       }
+     *     },
+     *     {
+     *       "type": "Feature",
+     *       "properties": {},
+     *       "geometry": {
+     *         "type": "Polygon",
+     *         "coordinates": [[[-93, 32], [-83, 32], [-83, 39], [-93, 39], [-93, 32]]]
+     *       }
+     *     }
+     *   ]
+     * }
+     * tree.load(polygons)
+     */
+    tree.load = function (features) {
+        var load = [];
+        // Load an Array of BBox
+        if (Array.isArray(features)) {
+            features.forEach(function (bbox) {
+                var feature = bboxPolygon(bbox);
+                feature.bbox = bbox;
+                load.push(feature);
+            });
+        } else {
+            // Load FeatureCollection
+            featureEach(features, function (feature) {
+                feature.bbox = feature.bbox ? feature.bbox : turfBBox(feature);
+                load.push(feature);
+            });
+        }
+        return rbush$3.prototype.load.call(this, load);
+    };
+
+    /**
+     * [remove](https://github.com/mourner/rbush#removing-data)
+     *
+     * @param {BBox|Feature<any>} feature remove single GeoJSON Feature
+     * @returns {RBush} GeoJSON RBush
+     * @example
+     * var polygon = {
+     *   "type": "Feature",
+     *   "properties": {},
+     *   "geometry": {
+     *     "type": "Polygon",
+     *     "coordinates": [[[-78, 41], [-67, 41], [-67, 48], [-78, 48], [-78, 41]]]
+     *   }
+     * }
+     * tree.remove(polygon)
+     */
+    tree.remove = function (feature) {
+        if (Array.isArray(feature)) {
+            var bbox = feature;
+            feature = bboxPolygon(bbox);
+            feature.bbox = bbox;
+        }
+        return rbush$3.prototype.remove.call(this, feature);
+    };
+
+    /**
+     * [clear](https://github.com/mourner/rbush#removing-data)
+     *
+     * @returns {RBush} GeoJSON Rbush
+     * @example
+     * tree.clear()
+     */
+    tree.clear = function () {
+        return rbush$3.prototype.clear.call(this);
+    };
+
+    /**
+     * [search](https://github.com/mourner/rbush#search)
+     *
+     * @param {BBox|FeatureCollection|Feature<any>} geojson search with GeoJSON
+     * @returns {FeatureCollection<any>} all features that intersects with the given GeoJSON.
+     * @example
+     * var polygon = {
+     *   "type": "Feature",
+     *   "properties": {},
+     *   "geometry": {
+     *     "type": "Polygon",
+     *     "coordinates": [[[-78, 41], [-67, 41], [-67, 48], [-78, 48], [-78, 41]]]
+     *   }
+     * }
+     * tree.search(polygon)
+     */
+    tree.search = function (geojson) {
+        var features = rbush$3.prototype.search.call(this, this.toBBox(geojson));
+        return {
+            type: 'FeatureCollection',
+            features: features
+        };
+    };
+
+    /**
+     * [collides](https://github.com/mourner/rbush#collisions)
+     *
+     * @param {BBox|FeatureCollection|Feature<any>} geojson collides with GeoJSON
+     * @returns {boolean} true if there are any items intersecting the given GeoJSON, otherwise false.
+     * @example
+     * var polygon = {
+     *   "type": "Feature",
+     *   "properties": {},
+     *   "geometry": {
+     *     "type": "Polygon",
+     *     "coordinates": [[[-78, 41], [-67, 41], [-67, 48], [-78, 48], [-78, 41]]]
+     *   }
+     * }
+     * tree.collides(polygon)
+     */
+    tree.collides = function (geojson) {
+        return rbush$3.prototype.collides.call(this, this.toBBox(geojson));
+    };
+
+    /**
+     * [all](https://github.com/mourner/rbush#search)
+     *
+     * @returns {FeatureCollection<any>} all the features in RBush
+     * @example
+     * tree.all()
+     * //=FeatureCollection
+     */
+    tree.all = function () {
+        var features = rbush$3.prototype.all.call(this);
+        return {
+            type: 'FeatureCollection',
+            features: features
+        };
+    };
+
+    /**
+     * [toJSON](https://github.com/mourner/rbush#export-and-import)
+     *
+     * @returns {any} export data as JSON object
+     * @example
+     * var exported = tree.toJSON()
+     * //=JSON object
+     */
+    tree.toJSON = function () {
+        return rbush$3.prototype.toJSON.call(this);
+    };
+
+    /**
+     * [fromJSON](https://github.com/mourner/rbush#export-and-import)
+     *
+     * @param {any} json import previously exported data
+     * @returns {RBush} GeoJSON RBush
+     * @example
+     * var exported = {
+     *   "children": [
+     *     {
+     *       "type": "Feature",
+     *       "geometry": {
+     *         "type": "Point",
+     *         "coordinates": [110, 50]
+     *       },
+     *       "properties": {},
+     *       "bbox": [110, 50, 110, 50]
+     *     }
+     *   ],
+     *   "height": 1,
+     *   "leaf": true,
+     *   "minX": 110,
+     *   "minY": 50,
+     *   "maxX": 110,
+     *   "maxY": 50
+     * }
+     * tree.fromJSON(exported)
+     */
+    tree.fromJSON = function (json) {
+        return rbush$3.prototype.fromJSON.call(this, json);
+    };
+
+    /**
+     * Converts GeoJSON to {minX, minY, maxX, maxY} schema
+     *
+     * @private
+     * @param {BBox|FeatureCollectio|Feature<any>} geojson feature(s) to retrieve BBox from
+     * @returns {Object} converted to {minX, minY, maxX, maxY}
+     */
+    tree.toBBox = function (geojson) {
+        var bbox;
+        if (geojson.bbox) bbox = geojson.bbox;else if (Array.isArray(geojson) && geojson.length === 4) bbox = geojson;else bbox = turfBBox(geojson);
+
+        return {
+            minX: bbox[0],
+            minY: bbox[1],
+            maxX: bbox[2],
+            maxY: bbox[3]
+        };
+    };
+    return tree;
+}
+
+/**
+ * Takes a bbox and returns an equivalent {@link Polygon|polygon}.
+ *
+ * @private
+ * @name bboxPolygon
+ * @param {Array<number>} bbox extent in [minX, minY, maxX, maxY] order
+ * @returns {Feature<Polygon>} a Polygon representation of the bounding box
+ * @example
+ * var bbox = [0, 0, 10, 10];
+ *
+ * var poly = turf.bboxPolygon(bbox);
+ *
+ * //addToMap
+ * var addToMap = [poly]
+ */
+function bboxPolygon(bbox) {
+    var lowLeft = [bbox[0], bbox[1]];
+    var topLeft = [bbox[0], bbox[3]];
+    var topRight = [bbox[2], bbox[3]];
+    var lowRight = [bbox[2], bbox[1]];
+    var coordinates = [[lowLeft, lowRight, topRight, topLeft, lowLeft]];
+
+    return {
+        type: 'Feature',
+        bbox: bbox,
+        properties: {},
+        geometry: {
+            type: 'Polygon',
+            coordinates: coordinates
+        }
+    };
+}
+
+/**
+ * Takes a set of features, calculates the bbox of all input features, and returns a bounding box.
+ *
+ * @private
+ * @name bbox
+ * @param {FeatureCollection|Feature<any>} geojson input features
+ * @returns {Array<number>} bbox extent in [minX, minY, maxX, maxY] order
+ * @example
+ * var line = turf.lineString([[-74, 40], [-78, 42], [-82, 35]]);
+ * var bbox = turf.bbox(line);
+ * var bboxPolygon = turf.bboxPolygon(bbox);
+ *
+ * //addToMap
+ * var addToMap = [line, bboxPolygon]
+ */
+function turfBBox(geojson) {
+    var bbox = [Infinity, Infinity, -Infinity, -Infinity];
+    coordEach(geojson, function (coord) {
+        if (bbox[0] > coord[0]) bbox[0] = coord[0];
+        if (bbox[1] > coord[1]) bbox[1] = coord[1];
+        if (bbox[2] < coord[0]) bbox[2] = coord[0];
+        if (bbox[3] < coord[1]) bbox[3] = coord[1];
+    });
+    return bbox;
+}
+
+/**
+ * Creates a {@link FeatureCollection} of 2-vertex {@link LineString} segments from a {@link LineString|(Multi)LineString} or {@link Polygon|(Multi)Polygon}.
+ *
+ * @name lineSegment
+ * @param {Geometry|FeatureCollection|Feature<LineString|MultiLineString|MultiPolygon|Polygon>} geojson GeoJSON Polygon or LineString
+ * @returns {FeatureCollection<LineString>} 2-vertex line segments
+ * @example
+ * var polygon = turf.polygon([[[-50, 5], [-40, -10], [-50, -10], [-40, 5], [-50, 5]]]);
+ * var segments = turf.lineSegment(polygon);
+ *
+ * //addToMap
+ * var addToMap = [polygon, segments]
+ */
+function lineSegment(geojson) {
+    if (!geojson) throw new Error('geojson is required');
+
+    var results = [];
+    flattenEach(geojson, function (feature$$1) {
+        lineSegmentFeature(feature$$1, results);
+    });
+    return featureCollection(results);
+}
+
+/**
+ * Line Segment
+ *
+ * @private
+ * @param {Feature<LineString|Polygon>} geojson Line or polygon feature
+ * @param {Array} results push to results
+ * @returns {void}
+ */
+function lineSegmentFeature(geojson, results) {
+    var coords = [];
+    var geometry$$1 = geojson.geometry;
+    switch (geometry$$1.type) {
+        case 'Polygon':
+            coords = getCoords(geometry$$1);
+            break;
+        case 'LineString':
+            coords = [getCoords(geometry$$1)];
+    }
+    coords.forEach(function (coord) {
+        var segments = createSegments(coord, geojson.properties);
+        segments.forEach(function (segment) {
+            segment.id = results.length;
+            results.push(segment);
+        });
+    });
+}
+
+/**
+ * Create Segments from LineString coordinates
+ *
+ * @private
+ * @param {LineString} coords LineString coordinates
+ * @param {*} properties GeoJSON properties
+ * @returns {Array<Feature<LineString>>} line segments
+ */
+function createSegments(coords, properties) {
+    var segments = [];
+    coords.reduce(function (previousCoords, currentCoords) {
+        var segment = lineString([previousCoords, currentCoords], properties);
+        segment.bbox = bbox$3(previousCoords, currentCoords);
+        segments.push(segment);
+        return currentCoords;
+    });
+    return segments;
+}
+
+/**
+ * Create BBox between two coordinates (faster than @turf/bbox)
+ *
+ * @private
+ * @param {Array<number>} coords1 Point coordinate
+ * @param {Array<number>} coords2 Point coordinate
+ * @returns {BBox} [west, south, east, north]
+ */
+function bbox$3(coords1, coords2) {
+    var x1 = coords1[0];
+    var y1 = coords1[1];
+    var x2 = coords2[0];
+    var y2 = coords2[1];
+    var west = x1 < x2 ? x1 : x2;
+    var south = y1 < y2 ? y1 : y2;
+    var east = x1 > x2 ? x1 : x2;
+    var north = y1 > y2 ? y1 : y2;
+    return [west, south, east, north];
+}
+
+/**
+ * Takes any LineString or Polygon GeoJSON and returns the intersecting point(s).
+ *
+ * @name lineIntersect
+ * @param {Geometry|FeatureCollection|Feature<LineString|MultiLineString|Polygon|MultiPolygon>} line1 any LineString or Polygon
+ * @param {Geometry|FeatureCollection|Feature<LineString|MultiLineString|Polygon|MultiPolygon>} line2 any LineString or Polygon
+ * @returns {FeatureCollection<Point>} point(s) that intersect both
+ * @example
+ * var line1 = turf.lineString([[126, -11], [129, -21]]);
+ * var line2 = turf.lineString([[123, -18], [131, -14]]);
+ * var intersects = turf.lineIntersect(line1, line2);
+ *
+ * //addToMap
+ * var addToMap = [line1, line2, intersects]
+ */
+function lineIntersect(line1, line2) {
+    var unique = {};
+    var results = [];
+
+    // First, normalize geometries to features
+    // Then, handle simple 2-vertex segments
+    if (line1.type === 'LineString') line1 = feature(line1);
+    if (line2.type === 'LineString') line2 = feature(line2);
+    if (line1.type === 'Feature' && line2.type === 'Feature' && line1.geometry.type === 'LineString' && line2.geometry.type === 'LineString' && line1.geometry.coordinates.length === 2 && line2.geometry.coordinates.length === 2) {
+        var intersect = intersects$1(line1, line2);
+        if (intersect) results.push(intersect);
+        return featureCollection(results);
+    }
+
+    // Handles complex GeoJSON Geometries
+    var tree = geojsonRbush();
+    tree.load(lineSegment(line2));
+    featureEach(lineSegment(line1), function (segment) {
+        featureEach(tree.search(segment), function (match) {
+            var intersect = intersects$1(segment, match);
+            if (intersect) {
+                // prevent duplicate points https://github.com/Turfjs/turf/issues/688
+                var key = getCoords(intersect).join(',');
+                if (!unique[key]) {
+                    unique[key] = true;
+                    results.push(intersect);
+                }
+            }
+        });
+    });
+    return featureCollection(results);
+}
+
+/**
+ * Find a point that intersects LineStrings with two coordinates each
+ *
+ * @private
+ * @param {Feature<LineString>} line1 GeoJSON LineString (Must only contain 2 coordinates)
+ * @param {Feature<LineString>} line2 GeoJSON LineString (Must only contain 2 coordinates)
+ * @returns {Feature<Point>} intersecting GeoJSON Point
+ */
+function intersects$1(line1, line2) {
+    var coords1 = getCoords(line1);
+    var coords2 = getCoords(line2);
+    if (coords1.length !== 2) {
+        throw new Error('<intersects> line1 must only contain 2 coordinates');
+    }
+    if (coords2.length !== 2) {
+        throw new Error('<intersects> line2 must only contain 2 coordinates');
+    }
+    var x1 = coords1[0][0];
+    var y1 = coords1[0][1];
+    var x2 = coords1[1][0];
+    var y2 = coords1[1][1];
+    var x3 = coords2[0][0];
+    var y3 = coords2[0][1];
+    var x4 = coords2[1][0];
+    var y4 = coords2[1][1];
+    var denom = (y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1);
+    var numeA = (x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3);
+    var numeB = (x2 - x1) * (y1 - y3) - (y2 - y1) * (x1 - x3);
+
+    if (denom === 0) {
+        if (numeA === 0 && numeB === 0) {
+            return null;
+        }
+        return null;
+    }
+
+    var uA = numeA / denom;
+    var uB = numeB / denom;
+
+    if (uA >= 0 && uA <= 1 && uB >= 0 && uB <= 1) {
+        var x = x1 + uA * (x2 - x1);
+        var y = y1 + uA * (y2 - y1);
+        return point([x, y]);
+    }
+    return null;
+}
+
+/**
+ * Takes a {@link Point} and a {@link LineString} and calculates the closest Point on the (Multi)LineString.
+ *
+ * @name nearestPointOnLine
+ * @param {Geometry|Feature<LineString|MultiLineString>} lines lines to snap to
+ * @param {Geometry|Feature<Point>|number[]} pt point to snap from
+ * @param {Object} [options={}] Optional parameters
+ * @param {string} [options.units='kilometers'] can be degrees, radians, miles, or kilometers
+ * @returns {Feature<Point>} closest point on the `line` to `point`. The properties object will contain three values: `index`: closest point was found on nth line part, `dist`: distance between pt and the closest point, `location`: distance along the line between start and the closest point.
+ * @example
+ * var line = turf.lineString([
+ *     [-77.031669, 38.878605],
+ *     [-77.029609, 38.881946],
+ *     [-77.020339, 38.884084],
+ *     [-77.025661, 38.885821],
+ *     [-77.021884, 38.889563],
+ *     [-77.019824, 38.892368]
+ * ]);
+ * var pt = turf.point([-77.037076, 38.884017]);
+ *
+ * var snapped = turf.nearestPointOnLine(line, pt, {units: 'miles'});
+ *
+ * //addToMap
+ * var addToMap = [line, pt, snapped];
+ * snapped.properties['marker-color'] = '#00f';
+ */
+function nearestPointOnLine(lines, pt, options) {
+    // Optional parameters
+    options = options || {};
+    if (!isObject$2(options)) throw new Error('options is invalid');
+
+    // validation
+    var type = lines.geometry ? lines.geometry.type : lines.type;
+    if (type !== 'LineString' && type !== 'MultiLineString') {
+        throw new Error('lines must be LineString or MultiLineString');
+    }
+
+    var closestPt = point([Infinity, Infinity], {
+        dist: Infinity
+    });
+
+    var length = 0.0;
+    flattenEach(lines, function (line) {
+        var coords = getCoords(line);
+
+        for (var i = 0; i < coords.length - 1; i++) {
+            //start
+            var start = point(coords[i]);
+            start.properties.dist = distance(pt, start, options);
+            //stop
+            var stop = point(coords[i + 1]);
+            stop.properties.dist = distance(pt, stop, options);
+            // sectionLength
+            var sectionLength = distance(start, stop, options);
+            //perpendicular
+            var heightDistance = Math.max(start.properties.dist, stop.properties.dist);
+            var direction = bearing(start, stop);
+            var perpendicularPt1 = destination(pt, heightDistance, direction + 90, options);
+            var perpendicularPt2 = destination(pt, heightDistance, direction - 90, options);
+            var intersect = lineIntersect(lineString([perpendicularPt1.geometry.coordinates, perpendicularPt2.geometry.coordinates]), lineString([start.geometry.coordinates, stop.geometry.coordinates]));
+            var intersectPt = null;
+            if (intersect.features.length > 0) {
+                intersectPt = intersect.features[0];
+                intersectPt.properties.dist = distance(pt, intersectPt, options);
+                intersectPt.properties.location = length + distance(start, intersectPt, options);
+            }
+
+            if (start.properties.dist < closestPt.properties.dist) {
+                closestPt = start;
+                closestPt.properties.index = i;
+                closestPt.properties.location = length;
+            }
+            if (stop.properties.dist < closestPt.properties.dist) {
+                closestPt = stop;
+                closestPt.properties.index = i + 1;
+                closestPt.properties.location = length + sectionLength;
+            }
+            if (intersectPt && intersectPt.properties.dist < closestPt.properties.dist) {
+                closestPt = intersectPt;
+                closestPt.properties.index = i;
+            }
+            // update length
+            length += sectionLength;
+        }
+    });
+
+    return closestPt;
+}
+
+/**
+ * Takes a {@link LineString|line}, a start {@link Point}, and a stop point
+ * and returns a subsection of the line in-between those points.
+ * The start & stop points don't need to fall exactly on the line.
+ *
+ * This can be useful for extracting only the part of a route between waypoints.
+ *
+ * @name lineSlice
+ * @param {Feature<Point>} startPt starting point
+ * @param {Feature<Point>} stopPt stopping point
+ * @param {Feature<LineString>|LineString} line line to slice
+ * @returns {Feature<LineString>} sliced line
+ * @example
+ * var line = turf.lineString([
+ *     [-77.031669, 38.878605],
+ *     [-77.029609, 38.881946],
+ *     [-77.020339, 38.884084],
+ *     [-77.025661, 38.885821],
+ *     [-77.021884, 38.889563],
+ *     [-77.019824, 38.892368]
+ * ]);
+ * var start = turf.point([-77.029609, 38.881946]);
+ * var stop = turf.point([-77.021884, 38.889563]);
+ *
+ * var sliced = turf.lineSlice(start, stop, line);
+ *
+ * //addToMap
+ * var addToMap = [start, stop, line]
+ */
+function lineSlice(startPt, stopPt, line) {
+    var coords;
+    if (line.type === 'Feature') {
+        coords = line.geometry.coordinates;
+    } else if (line.type === 'LineString') {
+        coords = line.coordinates;
+    } else {
+        throw new Error('input must be a LineString Feature or Geometry');
+    }
+
+    var startVertex = nearestPointOnLine(line, startPt);
+    var stopVertex = nearestPointOnLine(line, stopPt);
+    var ends;
+    if (startVertex.properties.index <= stopVertex.properties.index) {
+        ends = [startVertex, stopVertex];
+    } else {
+        ends = [stopVertex, startVertex];
+    }
+    var clipCoords = [ends[0].geometry.coordinates];
+    for (var i = ends[0].properties.index + 1; i < ends[1].properties.index + 1; i++) {
+        clipCoords.push(coords[i]);
+    }
+    clipCoords.push(ends[1].geometry.coordinates);
+    return lineString(clipCoords, line.properties);
 }
 
 /**
@@ -42764,7 +40825,7 @@ function trimPaths(arrayLatLng1, arrayLatLng2, useOldMethod) {
  * @module turfHelper
  */
 var ig_turfhelper = {
-    along: along$1,
+    along: along,
     arrayToFeaturePoints: arrayToFeaturePoints,
     createbuffer: createbuffer,
     pointInPolygon: pointInPolygon,
@@ -42775,11 +40836,11 @@ var ig_turfhelper = {
     toLatLngs: toLatLngs,
     toCoords: toCoords,
     trimPaths: trimPaths,
-    union: union$1,
-    kinks: kinks$1,
+    union: union,
+    kinks: kinks,
     unkink: unkink,
-    concave: concave$1
+    concave: concave
 };
 
-export { along$1 as along, arrayToFeaturePoints, createbuffer, pointInPolygon, polygonToFeaturePolygon, polylineToFeatureLinestring, simplifyFeature, simplifyPointArray, toLatLngs, toCoords, trimPaths, kinks$1 as kinks, unkink, union$1 as union, concave$1 as concave };
+export { along, arrayToFeaturePoints, createbuffer, pointInPolygon, polygonToFeaturePolygon, polylineToFeatureLinestring, simplifyFeature, simplifyPointArray, toLatLngs, toCoords, trimPaths, kinks, unkink, union, concave };
 export default ig_turfhelper;

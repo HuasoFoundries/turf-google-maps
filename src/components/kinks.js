@@ -1,6 +1,4 @@
- import {
- 	kinks as turk_kinks
- } from '@turf/turf';
+ import turk_kinks from '@turf/kinks';
 
  import {
  	polygonToFeaturePolygon

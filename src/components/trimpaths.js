@@ -8,15 +8,17 @@ import {
 	default as _min
 } from 'lodash-es/min.js';
 
+import turk_kinks from '@turf/kinks';
+
+import turf_line_slice from '@turf/line-slice';
+
+import turf_line_intersect from '@turf/line-intersect';
 
 import {
-	lineSlice as turf_line_slice,
-	kinks as turk_kinks,
-	lineIntersect as turf_line_intersect,
 	point as turf_point,
 	lineString as turf_linestring,
 	featureCollection as turf_featurecollection
-} from '@turf/turf';
+} from '@turf/helpers';
 
 
 import {

@@ -49,9 +49,9 @@ if (process.env.MINIFY) {
 		sourcemap: true,
 		exports: 'named'
 	}];
-	plugins.push(uglify({
+	plugins = uglify({
 		mangle: false
-	}));
+	});
 }
 if (process.env.UTILS) {
 	input = "src/components/utils.js";

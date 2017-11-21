@@ -1,6 +1,4 @@
-import {
-	concave as turf_concave
-} from '@turf/turf';
+import turf_concave from '@turf/concave';
 
 
 import {

@@ -3,6 +3,7 @@ import {
 } from './wicket_helper.js';
 
 
+import turf_simplify from '@turf/simplify';
 import {
 	toCoords
 } from './coords_to_latlng.js'
@@ -13,9 +14,8 @@ import {
 } from './utils.js';
 
 import {
-	simplify as turf_simplify,
 	lineString as turf_linestring
-} from '@turf/turf';
+} from '@turf/helpers';
 
 
 /**

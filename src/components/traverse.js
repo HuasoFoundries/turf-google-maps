@@ -6,7 +6,7 @@ from 'lodash-es/isEqual.js';
 import {
 	point as turf_point,
 	featureCollection as turf_featurecollection
-} from '@turf/turf';
+} from '@turf/helpers';
 
 
 function diffCoords(coord1, coord2) {

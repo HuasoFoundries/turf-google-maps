@@ -4,10 +4,7 @@ import {
 import {
     Wicket
 } from './wicket_helper.js';
-
-import {
-    buffer as turf_buffer
-} from '@turf/turf';
+import turf_buffer from '@turf/buffer';
 
 
 import {
