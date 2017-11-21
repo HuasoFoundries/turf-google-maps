@@ -1,7 +1,6 @@
 import {
 	unkinkPolygon as turf_unkink
-} from '../turf.js';
-
+} from '@turf/turf';
 
 import {
 	polygonToFeaturePolygon
@@ -15,6 +14,7 @@ import {
 export function unkink(object) {
 
 	var polygonFeature = polygonToFeaturePolygon(object);
+	console.log(polygonFeature);
 
 	return turf_unkink(polygonFeature);
 };

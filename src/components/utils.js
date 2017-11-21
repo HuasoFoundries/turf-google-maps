@@ -27,7 +27,7 @@ from 'lodash-es/reduce.js';
 
 import {
     lineString as turf_linestring
-} from '../turf.js';
+} from '@turf/turf';
 
 
 var debug = console.debug.bind(console, '%c turfHelper' + ':', "color:#00CC00;font-weight:bold;"),
@@ -93,6 +93,7 @@ function markerToFeaturePoint(marker) {
 
     return Feature;
 };
+
 
 /**
  * [polylineToFeatureLinestring description]

@@ -1,6 +1,6 @@
 import {
 	union as turf_union
-} from '../turf.js';
+} from '@turf/turf';
 
 
 import {

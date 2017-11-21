@@ -11,7 +11,9 @@ version:
 
 install: 
 	npm install
-	jspm install
+
+yarn:
+	yarn --ignore-engines
 
 test:
 	$$(npm bin)/karma start

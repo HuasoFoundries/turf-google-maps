@@ -1,8 +1,6 @@
 import {
-	inside as turf_inside
-} from '../turf.js';
-
-
+	booleanPointInPolygon as turf_inside
+} from '@turf/turf';
 import {
 	default as _each
 } from 'lodash-es/forEach.js';

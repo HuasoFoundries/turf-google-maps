@@ -8,17 +8,20 @@ import {
 	default as _min
 } from 'lodash-es/min.js';
 
+
 import {
 	lineSlice as turf_line_slice,
+	kinks as turk_kinks,
 	lineIntersect as turf_line_intersect,
 	point as turf_point,
 	lineString as turf_linestring,
 	featureCollection as turf_featurecollection
-} from '../turf.js';
+} from '@turf/turf';
 
 
 import {
-	debug
+	debug,
+	polylineToFeatureLinestring
 } from './utils.js';
 
 import {
@@ -179,17 +182,6 @@ function traverseRings(ring1, ring2, useOldMethod) {
 	}
 	return intersections;
 };
-
-
-/**
- * [polylineToFeatureLinestring description]
- * @param  {Array.<google.maps.LatLng>} polyline [description]
- * @return {Feature.Polyline}          [description]
- */
-function polylineToFeatureLinestring(polyline) {
-	var vertices = toCoords(polyline.getPath().getArray());
-	return turf_linestring(vertices);
-}
 
 
 /**

@@ -19,18 +19,27 @@ var input = "src/ig_turfhelper.js",
 		}
 	],
 	plugins = [
-		commonjs(),
+		commonjs({
+			include: ['node_modules/simplify-js/**', 'node_modules/rbush/**', 'node_modules/@turf/**', 'node_modules/quickselect/**']
+		}),
 		alias({
-			'lodash-es': 'node_modules/lodash-es'
+			'lodash-es': 'node_modules/lodash-es',
+
 		}),
 		replace({
 			const: 'var',
 			let: 'var',
 
 		}),
-		resolve(),
+		resolve({
+			module: true, // Default: true
+			jsnext: true, // Default: false
+			main: false
+		}),
 		babel()
 	];
+
+
 if (process.env.MINIFY) {
 	input = "dist/ig_turfhelper.js";
 	output = [{

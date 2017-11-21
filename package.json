@@ -1,6 +1,6 @@
 {
   "name": "turf-google-maps",
-  "version": "0.9.0",
+  "version": "0.8.0",
   "description": "A bridge to use Turf along with google Maps API",
   "scripts": {
     "test": "karma start"
@@ -21,82 +21,54 @@
   ],
   "author": "amenadiel@gmail.com",
   "license": "MIT",
+  "engines": {
+    "node": "^6.11.2"
+  },
   "bugs": {
     "url": "https://github.com/HuasoFoundries/turf-google-maps/issues"
   },
   "homepage": "https://github.com/HuasoFoundries/turf-google-maps#readme",
   "main": "dist/ig_turfhelper.min.js",
-
   "dependencies": {},
   "devDependencies": {
-    "@turf/turf": "^4.7.3",
+    "@turf/along": "^5.0.4",
+    "@turf/boolean-point-in-polygon": "^5.0.4",
+    "@turf/buffer": "^5.0.4",
+    "@turf/concave": "^5.0.4",
+    "@turf/helpers": "^5.0.4",
+    "@turf/kinks": "^5.0.4",
+    "@turf/line-intersect": "^5.0.4",
+    "@turf/line-slice": "^5.0.4",
+    "@turf/simplify": "^5.0.4",
+    "@turf/truncate": "^5.0.4",
+    "@turf/turf": "^5.0.4",
+    "@turf/union": "^5.0.4",
+    "@turf/unkink-polygon": "^5.0.4",
     "babel-cli": "^6.26.0",
     "babel-core": "^6.26.0",
     "babel-eslint": "^7.2.3",
     "babel-plugin-external-helpers": "^6.22.0",
     "babel-plugin-transform-es2015-arrow-functions": "^6.22.0",
-    "babel-preset-env": "^1.6.0",
-    "bluebird": "^3.5.1",
+    "babel-preset-env": "^1.6.1",
+    "d3-queue": "^3.0.7",
     "documentation": "^5.2.2",
     "eslint": "^4.5.0",
-    "jspm": "^0.17.0-beta.45",
     "karma": "^1",
     "karma-mocha-reporter": "^2.2.3",
     "karma-phantomjs-launcher": "^1",
     "karma-qunit": "^1.2.1",
     "karma-systemjs": "^0.16.0",
+    "lodash": "^4",
     "lodash-es": "^4.17.4",
     "phantomjs-prebuilt": "^2",
     "progress": "^2.0.0",
     "qunitjs": "^1",
-    "rollup": "^0.50.0",
-    "rollup-plugin-alias": "^1.3.1",
+    "rollup": "^0.51.8",
+    "rollup-plugin-alias": "^1.4.0",
     "rollup-plugin-babel": "^3.0.2",
-    "rollup-plugin-commonjs": "^8.2.1",
+    "rollup-plugin-commonjs": "^8.2.6",
     "rollup-plugin-node-resolve": "^3.0.0",
     "rollup-plugin-replace": "^2.0.0",
     "rollup-plugin-uglify": "^2.0.1"
-  },
-  "jspm": {
-    "registry": "jspm",
-    "name": "turf-google-maps",
-    "main": "ig_turfhelper.min.js",
-    "directories": {
-      "lib": "dist"
-    },
-    "format": "amd",
-    "dependencies": {},
-    "devDependencies": {
-      "assert": "npm:jspm-nodelibs-assert@^0.2.0",
-      "buffer": "npm:jspm-nodelibs-buffer@^0.2.0",
-      "child_process": "npm:jspm-nodelibs-child_process@^0.2.0",
-      "constants": "npm:jspm-nodelibs-constants@^0.2.0",
-      "crypto": "npm:jspm-nodelibs-crypto@^0.2.0",
-      "events": "npm:jspm-nodelibs-events@^0.2.0",
-      "os": "npm:jspm-nodelibs-os@^0.2.0",
-      "path": "npm:jspm-nodelibs-path@^0.2.0",
-      "process": "npm:jspm-nodelibs-process@^0.2.0",
-      "stream": "npm:jspm-nodelibs-stream@^0.2.0",
-      "string_decoder": "npm:jspm-nodelibs-string_decoder@^0.2.0",
-      "util": "npm:jspm-nodelibs-util@^0.2.0",
-      "vm": "npm:jspm-nodelibs-vm@^0.2.0"
-    },
-    "peerDependencies": {
-      "fs": "npm:jspm-nodelibs-fs@^0.2.0",
-      "plugin-babel": "npm:systemjs-plugin-babel@^0.0.25"
-    },
-    "overrides": {
-      "npm:inherits@2.0.3": {
-        "ignore": [
-          "test.js"
-        ]
-      },
-      "npm:pbkdf2@3.0.13": {
-        "main": "browser.js"
-      },
-      "npm:safe-buffer@5.1.1": {
-        "browser": "index.js"
-      }
-    }
   }
 }
