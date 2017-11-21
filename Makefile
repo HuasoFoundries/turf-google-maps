@@ -45,7 +45,7 @@ ifeq (${VERSION},$(v))
 endif
 	@echo "Current version is " ${VERSION}
 	@echo "Next version is " $(v)
-	sed -i s/"$(VERSION)"/"$(v)"/g package.json
+	sed -i s/'"version": "$(VERSION)"'/'"version": "$(v)"'/g package.json
 
 
 tag_and_push:

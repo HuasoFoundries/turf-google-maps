@@ -2,7 +2,10 @@
     "presets": [
         ["env",
             {
-                modules: false
+                modules: false,
+                "targets": {
+                    "browsers": ["last 2 versions", "safari > 8", "not ie < 11"]
+                }
             }
         ]
     ],
