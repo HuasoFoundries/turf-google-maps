@@ -26,7 +26,6 @@
   },
   "homepage": "https://github.com/HuasoFoundries/turf-google-maps#readme",
   "main": "dist/ig_turfhelper.min.js",
-
   "dependencies": {},
   "devDependencies": {
     "@turf/turf": "^4.7.3",

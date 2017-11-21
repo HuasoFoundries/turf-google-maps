@@ -8377,6 +8377,7 @@ function union$1(poly1, poly2) {
  */
 function createbuffer(object, output, radius, options) {
     options.units = options.units || 'meters';
+
     output = (output || 'feature').toLowerCase();
 
     var Feature;
