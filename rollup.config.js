@@ -4,6 +4,7 @@ import alias from 'rollup-plugin-alias';
 import babel from 'rollup-plugin-babel';
 import replace from 'rollup-plugin-replace'
 import uglify from 'rollup-plugin-uglify';
+import cleanup from 'rollup-plugin-cleanup';
 
 
 var input = "src/ig_turfhelper.js",
@@ -21,7 +22,12 @@ var input = "src/ig_turfhelper.js",
 	plugins = [
 
 		commonjs({
-			include: ['node_modules/simplify-js/**', 'node_modules/rbush/**', 'node_modules/@turf/**', 'node_modules/quickselect/**']
+			include: [
+				'node_modules/simplify-js/**',
+				'node_modules/rbush/**',
+				'node_modules/@turf/**',
+				'node_modules/quickselect/**'
+			]
 		}),
 		alias({
 			'lodash-es': 'node_modules/lodash-es',
@@ -37,7 +43,8 @@ var input = "src/ig_turfhelper.js",
 			jsnext: true, // Default: false
 			main: false
 		}),
-		babel()
+		babel(),
+		cleanup()
 
 	];
 

@@ -24,259 +24,110 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-
 var beginsWith;
 var endsWith;
-
-/**
- * @desc The Wkt namespace.
- * @property    {String}    delimiter   - The default delimiter for separating components of atomic geometry (coordinates)
- * @namespace
- * @global
- */
 var Wkt = function Wkt(obj) {
     if (obj instanceof Wkt) return obj;
     if (!(this instanceof Wkt)) return new Wkt(obj);
     this._wrapped = obj;
 };
-
-/**
- * Returns true if the substring is found at the beginning of the string.
- * @param   str {String}    The String to search
- * @param   sub {String}    The substring of interest
- * @return      {Boolean}
- * @private
- */
 beginsWith = function beginsWith(str, sub) {
     return str.substring(0, sub.length) === sub;
 };
-
-/**
- * Returns true if the substring is found at the end of the string.
- * @param   str {String}    The String to search
- * @param   sub {String}    The substring of interest
- * @return      {Boolean}
- * @private
- */
 endsWith = function endsWith(str, sub) {
     return str.substring(str.length - sub.length) === sub;
 };
-
-/**
- * The default delimiter for separating components of atomic geometry (coordinates)
- * @ignore
- */
 Wkt.delimiter = ' ';
-
-/**
- * Determines whether or not the passed Object is an Array.
- * @param   obj {Object}    The Object in question
- * @return      {Boolean}
- * @member Wkt.isArray
- * @method
- */
 Wkt.isArray = function (obj) {
     return !!(obj && obj.constructor === Array);
 };
-
-/**
- * Removes given character String(s) from a String.
- * @param   str {String}    The String to search
- * @param   sub {String}    The String character(s) to trim
- * @return      {String}    The trimmed string
- * @member Wkt.trim
- * @method
- */
 Wkt.trim = function (str, sub) {
-    sub = sub || ' '; // Defaults to trimming spaces
-    // Trim beginning spaces
+    sub = sub || ' ';
     while (beginsWith(str, sub)) {
         str = str.substring(1);
     }
-    // Trim ending spaces
     while (endsWith(str, sub)) {
         str = str.substring(0, str.length - 1);
     }
     return str;
 };
-
-/**
- * An object for reading WKT strings and writing geographic features
- * @constructor Wkt.Wkt
- * @param   initializer {String}    An optional WKT string for immediate read
- * @property            {Array}     components      - Holder for atomic geometry objects (internal representation of geometric components)
- * @property            {String}    delimiter       - The default delimiter for separating components of atomic geometry (coordinates)
- * @property            {Object}    regExes         - Some regular expressions copied from OpenLayers.Format.WKT.js
- * @property            {String}    type            - The Well-Known Text name (e.g. 'point') of the geometry
- * @property            {Boolean}   wrapVerticies   - True to wrap vertices in MULTIPOINT geometries; If true: MULTIPOINT((30 10),(10 30),(40 40)); If false: MULTIPOINT(30 10,10 30,40 40)
- * @return              {Wkt.Wkt}
- * @memberof Wkt
- */
 Wkt.Wkt = function (initializer) {
-
-    /**
-     * The default delimiter between X and Y coordinates.
-     * @ignore
-     */
     this.delimiter = Wkt.delimiter || ' ';
-
-    /**
-     * Configuration parameter for controlling how Wicket seralizes
-     * MULTIPOINT strings. Examples; both are valid WKT:
-     * If true: MULTIPOINT((30 10),(10 30),(40 40))
-     * If false: MULTIPOINT(30 10,10 30,40 40)
-     * @ignore
-     */
     this.wrapVertices = true;
-
-    /**
-     * Some regular expressions copied from OpenLayers.Format.WKT.js
-     * @ignore
-     */
     this.regExes = {
         'typeStr': /^\s*(\w+)\s*\(\s*(.*)\s*\)\s*$/,
-        'spaces': /\s+|\+/, // Matches the '+' or the empty space
+        'spaces': /\s+|\+/,
         'numeric': /-*\d+(\.*\d+)?/,
         'comma': /\s*,\s*/,
         'parenComma': /\)\s*,\s*\(/,
-        'coord': /-*\d+\.*\d+ -*\d+\.*\d+/, // e.g. "24 -14"
+        'coord': /-*\d+\.*\d+ -*\d+\.*\d+/,
         'doubleParenComma': /\)\s*\)\s*,\s*\(\s*\(/,
         'trimParens': /^\s*\(?(.*?)\)?\s*$/,
-        'ogcTypes': /^(multi)?(point|line|polygon|box)?(string)?$/i, // Captures e.g. "Multi","Line","String"
-        'crudeJson': /^{.*"(type|coordinates|geometries|features)":.*}$/ // Attempts to recognize JSON strings
+        'ogcTypes': /^(multi)?(point|line|polygon|box)?(string)?$/i,
+        'crudeJson': /^{.*"(type|coordinates|geometries|features)":.*}$/
     };
-
-    /**
-     * The internal representation of geometry--the "components" of geometry.
-     * @ignore
-     */
     this.components = undefined;
-
-    // An initial WKT string may be provided
     if (initializer && typeof initializer === 'string') {
         this.read(initializer);
     } else if (initializer && (typeof initializer === 'undefined' ? 'undefined' : _typeof(initializer)) !== undefined) {
         this.fromObject(initializer);
     }
 };
-
-/**
- * Returns true if the internal geometry is a collection of geometries.
- * @return  {Boolean}   Returns true when it is a collection
- * @memberof Wkt.Wkt
- * @method
- */
 Wkt.Wkt.prototype.isCollection = function () {
     switch (this.type.slice(0, 5)) {
         case 'multi':
-            // Trivial; any multi-geometry is a collection
             return true;
         case 'polyg':
-            // Polygons with holes are "collections" of rings
             return true;
         default:
-            // Any other geometry is not a collection
             return false;
     }
 };
-
-/**
- * Compares two x,y coordinates for equality.
- * @param   a   {Object}    An object with x and y properties
- * @param   b   {Object}    An object with x and y properties
- * @return      {Boolean}
- * @memberof Wkt.Wkt
- * @method
- */
 Wkt.Wkt.prototype.sameCoords = function (a, b) {
     return a.x === b.x && a.y === b.y;
 };
-
-/**
- * Sets internal geometry (components) from framework geometry (e.g.
- * Google Polygon objects or google.maps.Polygon).
- * @param   obj {Object}    The framework-dependent geometry representation
- * @return      {Wkt.Wkt}   The object itself
- * @memberof Wkt.Wkt
- * @method
- */
 Wkt.Wkt.prototype.fromObject = function (obj) {
     var result;
-
     if (obj.hasOwnProperty('type') && obj.hasOwnProperty('coordinates')) {
         result = this.fromJson(obj);
     } else {
         result = this.deconstruct.call(this, obj);
     }
-
     this.components = result.components;
     this.isRectangle = result.isRectangle || false;
     this.type = result.type;
     return this;
 };
-
-/**
- * Creates external geometry objects based on a plug-in framework's
- * construction methods and available geometry classes.
- * @param   config  {Object}    An optional framework-dependent properties specification
- * @return          {Object}    The framework-dependent geometry representation
- * @memberof Wkt.Wkt
- * @method
- */
 Wkt.Wkt.prototype.toObject = function (config) {
     var obj = this.construct[this.type].call(this, config);
-    // Don't assign the "properties" property to an Array
     if ((typeof obj === 'undefined' ? 'undefined' : _typeof(obj)) === 'object' && !Wkt.isArray(obj)) {
         obj.properties = this.properties;
     }
     return obj;
 };
-
-/**
- * Returns the WKT string representation; the same as the write() method.
- * @memberof Wkt.Wkt
- * @method
- */
 Wkt.Wkt.prototype.toString = function (config) {
     return this.write();
 };
-
-/**
- * Parses a JSON representation as an Object.
- * @param   obj {Object}    An Object with the GeoJSON schema
- * @return  {Wkt.Wkt}  The object itself
- * @memberof Wkt.Wkt
- * @method
- */
 Wkt.Wkt.prototype.fromJson = function (obj) {
     var i, j, k, coords, iring, oring;
-
     this.type = obj.type.toLowerCase();
     this.components = [];
     if (obj.hasOwnProperty('geometry')) {
-        //Feature
         this.fromJson(obj.geometry);
         this.properties = obj.properties;
         return this;
     }
     coords = obj.coordinates;
-
     if (!Wkt.isArray(coords[0])) {
-        // Point
         this.components.push({
             x: coords[0],
             y: coords[1]
         });
     } else {
-
         for (i in coords) {
             if (coords.hasOwnProperty(i)) {
-
                 if (!Wkt.isArray(coords[i][0])) {
-                    // LineString
-
                     if (this.type === 'multipoint') {
-                        // MultiPoint
                         this.components.push([{
                             x: coords[i][0],
                             y: coords[i][1]
@@ -288,61 +139,44 @@ Wkt.Wkt.prototype.fromJson = function (obj) {
                         });
                     }
                 } else {
-
                     oring = [];
                     for (j in coords[i]) {
                         if (coords[i].hasOwnProperty(j)) {
-
                             if (!Wkt.isArray(coords[i][j][0])) {
                                 oring.push({
                                     x: coords[i][j][0],
                                     y: coords[i][j][1]
                                 });
                             } else {
-
                                 iring = [];
                                 for (k in coords[i][j]) {
                                     if (coords[i][j].hasOwnProperty(k)) {
-
                                         iring.push({
                                             x: coords[i][j][k][0],
                                             y: coords[i][j][k][1]
                                         });
                                     }
                                 }
-
                                 oring.push(iring);
                             }
                         }
                     }
-
                     this.components.push(oring);
                 }
             }
         }
     }
-
     return this;
 };
-
-/**
- * Creates a JSON representation, with the GeoJSON schema, of the geometry.
- * @return    {Object}    The corresponding GeoJSON representation
- * @memberof Wkt.Wkt
- * @method
- */
 Wkt.Wkt.prototype.toJson = function () {
     var cs, json, i, j, k, ring, rings;
-
     cs = this.components;
     json = {
         coordinates: [],
         type: function () {
             var i, type, s;
-
             type = this.regExes.ogcTypes.exec(this.type).slice(1);
             s = [];
-
             for (i in type) {
                 if (type.hasOwnProperty(i)) {
                     if (type[i] !== undefined) {
@@ -350,125 +184,77 @@ Wkt.Wkt.prototype.toJson = function () {
                     }
                 }
             }
-
             return s;
         }.call(this).join('')
-
-        // Wkt BOX type gets a special bbox property in GeoJSON
     };if (this.type.toLowerCase() === 'box') {
         json.type = 'Polygon';
         json.bbox = [];
-
         for (i in cs) {
             if (cs.hasOwnProperty(i)) {
                 json.bbox = json.bbox.concat([cs[i].x, cs[i].y]);
             }
         }
-
         json.coordinates = [[[cs[0].x, cs[0].y], [cs[0].x, cs[1].y], [cs[1].x, cs[1].y], [cs[1].x, cs[0].y], [cs[0].x, cs[0].y]]];
-
         return json;
     }
-
-    // For the coordinates of most simple features
     for (i in cs) {
         if (cs.hasOwnProperty(i)) {
-
-            // For those nested structures
             if (Wkt.isArray(cs[i])) {
                 rings = [];
-
                 for (j in cs[i]) {
                     if (cs[i].hasOwnProperty(j)) {
-
                         if (Wkt.isArray(cs[i][j])) {
-                            // MULTIPOLYGONS
                             ring = [];
-
                             for (k in cs[i][j]) {
                                 if (cs[i][j].hasOwnProperty(k)) {
                                     ring.push([cs[i][j][k].x, cs[i][j][k].y]);
                                 }
                             }
-
                             rings.push(ring);
                         } else {
-                            // POLYGONS and MULTILINESTRINGS
-
                             if (cs[i].length > 1) {
                                 rings.push([cs[i][j].x, cs[i][j].y]);
                             } else {
-                                // MULTIPOINTS
                                 rings = rings.concat([cs[i][j].x, cs[i][j].y]);
                             }
                         }
                     }
                 }
-
                 json.coordinates.push(rings);
             } else {
                 if (cs.length > 1) {
-                    // For LINESTRING type
                     json.coordinates.push([cs[i].x, cs[i].y]);
                 } else {
-                    // For POINT type
                     json.coordinates = json.coordinates.concat([cs[i].x, cs[i].y]);
                 }
             }
         }
     }
-
     return json;
 };
-
-/**
- * Absorbs the geometry of another Wkt.Wkt instance, merging it with its own,
- * creating a collection (MULTI-geometry) based on their types, which must agree.
- * For example, creates a MULTIPOLYGON from a POLYGON type merged with another
- * POLYGON type, or adds a POLYGON instance to a MULTIPOLYGON instance.
- * @param   wkt {String}    A Wkt.Wkt object
- * @return  {Wkt.Wkt}  The object itself
- * @memberof Wkt.Wkt
- * @method
- */
 Wkt.Wkt.prototype.merge = function (wkt) {
     var prefix = this.type.slice(0, 5);
-
     if (this.type !== wkt.type) {
         if (this.type.slice(5, this.type.length) !== wkt.type) {
             throw TypeError('The input geometry types must agree or the calling Wkt.Wkt instance must be a multigeometry of the other');
         }
     }
-
     switch (prefix) {
-
         case 'point':
             this.components = [this.components.concat(wkt.components)];
             break;
-
         case 'multi':
             this.components = this.components.concat(wkt.type.slice(0, 5) === 'multi' ? wkt.components : [wkt.components]);
             break;
-
         default:
             this.components = [this.components, wkt.components];
             break;
-
     }
-
     if (prefix !== 'multi') {
         this.type = 'multi' + this.type;
     }
     return this;
 };
-
-/**
- * Reads a WKT string, validating and incorporating it.
- * @param   str {String}    A WKT or GeoJSON string
- * @return  {Wkt.Wkt}  The object itself
- * @memberof Wkt.Wkt
- * @method
- */
 Wkt.Wkt.prototype.read = function (str) {
     var matches;
     matches = this.regExes.typeStr.exec(str);
@@ -497,121 +283,56 @@ Wkt.Wkt.prototype.read = function (str) {
             };
         }
     }
-
     return this;
-}; // eo readWkt
-
-/**
- * Writes a WKT string.
- * @param   components  {Array}     An Array of internal geometry objects
- * @return              {String}    The corresponding WKT representation
- * @memberof Wkt.Wkt
- * @method
- */
+};
 Wkt.Wkt.prototype.write = function (components) {
     var i, pieces, data;
-
     components = components || this.components;
-
     pieces = [];
-
     pieces.push(this.type.toUpperCase() + '(');
-
     for (i = 0; i < components.length; i += 1) {
         if (this.isCollection() && i > 0) {
             pieces.push(',');
         }
-
-        // There should be an extract function for the named type
         if (!this.extract[this.type]) {
             return null;
         }
-
         data = this.extract[this.type].apply(this, [components[i]]);
         if (this.isCollection() && this.type !== 'multipoint') {
             pieces.push('(' + data + ')');
         } else {
             pieces.push(data);
-
-            // If not at the end of the components, add a comma
             if (i !== components.length - 1 && this.type !== 'multipoint') {
                 pieces.push(',');
             }
         }
     }
-
     pieces.push(')');
-
     return pieces.join('');
 };
-
-/**
- * This object contains functions as property names that extract WKT
- * strings from the internal representation.
- * @memberof Wkt.Wkt
- * @namespace Wkt.Wkt.extract
- * @instance
- */
 Wkt.Wkt.prototype.extract = {
-    /**
-     * Return a WKT string representing atomic (point) geometry
-     * @param   point   {Object}    An object with x and y properties
-     * @return          {String}    The WKT representation
-     * @memberof Wkt.Wkt.extract
-     * @instance
-     */
     point: function point(_point) {
         return String(_point.x) + this.delimiter + String(_point.y);
     },
-
-    /**
-     * Return a WKT string representing multiple atoms (points)
-     * @param   multipoint  {Array}     Multiple x-and-y objects
-     * @return              {String}    The WKT representation
-     * @memberof Wkt.Wkt.extract
-     * @instance
-     */
     multipoint: function multipoint(_multipoint) {
         var i,
             parts = [],
             s;
-
         for (i = 0; i < _multipoint.length; i += 1) {
             s = this.extract.point.apply(this, [_multipoint[i]]);
-
             if (this.wrapVertices) {
                 s = '(' + s + ')';
             }
-
             parts.push(s);
         }
-
         return parts.join(',');
     },
-
-    /**
-     * Return a WKT string representing a chain (linestring) of atoms
-     * @param   linestring  {Array}     Multiple x-and-y objects
-     * @return              {String}    The WKT representation
-     * @memberof Wkt.Wkt.extract
-     * @instance
-     */
     linestring: function linestring(_linestring) {
-        // Extraction of linestrings is the same as for points
         return this.extract.point.apply(this, [_linestring]);
     },
-
-    /**
-     * Return a WKT string representing multiple chains (multilinestring) of atoms
-     * @param   multilinestring {Array}     Multiple of multiple x-and-y objects
-     * @return                  {String}    The WKT representation
-     * @memberof Wkt.Wkt.extract
-     * @instance
-     */
     multilinestring: function multilinestring(_multilinestring) {
         var i,
             parts = [];
-
         if (_multilinestring.length) {
             for (i = 0; i < _multilinestring.length; i += 1) {
                 parts.push(this.extract.linestring.apply(this, [_multilinestring[i]]));
@@ -619,29 +340,11 @@ Wkt.Wkt.prototype.extract = {
         } else {
             parts.push(this.extract.point.apply(this, [_multilinestring]));
         }
-
         return parts.join(',');
     },
-
-    /**
-     * Return a WKT string representing multiple atoms in closed series (polygon)
-     * @param   polygon {Array}     Collection of ordered x-and-y objects
-     * @return          {String}    The WKT representation
-     * @memberof Wkt.Wkt.extract
-     * @instance
-     */
     polygon: function polygon(_polygon) {
-        // Extraction of polygons is the same as for multilinestrings
         return this.extract.multilinestring.apply(this, [_polygon]);
     },
-
-    /**
-     * Return a WKT string representing multiple closed series (multipolygons) of multiple atoms
-     * @param   multipolygon    {Array}     Collection of ordered x-and-y objects
-     * @return                  {String}    The WKT representation
-     * @memberof Wkt.Wkt.extract
-     * @instance
-     */
     multipolygon: function multipolygon(_multipolygon) {
         var i,
             parts = [];
@@ -650,53 +353,21 @@ Wkt.Wkt.prototype.extract = {
         }
         return parts.join(',');
     },
-
-    /**
-     * Return a WKT string representing a 2DBox
-     * @param   multipolygon    {Array}     Collection of ordered x-and-y objects
-     * @return                  {String}    The WKT representation
-     * @memberof Wkt.Wkt.extract
-     * @instance
-     */
     box: function box(_box) {
         return this.extract.linestring.apply(this, [_box]);
     },
-
     geometrycollection: function geometrycollection(str) {
         console.log('The geometrycollection WKT type is not yet supported.');
     }
 };
-
-/**
- * This object contains functions as property names that ingest WKT
- * strings into the internal representation.
- * @memberof Wkt.Wkt
- * @namespace Wkt.Wkt.ingest
- * @instance
- */
 Wkt.Wkt.prototype.ingest = {
-
-    /**
-     * Return point feature given a point WKT fragment.
-     * @param   str {String}    A WKT fragment representing the point
-     * @memberof Wkt.Wkt.ingest
-     * @instance
-     */
     point: function point(str) {
         var coords = Wkt.trim(str).split(this.regExes.spaces);
-        // In case a parenthetical group of coordinates is passed...
-        return [{ // ...Search for numeric substrings
+        return [{
             x: parseFloat(this.regExes.numeric.exec(coords[0])[0]),
             y: parseFloat(this.regExes.numeric.exec(coords[1])[0])
         }];
     },
-
-    /**
-     * Return a multipoint feature given a multipoint WKT fragment.
-     * @param   str {String}    A WKT fragment representing the multipoint
-     * @memberof Wkt.Wkt.ingest
-     * @instance
-     */
     multipoint: function multipoint(str) {
         var i, components, points;
         components = [];
@@ -706,70 +377,38 @@ Wkt.Wkt.prototype.ingest = {
         }
         return components;
     },
-
-    /**
-     * Return a linestring feature given a linestring WKT fragment.
-     * @param   str {String}    A WKT fragment representing the linestring
-     * @memberof Wkt.Wkt.ingest
-     * @instance
-     */
     linestring: function linestring(str) {
         var i, multipoints, components;
-
-        // In our x-and-y representation of components, parsing
-        //  multipoints is the same as parsing linestrings
         multipoints = this.ingest.multipoint.apply(this, [str]);
-
-        // However, the points need to be joined
         components = [];
         for (i = 0; i < multipoints.length; i += 1) {
             components = components.concat(multipoints[i]);
         }
         return components;
     },
-
-    /**
-     * Return a multilinestring feature given a multilinestring WKT fragment.
-     * @param   str {String}    A WKT fragment representing the multilinestring
-     * @memberof Wkt.Wkt.ingest
-     * @instance
-     */
     multilinestring: function multilinestring(str) {
         var i, components, line, lines;
         components = [];
-
         lines = Wkt.trim(str).split(this.regExes.doubleParenComma);
         if (lines.length === 1) {
-            // If that didn't work...
             lines = Wkt.trim(str).split(this.regExes.parenComma);
         }
-
         for (i = 0; i < lines.length; i += 1) {
             line = lines[i].replace(this.regExes.trimParens, '$1');
             components.push(this.ingest.linestring.apply(this, [line]));
         }
-
         return components;
     },
-
-    /**
-     * Return a polygon feature given a polygon WKT fragment.
-     * @param   str {String}    A WKT fragment representing the polygon
-     * @memberof Wkt.Wkt.ingest
-     * @instance
-     */
     polygon: function polygon(str) {
         var i, j, components, subcomponents, ring, rings;
         rings = Wkt.trim(str).split(this.regExes.parenComma);
-        components = []; // Holds one or more rings
+        components = [];
         for (i = 0; i < rings.length; i += 1) {
             ring = rings[i].replace(this.regExes.trimParens, '$1').split(this.regExes.comma);
-            subcomponents = []; // Holds the outer ring and any inner rings (holes)
+            subcomponents = [];
             for (j = 0; j < ring.length; j += 1) {
-                // Split on the empty space or '+' character (between coordinates)
                 var split = ring[j].split(this.regExes.spaces);
                 if (split.length > 2) {
-                    //remove the elements which are blanks
                     split = split.filter(function (n) {
                         return n != "";
                     });
@@ -777,8 +416,6 @@ Wkt.Wkt.prototype.ingest = {
                 if (split.length === 2) {
                     var x_cord = split[0];
                     var y_cord = split[1];
-
-                    //now push
                     subcomponents.push({
                         x: parseFloat(x_cord),
                         y: parseFloat(y_cord)
@@ -789,35 +426,15 @@ Wkt.Wkt.prototype.ingest = {
         }
         return components;
     },
-
-    /**
-     * Return box vertices (which would become the Rectangle bounds) given a Box WKT fragment.
-     * @param   str {String}    A WKT fragment representing the box
-     * @memberof Wkt.Wkt.ingest
-     * @instance
-     */
     box: function box(str) {
         var i, multipoints, components;
-
-        // In our x-and-y representation of components, parsing
-        //  multipoints is the same as parsing linestrings
         multipoints = this.ingest.multipoint.apply(this, [str]);
-
-        // However, the points need to be joined
         components = [];
         for (i = 0; i < multipoints.length; i += 1) {
             components = components.concat(multipoints[i]);
         }
-
         return components;
     },
-
-    /**
-     * Return a multipolygon feature given a multipolygon WKT fragment.
-     * @param   str {String}    A WKT fragment representing the multipolygon
-     * @memberof Wkt.Wkt.ingest
-     * @instance
-     */
     multipolygon: function multipolygon(str) {
         var i, components, polygon, polygons;
         components = [];
@@ -828,189 +445,91 @@ Wkt.Wkt.prototype.ingest = {
         }
         return components;
     },
-
-    /**
-     * Return an array of features given a geometrycollection WKT fragment.
-     * @param   str {String}    A WKT fragment representing the geometry collection
-     * @memberof Wkt.Wkt.ingest
-     * @instance
-     */
     geometrycollection: function geometrycollection(str) {
         console.log('The geometrycollection WKT type is not yet supported.');
     }
-
-}; // eo ingest
-
-/**
- * @augments Wkt.Wkt
- * A framework-dependent flag, set for each Wkt.Wkt() instance, that indicates
- * whether or not a closed polygon geometry should be interpreted as a rectangle.
- */
+};
 Wkt.Wkt.prototype.isRectangle = false;
-
-/**
- * @augments Wkt.Wkt
- * An object of framework-dependent construction methods used to generate
- * objects belonging to the various geometry classes of the framework.
- */
 Wkt.Wkt.prototype.construct = {
-    /**
-     * Creates the framework's equivalent point geometry object.
-     * @param   config      {Object}    An optional properties hash the object should use
-     * @param   component   {Object}    An optional component to build from
-     * @return              {google.maps.Marker}
-     */
     point: function point(config, component) {
         var c = component || this.components;
-
         config = config || {
             optimized: true
         };
-
         config.position = new google.maps.LatLng(c[0].y, c[0].x);
-
         return new google.maps.Marker(config);
     },
-
-    /**
-     * Creates the framework's equivalent multipoint geometry object.
-     * @param   config  {Object}    An optional properties hash the object should use
-     * @return          {Array}     Array containing multiple google.maps.Marker
-     */
     multipoint: function multipoint(config) {
         var i, c, arr;
-
         c = this.components;
-
         config = config || {};
-
         arr = [];
-
         for (i = 0; i < c.length; i += 1) {
             arr.push(this.construct.point(config, c[i]));
         }
-
         return arr;
     },
-
-    /**
-     * Creates the framework's equivalent linestring geometry object.
-     * @param   config      {Object}    An optional properties hash the object should use
-     * @param   component   {Object}    An optional component to build from
-     * @return              {google.maps.Polyline}
-     */
     linestring: function linestring(config, component) {
         var i, c;
-
         c = component || this.components;
-
         config = config || {
             editable: false
         };
-
         config.path = [];
-
         for (i = 0; i < c.length; i += 1) {
             config.path.push(new google.maps.LatLng(c[i].y, c[i].x));
         }
-
         return new google.maps.Polyline(config);
     },
-
-    /**
-     * Creates the framework's equivalent multilinestring geometry object.
-     * @param   config  {Object}    An optional properties hash the object should use
-     * @return          {Array}     Array containing multiple google.maps.Polyline instances
-     */
     multilinestring: function multilinestring(config) {
         var i, c, arr;
-
         c = this.components;
-
         config = config || {
             editable: false
         };
-
         config.path = [];
-
         arr = [];
-
         for (i = 0; i < c.length; i += 1) {
             arr.push(this.construct.linestring(config, c[i]));
         }
-
         return arr;
     },
-
-    /**
-     * Creates the framework's equivalent Box or Rectangle geometry object.
-     * @param   config      {Object}    An optional properties hash the object should use
-     * @param   component   {Object}    An optional component to build from
-     * @return              {google.maps.Rectangle}
-     */
     box: function box(config, component) {
         var c = component || this.components;
-
         config = config || {};
-
         config.bounds = new google.maps.LatLngBounds(new google.maps.LatLng(c[0].y, c[0].x), new google.maps.LatLng(c[1].y, c[1].x));
-
         return new google.maps.Rectangle(config);
     },
-
-    /**
-     * Creates the framework's equivalent polygon geometry object.
-     * @param   config      {Object}    An optional properties hash the object should use
-     * @param   component   {Object}    An optional component to build from
-     * @return              {google.maps.Polygon}
-     */
     polygon: function polygon(config, component) {
         var j, k, c, rings, verts;
-
         c = component || this.components;
-
         config = config || {
-            editable: false // Editable geometry off by default
+            editable: false
         };
-
         config.paths = [];
-
         rings = [];
         for (j = 0; j < c.length; j += 1) {
-            // For each ring...
-
             verts = [];
-            // NOTE: We iterate to one (1) less than the Array length to skip the last vertex
             for (k = 0; k < c[j].length - 1; k += 1) {
-                // For each vertex...
                 verts.push(new google.maps.LatLng(c[j][k].y, c[j][k].x));
-            } // eo for each vertex
-
+            }
             if (j !== 0) {
-                // Reverse the order of coordinates in inner rings
                 if (config.reverseInnerPolygons === null || config.reverseInnerPolygons) {
                     verts.reverse();
                 }
             }
-
             rings.push(verts);
-        } // eo for each ring
-
+        }
         config.paths = config.paths.concat(rings);
-
         if (this.isRectangle) {
             return function () {
                 var bounds, v;
-
                 bounds = new google.maps.LatLngBounds();
-
                 for (v in rings[0]) {
-                    // Ought to be only 1 ring in a Rectangle
                     if (rings[0].hasOwnProperty(v)) {
                         bounds.extend(rings[0][v]);
                     }
                 }
-
                 return new google.maps.Rectangle({
                     bounds: bounds
                 });
@@ -1019,55 +538,27 @@ Wkt.Wkt.prototype.construct = {
             return new google.maps.Polygon(config);
         }
     },
-
-    /**
-     * Creates the framework's equivalent multipolygon geometry object.
-     * @param   config  {Object}    An optional properties hash the object should use
-     * @return          {Array}     Array containing multiple google.maps.Polygon
-     */
     multipolygon: function multipolygon(config) {
         var i, c, arr;
-
         c = this.components;
-
         config = config || {
             editable: false
         };
-
         config.path = [];
-
         arr = [];
-
         for (i = 0; i < c.length; i += 1) {
             arr.push(this.construct.polygon(config, c[i]));
         }
-
         return arr;
     }
-
 };
-
-/**
- * @augments Wkt.Wkt
- * A framework-dependent deconstruction method used to generate internal
- * geometric representations from instances of framework geometry. This method
- * uses object detection to attempt to classify members of framework geometry
- * classes into the standard WKT types.
- * @param obj       {Object}    An instance of one of the framework's geometry classes
- * @param multiFlag {Boolean} If true, then the deconstructor will be forced to return a MultiGeometry (multipoint, multilinestring or multipolygon)
- * @return          {Object}    A hash of the 'type' and 'components' thus derived, plus the WKT string of the feature.
- */
 Wkt.Wkt.prototype.deconstruct = function (obj, multiFlag) {
     var features, i, j, verts, rings, sign, tmp, response, lat, lng, vertex, ring;
     var polygons, polygon, k, linestring, linestrings;
-    // Shortcut to signed area function (determines clockwise vs counter-clock)
     if (google.maps.geometry) {
         sign = google.maps.geometry.spherical.computeSignedArea;
     }
-
-    // google.maps.LatLng //////////////////////////////////////////////////////
     if (obj.constructor === google.maps.LatLng) {
-
         response = {
             type: 'point',
             components: [{
@@ -1077,8 +568,6 @@ Wkt.Wkt.prototype.deconstruct = function (obj, multiFlag) {
         };
         return response;
     }
-
-    // google.maps.Point //////////////////////////////////////////////////////
     if (obj.constructor === google.maps.Point) {
         response = {
             type: 'point',
@@ -1089,8 +578,6 @@ Wkt.Wkt.prototype.deconstruct = function (obj, multiFlag) {
         };
         return response;
     }
-
-    // google.maps.Marker //////////////////////////////////////////////////////
     if (obj.constructor === google.maps.Marker) {
         response = {
             type: 'point',
@@ -1101,10 +588,7 @@ Wkt.Wkt.prototype.deconstruct = function (obj, multiFlag) {
         };
         return response;
     }
-
-    // google.maps.Polyline ////////////////////////////////////////////////////
     if (obj.constructor === google.maps.Polyline) {
-
         verts = [];
         for (i = 0; i < obj.getPath().length; i += 1) {
             tmp = obj.getPath().getAt(i);
@@ -1119,217 +603,159 @@ Wkt.Wkt.prototype.deconstruct = function (obj, multiFlag) {
         };
         return response;
     }
-
-    // google.maps.Polygon /////////////////////////////////////////////////////
     if (obj.constructor === google.maps.Polygon) {
-
         rings = [];
-
         if (multiFlag === undefined) {
             multiFlag = function () {
                 var areas, l;
-
                 l = obj.getPaths().length;
                 if (l <= 1) {
-                    // Trivial; this is a single polygon
                     return false;
                 }
-
                 if (l === 2) {
-                    // If clockwise*clockwise or counter*counter, i.e.
-                    //  (-1)*(-1) or (1)*(1), then result would be positive
                     if (sign(obj.getPaths().getAt(0)) * sign(obj.getPaths().getAt(1)) < 0) {
-                        return false; // Most likely single polygon with 1 hole
+                        return false;
                     }
-
                     return true;
                 }
-
-                // Must be longer than 3 polygons at this point...
                 areas = obj.getPaths().getArray().map(function (k) {
-                    return sign(k) / Math.abs(sign(k)); // Unit normalization (outputs 1 or -1)
+                    return sign(k) / Math.abs(sign(k));
                 });
-
-                // If two clockwise or two counter-clockwise rings are found
-                //  (at different indices)...
                 if (areas.indexOf(areas[0]) !== areas.lastIndexOf(areas[0])) {
-                    multiFlag = true; // Flag for holes in one or more polygons
+                    multiFlag = true;
                     return true;
                 }
-
                 return false;
             }();
         }
-
         for (i = 0; i < obj.getPaths().length; i += 1) {
-            // For each polygon (ring)...
             tmp = obj.getPaths().getAt(i);
             verts = [];
             for (j = 0; j < obj.getPaths().getAt(i).length; j += 1) {
-                // For each vertex...
                 verts.push({
                     x: tmp.getAt(j).lng(),
                     y: tmp.getAt(j).lat()
                 });
             }
-
             if (!tmp.getAt(tmp.length - 1).equals(tmp.getAt(0))) {
                 if (i % 2 !== 0) {
-                    // In inner rings, coordinates are reversed...
-                    verts.unshift({ // Add the first coordinate again for closure
+                    verts.unshift({
                         x: tmp.getAt(tmp.length - 1).lng(),
                         y: tmp.getAt(tmp.length - 1).lat()
                     });
                 } else {
-                    verts.push({ // Add the first coordinate again for closure
+                    verts.push({
                         x: tmp.getAt(0).lng(),
                         y: tmp.getAt(0).lat()
                     });
                 }
             }
-
             if (obj.getPaths().length > 1 && i > 0) {
-                // If this and the last ring have the same signs...
                 if (sign(obj.getPaths().getAt(i)) > 0 && sign(obj.getPaths().getAt(i - 1)) > 0 || sign(obj.getPaths().getAt(i)) < 0 && sign(obj.getPaths().getAt(i - 1)) < 0 && !multiFlag) {
-                    // ...They must both be inner rings (or both be outer rings, in a multipolygon)
-                    verts = [verts]; // Wrap multipolygons once more (collection)
+                    verts = [verts];
                 }
             }
-
-            //TODO This makes mistakes when a second polygon has holes; it sees them all as individual polygons
             if (i % 2 !== 0) {
-                // In inner rings, coordinates are reversed...
                 verts.reverse();
             }
             rings.push(verts);
         }
-
         response = {
             type: multiFlag ? 'multipolygon' : 'polygon',
             components: rings
         };
         return response;
     }
-
-    // google.maps.Circle //////////////////////////////////////////////////////
     if (obj.constructor === google.maps.Circle) {
         var point = obj.getCenter();
         var radius = obj.getRadius();
         verts = [];
-        var d2r = Math.PI / 180; // degrees to radians
-        var r2d = 180 / Math.PI; // radians to degrees
-        radius = radius / 1609; // meters to miles
-        var earthsradius = 3963; // 3963 is the radius of the earth in miles
-        var num_seg = 32; // number of segments used to approximate a circle
+        var d2r = Math.PI / 180;
+        var r2d = 180 / Math.PI;
+        radius = radius / 1609;
+        var earthsradius = 3963;
+        var num_seg = 32;
         var rlat = radius / earthsradius * r2d;
         var rlng = rlat / Math.cos(point.lat() * d2r);
-
         for (var n = 0; n <= num_seg; n++) {
             var theta = Math.PI * (n / (num_seg / 2));
-            lng = point.lng() + rlng * Math.cos(theta); // center a + radius x * cos(theta)
-            lat = point.lat() + rlat * Math.sin(theta); // center b + radius y * sin(theta)
+            lng = point.lng() + rlng * Math.cos(theta);
+            lat = point.lat() + rlat * Math.sin(theta);
             verts.push({
                 x: lng,
                 y: lat
             });
         }
-
         response = {
             type: 'polygon',
             components: [verts]
         };
-
         return response;
     }
-
-    // google.maps.LatLngBounds ///////////////////////////////////////////////////
     if (obj.constructor === google.maps.LatLngBounds) {
-
         tmp = obj;
         verts = [];
-        verts.push({ // NW corner
+        verts.push({
             x: tmp.getSouthWest().lng(),
             y: tmp.getNorthEast().lat()
         });
-
-        verts.push({ // NE corner
+        verts.push({
             x: tmp.getNorthEast().lng(),
             y: tmp.getNorthEast().lat()
         });
-
-        verts.push({ // SE corner
+        verts.push({
             x: tmp.getNorthEast().lng(),
             y: tmp.getSouthWest().lat()
         });
-
-        verts.push({ // SW corner
+        verts.push({
             x: tmp.getSouthWest().lng(),
             y: tmp.getSouthWest().lat()
         });
-
-        verts.push({ // NW corner (again, for closure)
+        verts.push({
             x: tmp.getSouthWest().lng(),
             y: tmp.getNorthEast().lat()
         });
-
         response = {
             type: 'polygon',
             isRectangle: true,
             components: [verts]
         };
-
         return response;
     }
-
-    // google.maps.Rectangle ///////////////////////////////////////////////////
     if (obj.constructor === google.maps.Rectangle) {
-
         tmp = obj.getBounds();
         verts = [];
-        verts.push({ // NW corner
+        verts.push({
             x: tmp.getSouthWest().lng(),
             y: tmp.getNorthEast().lat()
         });
-
-        verts.push({ // NE corner
+        verts.push({
             x: tmp.getNorthEast().lng(),
             y: tmp.getNorthEast().lat()
         });
-
-        verts.push({ // SE corner
+        verts.push({
             x: tmp.getNorthEast().lng(),
             y: tmp.getSouthWest().lat()
         });
-
-        verts.push({ // SW corner
+        verts.push({
             x: tmp.getSouthWest().lng(),
             y: tmp.getSouthWest().lat()
         });
-
-        verts.push({ // NW corner (again, for closure)
+        verts.push({
             x: tmp.getSouthWest().lng(),
             y: tmp.getNorthEast().lat()
         });
-
         response = {
             type: 'polygon',
             isRectangle: true,
             components: [verts]
         };
-
         return response;
     }
-
-    // google.maps.Data Geometry Types /////////////////////////////////////////////////////
-
-    // google.maps.Data.Feature /////////////////////////////////////////////////////
     if (obj.constructor === google.maps.Data.Feature) {
         return this.deconstruct.call(this, obj.getGeometry());
     }
-
-    // google.maps.Data.Point /////////////////////////////////////////////////////
     if (obj.constructor === google.maps.Data.Point) {
-        //console.zlog('It is a google.maps.Data.Point');
         response = {
             type: 'point',
             components: [{
@@ -1339,11 +765,8 @@ Wkt.Wkt.prototype.deconstruct = function (obj, multiFlag) {
         };
         return response;
     }
-
-    // google.maps.Data.LineString /////////////////////////////////////////////////////
     if (obj.constructor === google.maps.Data.LineString) {
         verts = [];
-        //console.zlog('It is a google.maps.Data.LineString');
         for (i = 0; i < obj.getLength(); i += 1) {
             vertex = obj.getAt(i);
             verts.push({
@@ -1357,17 +780,12 @@ Wkt.Wkt.prototype.deconstruct = function (obj, multiFlag) {
         };
         return response;
     }
-
-    // google.maps.Data.Polygon /////////////////////////////////////////////////////
     if (obj.constructor === google.maps.Data.Polygon) {
         rings = [];
-        //console.zlog('It is a google.maps.Data.Polygon');
         for (i = 0; i < obj.getLength(); i += 1) {
-            // For each ring...
             ring = obj.getAt(i);
             verts = [];
             for (j = 0; j < ring.getLength(); j += 1) {
-                // For each vertex...
                 vertex = ring.getAt(j);
                 verts.push({
                     x: vertex.lng(),
@@ -1378,18 +796,14 @@ Wkt.Wkt.prototype.deconstruct = function (obj, multiFlag) {
                 x: ring.getAt(0).lng(),
                 y: ring.getAt(0).lat()
             });
-
             rings.push(verts);
         }
         response = {
             type: 'polygon',
             components: rings
         };
-
         return response;
     }
-
-    // google.maps.Data.MultiPoint /////////////////////////////////////////////////////
     if (obj.constructor === google.maps.Data.MultiPoint) {
         verts = [];
         for (i = 0; i < obj.getLength(); i += 1) {
@@ -1405,8 +819,6 @@ Wkt.Wkt.prototype.deconstruct = function (obj, multiFlag) {
         };
         return response;
     }
-
-    // google.maps.Data.MultiLineString /////////////////////////////////////////////////////
     if (obj.constructor === google.maps.Data.MultiLineString) {
         linestrings = [];
         for (i = 0; i < obj.getLength(); i += 1) {
@@ -1427,23 +839,15 @@ Wkt.Wkt.prototype.deconstruct = function (obj, multiFlag) {
         };
         return response;
     }
-
-    // google.maps.Data.MultiPolygon /////////////////////////////////////////////////////
     if (obj.constructor === google.maps.Data.MultiPolygon) {
-
         polygons = [];
-
-        //console.zlog('It is a google.maps.Data.MultiPolygon');
         for (k = 0; k < obj.getLength(); k += 1) {
-            // For each multipolygon
             polygon = obj.getAt(k);
             rings = [];
             for (i = 0; i < polygon.getLength(); i += 1) {
-                // For each ring...
                 ring = polygon.getAt(i);
                 verts = [];
                 for (j = 0; j < ring.getLength(); j += 1) {
-                    // For each vertex...
                     vertex = ring.getAt(j);
                     verts.push({
                         x: vertex.lng(),
@@ -1454,58 +858,42 @@ Wkt.Wkt.prototype.deconstruct = function (obj, multiFlag) {
                     x: ring.getAt(0).lng(),
                     y: ring.getAt(0).lat()
                 });
-
                 rings.push(verts);
             }
             polygons.push(rings);
         }
-
         response = {
             type: 'multipolygon',
             components: polygons
         };
         return response;
     }
-
-    // google.maps.Data.GeometryCollection /////////////////////////////////////////////////////
     if (obj.constructor === google.maps.Data.GeometryCollection) {
-
         var objects = [];
         for (k = 0; k < obj.getLength(); k += 1) {
-            // For each multipolygon
             var object = obj.getAt(k);
             objects.push(this.deconstruct.call(this, object));
         }
-        //console.zlog('It is a google.maps.Data.GeometryCollection', objects);
         response = {
             type: 'geometrycollection',
             components: objects
         };
         return response;
     }
-
-    // Array ///////////////////////////////////////////////////////////////////
     if (Wkt.isArray(obj)) {
         features = [];
-
         for (i = 0; i < obj.length; i += 1) {
             features.push(this.deconstruct.call(this, obj[i], true));
         }
-
         response = {
-
             type: function () {
                 var k,
                     type = obj[0].constructor;
-
                 for (k = 0; k < obj.length; k += 1) {
-                    // Check that all items have the same constructor as the first item
                     if (obj[k].constructor !== type) {
-                        // If they don't, type is heterogeneous geometry collection
                         return 'geometrycollection';
                     }
                 }
-
                 switch (type) {
                     case google.maps.Marker:
                         return 'multipoint';
@@ -1518,109 +906,46 @@ Wkt.Wkt.prototype.deconstruct = function (obj, multiFlag) {
                 }
             }(),
             components: function () {
-                // Pluck the components from each Wkt
                 var i, comps;
-
                 comps = [];
                 for (i = 0; i < features.length; i += 1) {
                     if (features[i].components) {
                         comps.push(features[i].components);
                     }
                 }
-
                 return {
                     comps: comps
                 };
             }()
-
         };
         response.components = response.components.comps;
         return response;
     }
-
     console.warn('The passed object does not have any recognizable properties.');
 };
-
 function Wicket$1() {
     return new Wkt.Wkt();
 }
 
-/**
- * A specialized version of `_.map` for arrays without support for iteratee
- * shorthands.
- *
- * @private
- * @param {Array} [array] The array to iterate over.
- * @param {Function} iteratee The function invoked per iteration.
- * @returns {Array} Returns the new mapped array.
- */
 function arrayMap(array, iteratee) {
   var index = -1,
       length = array == null ? 0 : array.length,
       result = Array(length);
-
   while (++index < length) {
     result[index] = iteratee(array[index], index, array);
   }
   return result;
 }
 
-/**
- * Removes all key-value entries from the list cache.
- *
- * @private
- * @name clear
- * @memberOf ListCache
- */
 function listCacheClear() {
   this.__data__ = [];
   this.size = 0;
 }
 
-/**
- * Performs a
- * [`SameValueZero`](http://ecma-international.org/ecma-262/7.0/#sec-samevaluezero)
- * comparison between two values to determine if they are equivalent.
- *
- * @static
- * @memberOf _
- * @since 4.0.0
- * @category Lang
- * @param {*} value The value to compare.
- * @param {*} other The other value to compare.
- * @returns {boolean} Returns `true` if the values are equivalent, else `false`.
- * @example
- *
- * var object = { 'a': 1 };
- * var other = { 'a': 1 };
- *
- * _.eq(object, object);
- * // => true
- *
- * _.eq(object, other);
- * // => false
- *
- * _.eq('a', 'a');
- * // => true
- *
- * _.eq('a', Object('a'));
- * // => false
- *
- * _.eq(NaN, NaN);
- * // => true
- */
 function eq(value, other) {
   return value === other || value !== value && other !== other;
 }
 
-/**
- * Gets the index at which the `key` is found in `array` of key-value pairs.
- *
- * @private
- * @param {Array} array The array to inspect.
- * @param {*} key The key to search for.
- * @returns {number} Returns the index of the matched value, else `-1`.
- */
 function assocIndexOf(array, key) {
   var length = array.length;
   while (length--) {
@@ -1631,25 +956,11 @@ function assocIndexOf(array, key) {
   return -1;
 }
 
-/** Used for built-in method references. */
 var arrayProto = Array.prototype;
-
-/** Built-in value references. */
 var splice = arrayProto.splice;
-
-/**
- * Removes `key` and its value from the list cache.
- *
- * @private
- * @name delete
- * @memberOf ListCache
- * @param {string} key The key of the value to remove.
- * @returns {boolean} Returns `true` if the entry was removed, else `false`.
- */
 function listCacheDelete(key) {
   var data = this.__data__,
       index = assocIndexOf(data, key);
-
   if (index < 0) {
     return false;
   }
@@ -1663,49 +974,19 @@ function listCacheDelete(key) {
   return true;
 }
 
-/**
- * Gets the list cache value for `key`.
- *
- * @private
- * @name get
- * @memberOf ListCache
- * @param {string} key The key of the value to get.
- * @returns {*} Returns the entry value.
- */
 function listCacheGet(key) {
   var data = this.__data__,
       index = assocIndexOf(data, key);
-
   return index < 0 ? undefined : data[index][1];
 }
 
-/**
- * Checks if a list cache value for `key` exists.
- *
- * @private
- * @name has
- * @memberOf ListCache
- * @param {string} key The key of the entry to check.
- * @returns {boolean} Returns `true` if an entry for `key` exists, else `false`.
- */
 function listCacheHas(key) {
   return assocIndexOf(this.__data__, key) > -1;
 }
 
-/**
- * Sets the list cache `key` to `value`.
- *
- * @private
- * @name set
- * @memberOf ListCache
- * @param {string} key The key of the value to set.
- * @param {*} value The value to set.
- * @returns {Object} Returns the list cache instance.
- */
 function listCacheSet(key, value) {
   var data = this.__data__,
       index = assocIndexOf(data, key);
-
   if (index < 0) {
     ++this.size;
     data.push([key, value]);
@@ -1715,130 +996,59 @@ function listCacheSet(key, value) {
   return this;
 }
 
-/**
- * Creates an list cache object.
- *
- * @private
- * @constructor
- * @param {Array} [entries] The key-value pairs to cache.
- */
 function ListCache(entries) {
   var index = -1,
       length = entries == null ? 0 : entries.length;
-
   this.clear();
   while (++index < length) {
     var entry = entries[index];
     this.set(entry[0], entry[1]);
   }
 }
-
-// Add methods to `ListCache`.
 ListCache.prototype.clear = listCacheClear;
 ListCache.prototype['delete'] = listCacheDelete;
 ListCache.prototype.get = listCacheGet;
 ListCache.prototype.has = listCacheHas;
 ListCache.prototype.set = listCacheSet;
 
-/**
- * Removes all key-value entries from the stack.
- *
- * @private
- * @name clear
- * @memberOf Stack
- */
 function stackClear() {
   this.__data__ = new ListCache();
   this.size = 0;
 }
 
-/**
- * Removes `key` and its value from the stack.
- *
- * @private
- * @name delete
- * @memberOf Stack
- * @param {string} key The key of the value to remove.
- * @returns {boolean} Returns `true` if the entry was removed, else `false`.
- */
 function stackDelete(key) {
   var data = this.__data__,
       result = data['delete'](key);
-
   this.size = data.size;
   return result;
 }
 
-/**
- * Gets the stack value for `key`.
- *
- * @private
- * @name get
- * @memberOf Stack
- * @param {string} key The key of the value to get.
- * @returns {*} Returns the entry value.
- */
 function stackGet(key) {
   return this.__data__.get(key);
 }
 
-/**
- * Checks if a stack value for `key` exists.
- *
- * @private
- * @name has
- * @memberOf Stack
- * @param {string} key The key of the entry to check.
- * @returns {boolean} Returns `true` if an entry for `key` exists, else `false`.
- */
 function stackHas(key) {
   return this.__data__.has(key);
 }
 
-/** Detect free variable `global` from Node.js. */
 var freeGlobal = (typeof global === 'undefined' ? 'undefined' : _typeof(global)) == 'object' && global && global.Object === Object && global;
 
-/** Detect free variable `self`. */
 var freeSelf = (typeof self === 'undefined' ? 'undefined' : _typeof(self)) == 'object' && self && self.Object === Object && self;
-
-/** Used as a reference to the global object. */
 var root = freeGlobal || freeSelf || Function('return this')();
 
-/** Built-in value references. */
 var _Symbol = root.Symbol;
 
-/** Used for built-in method references. */
 var objectProto$1 = Object.prototype;
-
-/** Used to check objects for own properties. */
 var hasOwnProperty$1 = objectProto$1.hasOwnProperty;
-
-/**
- * Used to resolve the
- * [`toStringTag`](http://ecma-international.org/ecma-262/7.0/#sec-object.prototype.tostring)
- * of values.
- */
 var nativeObjectToString = objectProto$1.toString;
-
-/** Built-in value references. */
 var symToStringTag$1 = _Symbol ? _Symbol.toStringTag : undefined;
-
-/**
- * A specialized version of `baseGetTag` which ignores `Symbol.toStringTag` values.
- *
- * @private
- * @param {*} value The value to query.
- * @returns {string} Returns the raw `toStringTag`.
- */
 function getRawTag(value) {
   var isOwn = hasOwnProperty$1.call(value, symToStringTag$1),
       tag = value[symToStringTag$1];
-
   try {
     value[symToStringTag$1] = undefined;
     var unmasked = true;
   } catch (e) {}
-
   var result = nativeObjectToString.call(value);
   if (unmasked) {
     if (isOwn) {
@@ -1850,41 +1060,15 @@ function getRawTag(value) {
   return result;
 }
 
-/** Used for built-in method references. */
 var objectProto$2 = Object.prototype;
-
-/**
- * Used to resolve the
- * [`toStringTag`](http://ecma-international.org/ecma-262/7.0/#sec-object.prototype.tostring)
- * of values.
- */
 var nativeObjectToString$1 = objectProto$2.toString;
-
-/**
- * Converts `value` to a string using `Object.prototype.toString`.
- *
- * @private
- * @param {*} value The value to convert.
- * @returns {string} Returns the converted string.
- */
 function objectToString(value) {
   return nativeObjectToString$1.call(value);
 }
 
-/** `Object#toString` result references. */
 var nullTag = '[object Null]';
 var undefinedTag = '[object Undefined]';
-
-/** Built-in value references. */
 var symToStringTag = _Symbol ? _Symbol.toStringTag : undefined;
-
-/**
- * The base implementation of `getTag` without fallbacks for buggy environments.
- *
- * @private
- * @param {*} value The value to query.
- * @returns {string} Returns the `toStringTag`.
- */
 function baseGetTag(value) {
   if (value == null) {
     return value === undefined ? undefinedTag : nullTag;
@@ -1892,102 +1076,35 @@ function baseGetTag(value) {
   return symToStringTag && symToStringTag in Object(value) ? getRawTag(value) : objectToString(value);
 }
 
-/**
- * Checks if `value` is the
- * [language type](http://www.ecma-international.org/ecma-262/7.0/#sec-ecmascript-language-types)
- * of `Object`. (e.g. arrays, functions, objects, regexes, `new Number(0)`, and `new String('')`)
- *
- * @static
- * @memberOf _
- * @since 0.1.0
- * @category Lang
- * @param {*} value The value to check.
- * @returns {boolean} Returns `true` if `value` is an object, else `false`.
- * @example
- *
- * _.isObject({});
- * // => true
- *
- * _.isObject([1, 2, 3]);
- * // => true
- *
- * _.isObject(_.noop);
- * // => true
- *
- * _.isObject(null);
- * // => false
- */
 function isObject(value) {
   var type = typeof value === 'undefined' ? 'undefined' : _typeof(value);
   return value != null && (type == 'object' || type == 'function');
 }
 
-/** `Object#toString` result references. */
 var asyncTag = '[object AsyncFunction]';
 var funcTag = '[object Function]';
 var genTag = '[object GeneratorFunction]';
 var proxyTag = '[object Proxy]';
-
-/**
- * Checks if `value` is classified as a `Function` object.
- *
- * @static
- * @memberOf _
- * @since 0.1.0
- * @category Lang
- * @param {*} value The value to check.
- * @returns {boolean} Returns `true` if `value` is a function, else `false`.
- * @example
- *
- * _.isFunction(_);
- * // => true
- *
- * _.isFunction(/abc/);
- * // => false
- */
 function isFunction(value) {
   if (!isObject(value)) {
     return false;
   }
-  // The use of `Object#toString` avoids issues with the `typeof` operator
-  // in Safari 9 which returns 'object' for typed arrays and other constructors.
   var tag = baseGetTag(value);
   return tag == funcTag || tag == genTag || tag == asyncTag || tag == proxyTag;
 }
 
-/** Used to detect overreaching core-js shims. */
 var coreJsData = root['__core-js_shared__'];
 
-/** Used to detect methods masquerading as native. */
 var maskSrcKey = function () {
   var uid = /[^.]+$/.exec(coreJsData && coreJsData.keys && coreJsData.keys.IE_PROTO || '');
   return uid ? 'Symbol(src)_1.' + uid : '';
 }();
-
-/**
- * Checks if `func` has its source masked.
- *
- * @private
- * @param {Function} func The function to check.
- * @returns {boolean} Returns `true` if `func` is masked, else `false`.
- */
 function isMasked(func) {
   return !!maskSrcKey && maskSrcKey in func;
 }
 
-/** Used for built-in method references. */
 var funcProto$1 = Function.prototype;
-
-/** Used to resolve the decompiled source of functions. */
 var funcToString$1 = funcProto$1.toString;
-
-/**
- * Converts `func` to its source code.
- *
- * @private
- * @param {Function} func The function to convert.
- * @returns {string} Returns the source code.
- */
 function toSource(func) {
   if (func != null) {
     try {
@@ -2000,36 +1117,13 @@ function toSource(func) {
   return '';
 }
 
-/**
- * Used to match `RegExp`
- * [syntax characters](http://ecma-international.org/ecma-262/7.0/#sec-patterns).
- */
 var reRegExpChar = /[\\^$.*+?()[\]{}|]/g;
-
-/** Used to detect host constructors (Safari). */
 var reIsHostCtor = /^\[object .+?Constructor\]$/;
-
-/** Used for built-in method references. */
 var funcProto = Function.prototype;
 var objectProto = Object.prototype;
-
-/** Used to resolve the decompiled source of functions. */
 var funcToString = funcProto.toString;
-
-/** Used to check objects for own properties. */
 var hasOwnProperty = objectProto.hasOwnProperty;
-
-/** Used to detect if a method is native. */
 var reIsNative = RegExp('^' + funcToString.call(hasOwnProperty).replace(reRegExpChar, '\\$&').replace(/hasOwnProperty|(function).*?(?=\\\()| for .+?(?=\\\])/g, '$1.*?') + '$');
-
-/**
- * The base implementation of `_.isNative` without bad shim checks.
- *
- * @private
- * @param {*} value The value to check.
- * @returns {boolean} Returns `true` if `value` is a native function,
- *  else `false`.
- */
 function baseIsNative(value) {
   if (!isObject(value) || isMasked(value)) {
     return false;
@@ -2038,83 +1132,33 @@ function baseIsNative(value) {
   return pattern.test(toSource(value));
 }
 
-/**
- * Gets the value at `key` of `object`.
- *
- * @private
- * @param {Object} [object] The object to query.
- * @param {string} key The key of the property to get.
- * @returns {*} Returns the property value.
- */
 function getValue(object, key) {
   return object == null ? undefined : object[key];
 }
 
-/**
- * Gets the native function at `key` of `object`.
- *
- * @private
- * @param {Object} object The object to query.
- * @param {string} key The key of the method to get.
- * @returns {*} Returns the function if it's native, else `undefined`.
- */
 function getNative(object, key) {
   var value = getValue(object, key);
   return baseIsNative(value) ? value : undefined;
 }
 
-/* Built-in method references that are verified to be native. */
 var Map$1 = getNative(root, 'Map');
 
-/* Built-in method references that are verified to be native. */
 var nativeCreate = getNative(Object, 'create');
 
-/**
- * Removes all key-value entries from the hash.
- *
- * @private
- * @name clear
- * @memberOf Hash
- */
 function hashClear() {
   this.__data__ = nativeCreate ? nativeCreate(null) : {};
   this.size = 0;
 }
 
-/**
- * Removes `key` and its value from the hash.
- *
- * @private
- * @name delete
- * @memberOf Hash
- * @param {Object} hash The hash to modify.
- * @param {string} key The key of the value to remove.
- * @returns {boolean} Returns `true` if the entry was removed, else `false`.
- */
 function hashDelete(key) {
   var result = this.has(key) && delete this.__data__[key];
   this.size -= result ? 1 : 0;
   return result;
 }
 
-/** Used to stand-in for `undefined` hash values. */
 var HASH_UNDEFINED = '__lodash_hash_undefined__';
-
-/** Used for built-in method references. */
 var objectProto$3 = Object.prototype;
-
-/** Used to check objects for own properties. */
 var hasOwnProperty$2 = objectProto$3.hasOwnProperty;
-
-/**
- * Gets the hash value for `key`.
- *
- * @private
- * @name get
- * @memberOf Hash
- * @param {string} key The key of the value to get.
- * @returns {*} Returns the entry value.
- */
 function hashGet(key) {
   var data = this.__data__;
   if (nativeCreate) {
@@ -2124,39 +1168,14 @@ function hashGet(key) {
   return hasOwnProperty$2.call(data, key) ? data[key] : undefined;
 }
 
-/** Used for built-in method references. */
 var objectProto$4 = Object.prototype;
-
-/** Used to check objects for own properties. */
 var hasOwnProperty$3 = objectProto$4.hasOwnProperty;
-
-/**
- * Checks if a hash value for `key` exists.
- *
- * @private
- * @name has
- * @memberOf Hash
- * @param {string} key The key of the entry to check.
- * @returns {boolean} Returns `true` if an entry for `key` exists, else `false`.
- */
 function hashHas(key) {
   var data = this.__data__;
   return nativeCreate ? data[key] !== undefined : hasOwnProperty$3.call(data, key);
 }
 
-/** Used to stand-in for `undefined` hash values. */
 var HASH_UNDEFINED$1 = '__lodash_hash_undefined__';
-
-/**
- * Sets the hash `key` to `value`.
- *
- * @private
- * @name set
- * @memberOf Hash
- * @param {string} key The key of the value to set.
- * @param {*} value The value to set.
- * @returns {Object} Returns the hash instance.
- */
 function hashSet(key, value) {
   var data = this.__data__;
   this.size += this.has(key) ? 0 : 1;
@@ -2164,38 +1183,21 @@ function hashSet(key, value) {
   return this;
 }
 
-/**
- * Creates a hash object.
- *
- * @private
- * @constructor
- * @param {Array} [entries] The key-value pairs to cache.
- */
 function Hash(entries) {
   var index = -1,
       length = entries == null ? 0 : entries.length;
-
   this.clear();
   while (++index < length) {
     var entry = entries[index];
     this.set(entry[0], entry[1]);
   }
 }
-
-// Add methods to `Hash`.
 Hash.prototype.clear = hashClear;
 Hash.prototype['delete'] = hashDelete;
 Hash.prototype.get = hashGet;
 Hash.prototype.has = hashHas;
 Hash.prototype.set = hashSet;
 
-/**
- * Removes all key-value entries from the map.
- *
- * @private
- * @name clear
- * @memberOf MapCache
- */
 function mapCacheClear() {
   this.size = 0;
   this.__data__ = {
@@ -2205,129 +1207,54 @@ function mapCacheClear() {
   };
 }
 
-/**
- * Checks if `value` is suitable for use as unique object key.
- *
- * @private
- * @param {*} value The value to check.
- * @returns {boolean} Returns `true` if `value` is suitable, else `false`.
- */
 function isKeyable(value) {
   var type = typeof value === 'undefined' ? 'undefined' : _typeof(value);
   return type == 'string' || type == 'number' || type == 'symbol' || type == 'boolean' ? value !== '__proto__' : value === null;
 }
 
-/**
- * Gets the data for `map`.
- *
- * @private
- * @param {Object} map The map to query.
- * @param {string} key The reference key.
- * @returns {*} Returns the map data.
- */
 function getMapData(map, key) {
   var data = map.__data__;
   return isKeyable(key) ? data[typeof key == 'string' ? 'string' : 'hash'] : data.map;
 }
 
-/**
- * Removes `key` and its value from the map.
- *
- * @private
- * @name delete
- * @memberOf MapCache
- * @param {string} key The key of the value to remove.
- * @returns {boolean} Returns `true` if the entry was removed, else `false`.
- */
 function mapCacheDelete(key) {
   var result = getMapData(this, key)['delete'](key);
   this.size -= result ? 1 : 0;
   return result;
 }
 
-/**
- * Gets the map value for `key`.
- *
- * @private
- * @name get
- * @memberOf MapCache
- * @param {string} key The key of the value to get.
- * @returns {*} Returns the entry value.
- */
 function mapCacheGet(key) {
   return getMapData(this, key).get(key);
 }
 
-/**
- * Checks if a map value for `key` exists.
- *
- * @private
- * @name has
- * @memberOf MapCache
- * @param {string} key The key of the entry to check.
- * @returns {boolean} Returns `true` if an entry for `key` exists, else `false`.
- */
 function mapCacheHas(key) {
   return getMapData(this, key).has(key);
 }
 
-/**
- * Sets the map `key` to `value`.
- *
- * @private
- * @name set
- * @memberOf MapCache
- * @param {string} key The key of the value to set.
- * @param {*} value The value to set.
- * @returns {Object} Returns the map cache instance.
- */
 function mapCacheSet(key, value) {
   var data = getMapData(this, key),
       size = data.size;
-
   data.set(key, value);
   this.size += data.size == size ? 0 : 1;
   return this;
 }
 
-/**
- * Creates a map cache object to store key-value pairs.
- *
- * @private
- * @constructor
- * @param {Array} [entries] The key-value pairs to cache.
- */
 function MapCache(entries) {
   var index = -1,
       length = entries == null ? 0 : entries.length;
-
   this.clear();
   while (++index < length) {
     var entry = entries[index];
     this.set(entry[0], entry[1]);
   }
 }
-
-// Add methods to `MapCache`.
 MapCache.prototype.clear = mapCacheClear;
 MapCache.prototype['delete'] = mapCacheDelete;
 MapCache.prototype.get = mapCacheGet;
 MapCache.prototype.has = mapCacheHas;
 MapCache.prototype.set = mapCacheSet;
 
-/** Used as the size to enable large array optimizations. */
 var LARGE_ARRAY_SIZE = 200;
-
-/**
- * Sets the stack `key` to `value`.
- *
- * @private
- * @name set
- * @memberOf Stack
- * @param {string} key The key of the value to set.
- * @param {*} value The value to set.
- * @returns {Object} Returns the stack cache instance.
- */
 function stackSet(key, value) {
   var data = this.__data__;
   if (data instanceof ListCache) {
@@ -2344,92 +1271,40 @@ function stackSet(key, value) {
   return this;
 }
 
-/**
- * Creates a stack cache object to store key-value pairs.
- *
- * @private
- * @constructor
- * @param {Array} [entries] The key-value pairs to cache.
- */
 function Stack(entries) {
   var data = this.__data__ = new ListCache(entries);
   this.size = data.size;
 }
-
-// Add methods to `Stack`.
 Stack.prototype.clear = stackClear;
 Stack.prototype['delete'] = stackDelete;
 Stack.prototype.get = stackGet;
 Stack.prototype.has = stackHas;
 Stack.prototype.set = stackSet;
 
-/** Used to stand-in for `undefined` hash values. */
 var HASH_UNDEFINED$2 = '__lodash_hash_undefined__';
-
-/**
- * Adds `value` to the array cache.
- *
- * @private
- * @name add
- * @memberOf SetCache
- * @alias push
- * @param {*} value The value to cache.
- * @returns {Object} Returns the cache instance.
- */
 function setCacheAdd(value) {
   this.__data__.set(value, HASH_UNDEFINED$2);
   return this;
 }
 
-/**
- * Checks if `value` is in the array cache.
- *
- * @private
- * @name has
- * @memberOf SetCache
- * @param {*} value The value to search for.
- * @returns {number} Returns `true` if `value` is found, else `false`.
- */
 function setCacheHas(value) {
   return this.__data__.has(value);
 }
 
-/**
- *
- * Creates an array cache object to store unique values.
- *
- * @private
- * @constructor
- * @param {Array} [values] The values to cache.
- */
 function SetCache(values) {
   var index = -1,
       length = values == null ? 0 : values.length;
-
   this.__data__ = new MapCache();
   while (++index < length) {
     this.add(values[index]);
   }
 }
-
-// Add methods to `SetCache`.
 SetCache.prototype.add = SetCache.prototype.push = setCacheAdd;
 SetCache.prototype.has = setCacheHas;
 
-/**
- * A specialized version of `_.some` for arrays without support for iteratee
- * shorthands.
- *
- * @private
- * @param {Array} [array] The array to iterate over.
- * @param {Function} predicate The function invoked per iteration.
- * @returns {boolean} Returns `true` if any element passes the predicate check,
- *  else `false`.
- */
 function arraySome(array, predicate) {
   var index = -1,
       length = array == null ? 0 : array.length;
-
   while (++index < length) {
     if (predicate(array[index], index, array)) {
       return true;
@@ -2438,44 +1313,19 @@ function arraySome(array, predicate) {
   return false;
 }
 
-/**
- * Checks if a `cache` value for `key` exists.
- *
- * @private
- * @param {Object} cache The cache to query.
- * @param {string} key The key of the entry to check.
- * @returns {boolean} Returns `true` if an entry for `key` exists, else `false`.
- */
 function cacheHas(cache, key) {
   return cache.has(key);
 }
 
-/** Used to compose bitmasks for value comparisons. */
 var COMPARE_PARTIAL_FLAG$2 = 1;
 var COMPARE_UNORDERED_FLAG$1 = 2;
-
-/**
- * A specialized version of `baseIsEqualDeep` for arrays with support for
- * partial deep comparisons.
- *
- * @private
- * @param {Array} array The array to compare.
- * @param {Array} other The other array to compare.
- * @param {number} bitmask The bitmask flags. See `baseIsEqual` for more details.
- * @param {Function} customizer The function to customize comparisons.
- * @param {Function} equalFunc The function to determine equivalents of values.
- * @param {Object} stack Tracks traversed `array` and `other` objects.
- * @returns {boolean} Returns `true` if the arrays are equivalent, else `false`.
- */
 function equalArrays(array, other, bitmask, customizer, equalFunc, stack) {
   var isPartial = bitmask & COMPARE_PARTIAL_FLAG$2,
       arrLength = array.length,
       othLength = other.length;
-
   if (arrLength != othLength && !(isPartial && othLength > arrLength)) {
     return false;
   }
-  // Assume cyclic values are equal.
   var stacked = stack.get(array);
   if (stacked && stack.get(other)) {
     return stacked == other;
@@ -2483,15 +1333,11 @@ function equalArrays(array, other, bitmask, customizer, equalFunc, stack) {
   var index = -1,
       result = true,
       seen = bitmask & COMPARE_UNORDERED_FLAG$1 ? new SetCache() : undefined;
-
   stack.set(array, other);
   stack.set(other, array);
-
-  // Ignore non-index properties.
   while (++index < arrLength) {
     var arrValue = array[index],
         othValue = other[index];
-
     if (customizer) {
       var compared = isPartial ? customizer(othValue, arrValue, index, other, array, stack) : customizer(arrValue, othValue, index, array, other, stack);
     }
@@ -2502,7 +1348,6 @@ function equalArrays(array, other, bitmask, customizer, equalFunc, stack) {
       result = false;
       break;
     }
-    // Recursively compare arrays (susceptible to call stack limits).
     if (seen) {
       if (!arraySome(other, function (othValue, othIndex) {
         if (!cacheHas(seen, othIndex) && (arrValue === othValue || equalFunc(arrValue, othValue, bitmask, customizer, stack))) {
@@ -2522,48 +1367,28 @@ function equalArrays(array, other, bitmask, customizer, equalFunc, stack) {
   return result;
 }
 
-/** Built-in value references. */
 var Uint8Array$1 = root.Uint8Array;
 
-/**
- * Converts `map` to its key-value pairs.
- *
- * @private
- * @param {Object} map The map to convert.
- * @returns {Array} Returns the key-value pairs.
- */
 function mapToArray(map) {
   var index = -1,
       result = Array(map.size);
-
   map.forEach(function (value, key) {
     result[++index] = [key, value];
   });
   return result;
 }
 
-/**
- * Converts `set` to an array of its values.
- *
- * @private
- * @param {Object} set The set to convert.
- * @returns {Array} Returns the values.
- */
 function setToArray(set) {
   var index = -1,
       result = Array(set.size);
-
   set.forEach(function (value) {
     result[++index] = value;
   });
   return result;
 }
 
-/** Used to compose bitmasks for value comparisons. */
 var COMPARE_PARTIAL_FLAG$3 = 1;
 var COMPARE_UNORDERED_FLAG$2 = 2;
-
-/** `Object#toString` result references. */
 var boolTag = '[object Boolean]';
 var dateTag = '[object Date]';
 var errorTag = '[object Error]';
@@ -2573,31 +1398,10 @@ var regexpTag = '[object RegExp]';
 var setTag = '[object Set]';
 var stringTag = '[object String]';
 var symbolTag = '[object Symbol]';
-
 var arrayBufferTag = '[object ArrayBuffer]';
 var dataViewTag = '[object DataView]';
-
-/** Used to convert symbols to primitives and strings. */
 var symbolProto = _Symbol ? _Symbol.prototype : undefined;
 var symbolValueOf = symbolProto ? symbolProto.valueOf : undefined;
-
-/**
- * A specialized version of `baseIsEqualDeep` for comparing objects of
- * the same `toStringTag`.
- *
- * **Note:** This function only supports comparing values with tags of
- * `Boolean`, `Date`, `Error`, `Number`, `RegExp`, or `String`.
- *
- * @private
- * @param {Object} object The object to compare.
- * @param {Object} other The other object to compare.
- * @param {string} tag The `toStringTag` of the objects to compare.
- * @param {number} bitmask The bitmask flags. See `baseIsEqual` for more details.
- * @param {Function} customizer The function to customize comparisons.
- * @param {Function} equalFunc The function to determine equivalents of values.
- * @param {Object} stack Tracks traversed `object` and `other` objects.
- * @returns {boolean} Returns `true` if the objects are equivalent, else `false`.
- */
 function equalByTag(object, other, tag, bitmask, customizer, equalFunc, stack) {
   switch (tag) {
     case dataViewTag:
@@ -2606,53 +1410,37 @@ function equalByTag(object, other, tag, bitmask, customizer, equalFunc, stack) {
       }
       object = object.buffer;
       other = other.buffer;
-
     case arrayBufferTag:
       if (object.byteLength != other.byteLength || !equalFunc(new Uint8Array$1(object), new Uint8Array$1(other))) {
         return false;
       }
       return true;
-
     case boolTag:
     case dateTag:
     case numberTag:
-      // Coerce booleans to `1` or `0` and dates to milliseconds.
-      // Invalid dates are coerced to `NaN`.
       return eq(+object, +other);
-
     case errorTag:
       return object.name == other.name && object.message == other.message;
-
     case regexpTag:
     case stringTag:
-      // Coerce regexes to strings and treat strings, primitives and objects,
-      // as equal. See http://www.ecma-international.org/ecma-262/7.0/#sec-regexp.prototype.tostring
-      // for more details.
       return object == other + '';
-
     case mapTag:
       var convert = mapToArray;
-
     case setTag:
       var isPartial = bitmask & COMPARE_PARTIAL_FLAG$3;
       convert || (convert = setToArray);
-
       if (object.size != other.size && !isPartial) {
         return false;
       }
-      // Assume cyclic values are equal.
       var stacked = stack.get(object);
       if (stacked) {
         return stacked == other;
       }
       bitmask |= COMPARE_UNORDERED_FLAG$2;
-
-      // Recursively compare objects (susceptible to call stack limits).
       stack.set(object, other);
       var result = equalArrays(convert(object), convert(other), bitmask, customizer, equalFunc, stack);
       stack['delete'](object);
       return result;
-
     case symbolTag:
       if (symbolValueOf) {
         return symbolValueOf.call(object) == symbolValueOf.call(other);
@@ -2661,81 +1449,28 @@ function equalByTag(object, other, tag, bitmask, customizer, equalFunc, stack) {
   return false;
 }
 
-/**
- * Appends the elements of `values` to `array`.
- *
- * @private
- * @param {Array} array The array to modify.
- * @param {Array} values The values to append.
- * @returns {Array} Returns `array`.
- */
 function arrayPush(array, values) {
   var index = -1,
       length = values.length,
       offset = array.length;
-
   while (++index < length) {
     array[offset + index] = values[index];
   }
   return array;
 }
 
-/**
- * Checks if `value` is classified as an `Array` object.
- *
- * @static
- * @memberOf _
- * @since 0.1.0
- * @category Lang
- * @param {*} value The value to check.
- * @returns {boolean} Returns `true` if `value` is an array, else `false`.
- * @example
- *
- * _.isArray([1, 2, 3]);
- * // => true
- *
- * _.isArray(document.body.children);
- * // => false
- *
- * _.isArray('abc');
- * // => false
- *
- * _.isArray(_.noop);
- * // => false
- */
 var isArray = Array.isArray;
 
-/**
- * The base implementation of `getAllKeys` and `getAllKeysIn` which uses
- * `keysFunc` and `symbolsFunc` to get the enumerable property names and
- * symbols of `object`.
- *
- * @private
- * @param {Object} object The object to query.
- * @param {Function} keysFunc The function to get the keys of `object`.
- * @param {Function} symbolsFunc The function to get the symbols of `object`.
- * @returns {Array} Returns the array of property names and symbols.
- */
 function baseGetAllKeys(object, keysFunc, symbolsFunc) {
   var result = keysFunc(object);
   return isArray(object) ? result : arrayPush(result, symbolsFunc(object));
 }
 
-/**
- * A specialized version of `_.filter` for arrays without support for
- * iteratee shorthands.
- *
- * @private
- * @param {Array} [array] The array to iterate over.
- * @param {Function} predicate The function invoked per iteration.
- * @returns {Array} Returns the new filtered array.
- */
 function arrayFilter(array, predicate) {
   var index = -1,
       length = array == null ? 0 : array.length,
       resIndex = 0,
       result = [];
-
   while (++index < length) {
     var value = array[index];
     if (predicate(value, index, array)) {
@@ -2745,44 +1480,13 @@ function arrayFilter(array, predicate) {
   return result;
 }
 
-/**
- * This method returns a new empty array.
- *
- * @static
- * @memberOf _
- * @since 4.13.0
- * @category Util
- * @returns {Array} Returns the new empty array.
- * @example
- *
- * var arrays = _.times(2, _.stubArray);
- *
- * console.log(arrays);
- * // => [[], []]
- *
- * console.log(arrays[0] === arrays[1]);
- * // => false
- */
 function stubArray() {
   return [];
 }
 
-/** Used for built-in method references. */
 var objectProto$7 = Object.prototype;
-
-/** Built-in value references. */
 var propertyIsEnumerable = objectProto$7.propertyIsEnumerable;
-
-/* Built-in method references for those with the same name as other `lodash` methods. */
 var nativeGetSymbols = Object.getOwnPropertySymbols;
-
-/**
- * Creates an array of the own enumerable symbols of `object`.
- *
- * @private
- * @param {Object} object The object to query.
- * @returns {Array} Returns the array of symbols.
- */
 var getSymbols = !nativeGetSymbols ? stubArray : function (object) {
   if (object == null) {
     return [];
@@ -2793,204 +1497,56 @@ var getSymbols = !nativeGetSymbols ? stubArray : function (object) {
   });
 };
 
-/**
- * The base implementation of `_.times` without support for iteratee shorthands
- * or max array length checks.
- *
- * @private
- * @param {number} n The number of times to invoke `iteratee`.
- * @param {Function} iteratee The function invoked per iteration.
- * @returns {Array} Returns the array of results.
- */
 function baseTimes(n, iteratee) {
   var index = -1,
       result = Array(n);
-
   while (++index < n) {
     result[index] = iteratee(index);
   }
   return result;
 }
 
-/**
- * Checks if `value` is object-like. A value is object-like if it's not `null`
- * and has a `typeof` result of "object".
- *
- * @static
- * @memberOf _
- * @since 4.0.0
- * @category Lang
- * @param {*} value The value to check.
- * @returns {boolean} Returns `true` if `value` is object-like, else `false`.
- * @example
- *
- * _.isObjectLike({});
- * // => true
- *
- * _.isObjectLike([1, 2, 3]);
- * // => true
- *
- * _.isObjectLike(_.noop);
- * // => false
- *
- * _.isObjectLike(null);
- * // => false
- */
 function isObjectLike(value) {
   return value != null && (typeof value === 'undefined' ? 'undefined' : _typeof(value)) == 'object';
 }
 
-/** `Object#toString` result references. */
 var argsTag$1 = '[object Arguments]';
-
-/**
- * The base implementation of `_.isArguments`.
- *
- * @private
- * @param {*} value The value to check.
- * @returns {boolean} Returns `true` if `value` is an `arguments` object,
- */
 function baseIsArguments(value) {
   return isObjectLike(value) && baseGetTag(value) == argsTag$1;
 }
 
-/** Used for built-in method references. */
 var objectProto$9 = Object.prototype;
-
-/** Used to check objects for own properties. */
 var hasOwnProperty$7 = objectProto$9.hasOwnProperty;
-
-/** Built-in value references. */
 var propertyIsEnumerable$1 = objectProto$9.propertyIsEnumerable;
-
-/**
- * Checks if `value` is likely an `arguments` object.
- *
- * @static
- * @memberOf _
- * @since 0.1.0
- * @category Lang
- * @param {*} value The value to check.
- * @returns {boolean} Returns `true` if `value` is an `arguments` object,
- *  else `false`.
- * @example
- *
- * _.isArguments(function() { return arguments; }());
- * // => true
- *
- * _.isArguments([1, 2, 3]);
- * // => false
- */
 var isArguments = baseIsArguments(function () {
   return arguments;
 }()) ? baseIsArguments : function (value) {
   return isObjectLike(value) && hasOwnProperty$7.call(value, 'callee') && !propertyIsEnumerable$1.call(value, 'callee');
 };
 
-/**
- * This method returns `false`.
- *
- * @static
- * @memberOf _
- * @since 4.13.0
- * @category Util
- * @returns {boolean} Returns `false`.
- * @example
- *
- * _.times(2, _.stubFalse);
- * // => [false, false]
- */
 function stubFalse() {
   return false;
 }
 
-/** Detect free variable `exports`. */
 var freeExports = (typeof exports === 'undefined' ? 'undefined' : _typeof(exports)) == 'object' && exports && !exports.nodeType && exports;
-
-/** Detect free variable `module`. */
 var freeModule = freeExports && (typeof module === 'undefined' ? 'undefined' : _typeof(module)) == 'object' && module && !module.nodeType && module;
-
-/** Detect the popular CommonJS extension `module.exports`. */
 var moduleExports = freeModule && freeModule.exports === freeExports;
-
-/** Built-in value references. */
 var Buffer = moduleExports ? root.Buffer : undefined;
-
-/* Built-in method references for those with the same name as other `lodash` methods. */
 var nativeIsBuffer = Buffer ? Buffer.isBuffer : undefined;
-
-/**
- * Checks if `value` is a buffer.
- *
- * @static
- * @memberOf _
- * @since 4.3.0
- * @category Lang
- * @param {*} value The value to check.
- * @returns {boolean} Returns `true` if `value` is a buffer, else `false`.
- * @example
- *
- * _.isBuffer(new Buffer(2));
- * // => true
- *
- * _.isBuffer(new Uint8Array(2));
- * // => false
- */
 var isBuffer = nativeIsBuffer || stubFalse;
 
-/** Used as references for various `Number` constants. */
 var MAX_SAFE_INTEGER = 9007199254740991;
-
-/** Used to detect unsigned integer values. */
 var reIsUint = /^(?:0|[1-9]\d*)$/;
-
-/**
- * Checks if `value` is a valid array-like index.
- *
- * @private
- * @param {*} value The value to check.
- * @param {number} [length=MAX_SAFE_INTEGER] The upper bounds of a valid index.
- * @returns {boolean} Returns `true` if `value` is a valid index, else `false`.
- */
 function isIndex(value, length) {
   length = length == null ? MAX_SAFE_INTEGER : length;
   return !!length && (typeof value == 'number' || reIsUint.test(value)) && value > -1 && value % 1 == 0 && value < length;
 }
 
-/** Used as references for various `Number` constants. */
 var MAX_SAFE_INTEGER$1 = 9007199254740991;
-
-/**
- * Checks if `value` is a valid array-like length.
- *
- * **Note:** This method is loosely based on
- * [`ToLength`](http://ecma-international.org/ecma-262/7.0/#sec-tolength).
- *
- * @static
- * @memberOf _
- * @since 4.0.0
- * @category Lang
- * @param {*} value The value to check.
- * @returns {boolean} Returns `true` if `value` is a valid length, else `false`.
- * @example
- *
- * _.isLength(3);
- * // => true
- *
- * _.isLength(Number.MIN_VALUE);
- * // => false
- *
- * _.isLength(Infinity);
- * // => false
- *
- * _.isLength('3');
- * // => false
- */
 function isLength(value) {
   return typeof value == 'number' && value > -1 && value % 1 == 0 && value <= MAX_SAFE_INTEGER$1;
 }
 
-/** `Object#toString` result references. */
 var argsTag$2 = '[object Arguments]';
 var arrayTag$1 = '[object Array]';
 var boolTag$1 = '[object Boolean]';
@@ -3004,7 +1560,6 @@ var regexpTag$1 = '[object RegExp]';
 var setTag$1 = '[object Set]';
 var stringTag$1 = '[object String]';
 var weakMapTag = '[object WeakMap]';
-
 var arrayBufferTag$1 = '[object ArrayBuffer]';
 var dataViewTag$1 = '[object DataView]';
 var float32Tag = '[object Float32Array]';
@@ -3016,91 +1571,34 @@ var uint8Tag = '[object Uint8Array]';
 var uint8ClampedTag = '[object Uint8ClampedArray]';
 var uint16Tag = '[object Uint16Array]';
 var uint32Tag = '[object Uint32Array]';
-
-/** Used to identify `toStringTag` values of typed arrays. */
 var typedArrayTags = {};
 typedArrayTags[float32Tag] = typedArrayTags[float64Tag] = typedArrayTags[int8Tag] = typedArrayTags[int16Tag] = typedArrayTags[int32Tag] = typedArrayTags[uint8Tag] = typedArrayTags[uint8ClampedTag] = typedArrayTags[uint16Tag] = typedArrayTags[uint32Tag] = true;
 typedArrayTags[argsTag$2] = typedArrayTags[arrayTag$1] = typedArrayTags[arrayBufferTag$1] = typedArrayTags[boolTag$1] = typedArrayTags[dataViewTag$1] = typedArrayTags[dateTag$1] = typedArrayTags[errorTag$1] = typedArrayTags[funcTag$1] = typedArrayTags[mapTag$1] = typedArrayTags[numberTag$1] = typedArrayTags[objectTag$1] = typedArrayTags[regexpTag$1] = typedArrayTags[setTag$1] = typedArrayTags[stringTag$1] = typedArrayTags[weakMapTag] = false;
-
-/**
- * The base implementation of `_.isTypedArray` without Node.js optimizations.
- *
- * @private
- * @param {*} value The value to check.
- * @returns {boolean} Returns `true` if `value` is a typed array, else `false`.
- */
 function baseIsTypedArray(value) {
     return isObjectLike(value) && isLength(value.length) && !!typedArrayTags[baseGetTag(value)];
 }
 
-/**
- * The base implementation of `_.unary` without support for storing metadata.
- *
- * @private
- * @param {Function} func The function to cap arguments for.
- * @returns {Function} Returns the new capped function.
- */
 function baseUnary(func) {
   return function (value) {
     return func(value);
   };
 }
 
-/** Detect free variable `exports`. */
 var freeExports$1 = (typeof exports === 'undefined' ? 'undefined' : _typeof(exports)) == 'object' && exports && !exports.nodeType && exports;
-
-/** Detect free variable `module`. */
 var freeModule$1 = freeExports$1 && (typeof module === 'undefined' ? 'undefined' : _typeof(module)) == 'object' && module && !module.nodeType && module;
-
-/** Detect the popular CommonJS extension `module.exports`. */
 var moduleExports$1 = freeModule$1 && freeModule$1.exports === freeExports$1;
-
-/** Detect free variable `process` from Node.js. */
 var freeProcess = moduleExports$1 && freeGlobal.process;
-
-/** Used to access faster Node.js helpers. */
 var nodeUtil = function () {
   try {
     return freeProcess && freeProcess.binding && freeProcess.binding('util');
   } catch (e) {}
 }();
 
-/* Node.js helper references. */
 var nodeIsTypedArray = nodeUtil && nodeUtil.isTypedArray;
-
-/**
- * Checks if `value` is classified as a typed array.
- *
- * @static
- * @memberOf _
- * @since 3.0.0
- * @category Lang
- * @param {*} value The value to check.
- * @returns {boolean} Returns `true` if `value` is a typed array, else `false`.
- * @example
- *
- * _.isTypedArray(new Uint8Array);
- * // => true
- *
- * _.isTypedArray([]);
- * // => false
- */
 var isTypedArray = nodeIsTypedArray ? baseUnary(nodeIsTypedArray) : baseIsTypedArray;
 
-/** Used for built-in method references. */
 var objectProto$8 = Object.prototype;
-
-/** Used to check objects for own properties. */
 var hasOwnProperty$6 = objectProto$8.hasOwnProperty;
-
-/**
- * Creates an array of the enumerable property names of the array-like `value`.
- *
- * @private
- * @param {*} value The value to query.
- * @param {boolean} inherited Specify returning inherited property names.
- * @returns {Array} Returns the array of property names.
- */
 function arrayLikeKeys(value, inherited) {
   var isArr = isArray(value),
       isArg = !isArr && isArguments(value),
@@ -3109,16 +1607,11 @@ function arrayLikeKeys(value, inherited) {
       skipIndexes = isArr || isArg || isBuff || isType,
       result = skipIndexes ? baseTimes(value.length, String) : [],
       length = result.length;
-
   for (var key in value) {
     if ((inherited || hasOwnProperty$6.call(value, key)) && !(skipIndexes && (
-    // Safari 9 has enumerable `arguments.length` in strict mode.
     key == 'length' ||
-    // Node.js 0.10 has enumerable non-index properties on buffers.
     isBuff && (key == 'offset' || key == 'parent') ||
-    // PhantomJS 2 has enumerable non-index properties on typed arrays.
     isType && (key == 'buffer' || key == 'byteLength' || key == 'byteOffset') ||
-    // Skip index properties.
     isIndex(key, length)))) {
       result.push(key);
     }
@@ -3126,53 +1619,23 @@ function arrayLikeKeys(value, inherited) {
   return result;
 }
 
-/** Used for built-in method references. */
 var objectProto$11 = Object.prototype;
-
-/**
- * Checks if `value` is likely a prototype object.
- *
- * @private
- * @param {*} value The value to check.
- * @returns {boolean} Returns `true` if `value` is a prototype, else `false`.
- */
 function isPrototype(value) {
   var Ctor = value && value.constructor,
       proto = typeof Ctor == 'function' && Ctor.prototype || objectProto$11;
-
   return value === proto;
 }
 
-/**
- * Creates a unary function that invokes `func` with its argument transformed.
- *
- * @private
- * @param {Function} func The function to wrap.
- * @param {Function} transform The argument transform.
- * @returns {Function} Returns the new function.
- */
 function overArg(func, transform) {
   return function (arg) {
     return func(transform(arg));
   };
 }
 
-/* Built-in method references for those with the same name as other `lodash` methods. */
 var nativeKeys = overArg(Object.keys, Object);
 
-/** Used for built-in method references. */
 var objectProto$10 = Object.prototype;
-
-/** Used to check objects for own properties. */
 var hasOwnProperty$8 = objectProto$10.hasOwnProperty;
-
-/**
- * The base implementation of `_.keys` which doesn't treat sparse arrays as dense.
- *
- * @private
- * @param {Object} object The object to query.
- * @returns {Array} Returns the array of property names.
- */
 function baseKeys(object) {
   if (!isPrototype(object)) {
     return nativeKeys(object);
@@ -3186,107 +1649,27 @@ function baseKeys(object) {
   return result;
 }
 
-/**
- * Checks if `value` is array-like. A value is considered array-like if it's
- * not a function and has a `value.length` that's an integer greater than or
- * equal to `0` and less than or equal to `Number.MAX_SAFE_INTEGER`.
- *
- * @static
- * @memberOf _
- * @since 4.0.0
- * @category Lang
- * @param {*} value The value to check.
- * @returns {boolean} Returns `true` if `value` is array-like, else `false`.
- * @example
- *
- * _.isArrayLike([1, 2, 3]);
- * // => true
- *
- * _.isArrayLike(document.body.children);
- * // => true
- *
- * _.isArrayLike('abc');
- * // => true
- *
- * _.isArrayLike(_.noop);
- * // => false
- */
 function isArrayLike(value) {
   return value != null && isLength(value.length) && !isFunction(value);
 }
 
-/**
- * Creates an array of the own enumerable property names of `object`.
- *
- * **Note:** Non-object values are coerced to objects. See the
- * [ES spec](http://ecma-international.org/ecma-262/7.0/#sec-object.keys)
- * for more details.
- *
- * @static
- * @since 0.1.0
- * @memberOf _
- * @category Object
- * @param {Object} object The object to query.
- * @returns {Array} Returns the array of property names.
- * @example
- *
- * function Foo() {
- *   this.a = 1;
- *   this.b = 2;
- * }
- *
- * Foo.prototype.c = 3;
- *
- * _.keys(new Foo);
- * // => ['a', 'b'] (iteration order is not guaranteed)
- *
- * _.keys('hi');
- * // => ['0', '1']
- */
 function keys(object) {
   return isArrayLike(object) ? arrayLikeKeys(object) : baseKeys(object);
 }
 
-/**
- * Creates an array of own enumerable property names and symbols of `object`.
- *
- * @private
- * @param {Object} object The object to query.
- * @returns {Array} Returns the array of property names and symbols.
- */
 function getAllKeys(object) {
   return baseGetAllKeys(object, keys, getSymbols);
 }
 
-/** Used to compose bitmasks for value comparisons. */
 var COMPARE_PARTIAL_FLAG$4 = 1;
-
-/** Used for built-in method references. */
 var objectProto$6 = Object.prototype;
-
-/** Used to check objects for own properties. */
 var hasOwnProperty$5 = objectProto$6.hasOwnProperty;
-
-/**
- * A specialized version of `baseIsEqualDeep` for objects with support for
- * partial deep comparisons.
- *
- * @private
- * @param {Object} object The object to compare.
- * @param {Object} other The other object to compare.
- * @param {number} bitmask The bitmask flags. See `baseIsEqual` for more details.
- * @param {Function} customizer The function to customize comparisons.
- * @param {Function} equalFunc The function to determine equivalents of values.
- * @param {Object} stack Tracks traversed `object` and `other` objects.
- * @returns {boolean} Returns `true` if the objects are equivalent, else `false`.
- */
 function equalObjects(object, other, bitmask, customizer, equalFunc, stack) {
   var isPartial = bitmask & COMPARE_PARTIAL_FLAG$4,
       objProps = getAllKeys(object),
       objLength = objProps.length,
       othProps = getAllKeys(other),
       othLength = othProps.length;
-
   if (objLength != othLength && !isPartial) {
     return false;
   }
@@ -3297,7 +1680,6 @@ function equalObjects(object, other, bitmask, customizer, equalFunc, stack) {
       return false;
     }
   }
-  // Assume cyclic values are equal.
   var stacked = stack.get(object);
   if (stacked && stack.get(other)) {
     return stacked == other;
@@ -3305,17 +1687,14 @@ function equalObjects(object, other, bitmask, customizer, equalFunc, stack) {
   var result = true;
   stack.set(object, other);
   stack.set(other, object);
-
   var skipCtor = isPartial;
   while (++index < objLength) {
     key = objProps[index];
     var objValue = object[key],
         othValue = other[key];
-
     if (customizer) {
       var compared = isPartial ? customizer(othValue, objValue, key, other, object, stack) : customizer(objValue, othValue, key, object, other, stack);
     }
-    // Recursively compare objects (susceptible to call stack limits).
     if (!(compared === undefined ? objValue === othValue || equalFunc(objValue, othValue, bitmask, customizer, stack) : compared)) {
       result = false;
       break;
@@ -3325,8 +1704,6 @@ function equalObjects(object, other, bitmask, customizer, equalFunc, stack) {
   if (result && !skipCtor) {
     var objCtor = object.constructor,
         othCtor = other.constructor;
-
-    // Non `Object` object instances with different constructors are not equal.
     if (objCtor != othCtor && 'constructor' in object && 'constructor' in other && !(typeof objCtor == 'function' && objCtor instanceof objCtor && typeof othCtor == 'function' && othCtor instanceof othCtor)) {
       result = false;
     }
@@ -3336,50 +1713,31 @@ function equalObjects(object, other, bitmask, customizer, equalFunc, stack) {
   return result;
 }
 
-/* Built-in method references that are verified to be native. */
 var DataView = getNative(root, 'DataView');
 
-/* Built-in method references that are verified to be native. */
 var Promise$1 = getNative(root, 'Promise');
 
-/* Built-in method references that are verified to be native. */
 var Set = getNative(root, 'Set');
 
-/* Built-in method references that are verified to be native. */
 var WeakMap = getNative(root, 'WeakMap');
 
-/** `Object#toString` result references. */
 var mapTag$2 = '[object Map]';
 var objectTag$2 = '[object Object]';
 var promiseTag = '[object Promise]';
 var setTag$2 = '[object Set]';
 var weakMapTag$1 = '[object WeakMap]';
-
 var dataViewTag$2 = '[object DataView]';
-
-/** Used to detect maps, sets, and weakmaps. */
 var dataViewCtorString = toSource(DataView);
 var mapCtorString = toSource(Map$1);
 var promiseCtorString = toSource(Promise$1);
 var setCtorString = toSource(Set);
 var weakMapCtorString = toSource(WeakMap);
-
-/**
- * Gets the `toStringTag` of `value`.
- *
- * @private
- * @param {*} value The value to query.
- * @returns {string} Returns the `toStringTag`.
- */
 var getTag = baseGetTag;
-
-// Fallback for data views, maps, sets, and weak maps in IE 11 and promises in Node.js < 6.
 if (DataView && getTag(new DataView(new ArrayBuffer(1))) != dataViewTag$2 || Map$1 && getTag(new Map$1()) != mapTag$2 || Promise$1 && getTag(Promise$1.resolve()) != promiseTag || Set && getTag(new Set()) != setTag$2 || WeakMap && getTag(new WeakMap()) != weakMapTag$1) {
     getTag = function getTag(value) {
         var result = baseGetTag(value),
             Ctor = result == objectTag$2 ? value.constructor : undefined,
             ctorString = Ctor ? toSource(Ctor) : '';
-
         if (ctorString) {
             switch (ctorString) {
                 case dataViewCtorString:
@@ -3397,50 +1755,24 @@ if (DataView && getTag(new DataView(new ArrayBuffer(1))) != dataViewTag$2 || Map
         return result;
     };
 }
-
 var getTag$1 = getTag;
 
-/** Used to compose bitmasks for value comparisons. */
 var COMPARE_PARTIAL_FLAG$1 = 1;
-
-/** `Object#toString` result references. */
 var argsTag = '[object Arguments]';
 var arrayTag = '[object Array]';
 var objectTag = '[object Object]';
-
-/** Used for built-in method references. */
 var objectProto$5 = Object.prototype;
-
-/** Used to check objects for own properties. */
 var hasOwnProperty$4 = objectProto$5.hasOwnProperty;
-
-/**
- * A specialized version of `baseIsEqual` for arrays and objects which performs
- * deep comparisons and tracks traversed objects enabling objects with circular
- * references to be compared.
- *
- * @private
- * @param {Object} object The object to compare.
- * @param {Object} other The other object to compare.
- * @param {number} bitmask The bitmask flags. See `baseIsEqual` for more details.
- * @param {Function} customizer The function to customize comparisons.
- * @param {Function} equalFunc The function to determine equivalents of values.
- * @param {Object} [stack] Tracks traversed `object` and `other` objects.
- * @returns {boolean} Returns `true` if the objects are equivalent, else `false`.
- */
 function baseIsEqualDeep(object, other, bitmask, customizer, equalFunc, stack) {
   var objIsArr = isArray(object),
       othIsArr = isArray(other),
       objTag = objIsArr ? arrayTag : getTag$1(object),
       othTag = othIsArr ? arrayTag : getTag$1(other);
-
   objTag = objTag == argsTag ? objectTag : objTag;
   othTag = othTag == argsTag ? objectTag : othTag;
-
   var objIsObj = objTag == objectTag,
       othIsObj = othTag == objectTag,
       isSameTag = objTag == othTag;
-
   if (isSameTag && isBuffer(object)) {
     if (!isBuffer(other)) {
       return false;
@@ -3455,11 +1787,9 @@ function baseIsEqualDeep(object, other, bitmask, customizer, equalFunc, stack) {
   if (!(bitmask & COMPARE_PARTIAL_FLAG$1)) {
     var objIsWrapped = objIsObj && hasOwnProperty$4.call(object, '__wrapped__'),
         othIsWrapped = othIsObj && hasOwnProperty$4.call(other, '__wrapped__');
-
     if (objIsWrapped || othIsWrapped) {
       var objUnwrapped = objIsWrapped ? object.value() : object,
           othUnwrapped = othIsWrapped ? other.value() : other;
-
       stack || (stack = new Stack());
       return equalFunc(objUnwrapped, othUnwrapped, bitmask, customizer, stack);
     }
@@ -3471,20 +1801,6 @@ function baseIsEqualDeep(object, other, bitmask, customizer, equalFunc, stack) {
   return equalObjects(object, other, bitmask, customizer, equalFunc, stack);
 }
 
-/**
- * The base implementation of `_.isEqual` which supports partial comparisons
- * and tracks traversed objects.
- *
- * @private
- * @param {*} value The value to compare.
- * @param {*} other The other value to compare.
- * @param {boolean} bitmask The bitmask flags.
- *  1 - Unordered comparison
- *  2 - Partial comparison
- * @param {Function} [customizer] The function to customize comparisons.
- * @param {Object} [stack] Tracks traversed `value` and `other` objects.
- * @returns {boolean} Returns `true` if the values are equivalent, else `false`.
- */
 function baseIsEqual(value, other, bitmask, customizer, stack) {
   if (value === other) {
     return true;
@@ -3495,25 +1811,12 @@ function baseIsEqual(value, other, bitmask, customizer, stack) {
   return baseIsEqualDeep(value, other, bitmask, customizer, baseIsEqual, stack);
 }
 
-/** Used to compose bitmasks for value comparisons. */
 var COMPARE_PARTIAL_FLAG = 1;
 var COMPARE_UNORDERED_FLAG = 2;
-
-/**
- * The base implementation of `_.isMatch` without support for iteratee shorthands.
- *
- * @private
- * @param {Object} object The object to inspect.
- * @param {Object} source The object of property values to match.
- * @param {Array} matchData The property names, values, and compare flags to match.
- * @param {Function} [customizer] The function to customize comparisons.
- * @returns {boolean} Returns `true` if `object` is a match, else `false`.
- */
 function baseIsMatch(object, source, matchData, customizer) {
   var index = matchData.length,
       length = index,
       noCustomizer = !customizer;
-
   if (object == null) {
     return !length;
   }
@@ -3529,7 +1832,6 @@ function baseIsMatch(object, source, matchData, customizer) {
     var key = data[0],
         objValue = object[key],
         srcValue = data[1];
-
     if (noCustomizer && data[2]) {
       if (objValue === undefined && !(key in object)) {
         return false;
@@ -3547,47 +1849,21 @@ function baseIsMatch(object, source, matchData, customizer) {
   return true;
 }
 
-/**
- * Checks if `value` is suitable for strict equality comparisons, i.e. `===`.
- *
- * @private
- * @param {*} value The value to check.
- * @returns {boolean} Returns `true` if `value` if suitable for strict
- *  equality comparisons, else `false`.
- */
 function isStrictComparable(value) {
   return value === value && !isObject(value);
 }
 
-/**
- * Gets the property names, values, and compare flags of `object`.
- *
- * @private
- * @param {Object} object The object to query.
- * @returns {Array} Returns the match data of `object`.
- */
 function getMatchData(object) {
   var result = keys(object),
       length = result.length;
-
   while (length--) {
     var key = result[length],
         value = object[key];
-
     result[length] = [key, value, isStrictComparable(value)];
   }
   return result;
 }
 
-/**
- * A specialized version of `matchesProperty` for source values suitable
- * for strict equality comparisons, i.e. `===`.
- *
- * @private
- * @param {string} key The key of the property to get.
- * @param {*} srcValue The value to match.
- * @returns {Function} Returns the new spec function.
- */
 function matchesStrictComparable(key, srcValue) {
   return function (object) {
     if (object == null) {
@@ -3597,13 +1873,6 @@ function matchesStrictComparable(key, srcValue) {
   };
 }
 
-/**
- * The base implementation of `_.matches` which doesn't clone `source`.
- *
- * @private
- * @param {Object} source The object of property values to match.
- * @returns {Function} Returns the new spec function.
- */
 function baseMatches(source) {
   var matchData = getMatchData(source);
   if (matchData.length == 1 && matchData[0][2]) {
@@ -3614,42 +1883,13 @@ function baseMatches(source) {
   };
 }
 
-/** `Object#toString` result references. */
 var symbolTag$1 = '[object Symbol]';
-
-/**
- * Checks if `value` is classified as a `Symbol` primitive or object.
- *
- * @static
- * @memberOf _
- * @since 4.0.0
- * @category Lang
- * @param {*} value The value to check.
- * @returns {boolean} Returns `true` if `value` is a symbol, else `false`.
- * @example
- *
- * _.isSymbol(Symbol.iterator);
- * // => true
- *
- * _.isSymbol('abc');
- * // => false
- */
 function isSymbol(value) {
   return (typeof value === 'undefined' ? 'undefined' : _typeof(value)) == 'symbol' || isObjectLike(value) && baseGetTag(value) == symbolTag$1;
 }
 
-/** Used to match property names within property paths. */
 var reIsDeepProp = /\.|\[(?:[^[\]]*|(["'])(?:(?!\1)[^\\]|\\.)*?\1)\]/;
 var reIsPlainProp = /^\w*$/;
-
-/**
- * Checks if `value` is a property name and not a property path.
- *
- * @private
- * @param {*} value The value to check.
- * @param {Object} [object] The object to query keys on.
- * @returns {boolean} Returns `true` if `value` is a property name, else `false`.
- */
 function isKey(value, object) {
   if (isArray(value)) {
     return false;
@@ -3661,53 +1901,7 @@ function isKey(value, object) {
   return reIsPlainProp.test(value) || !reIsDeepProp.test(value) || object != null && value in Object(object);
 }
 
-/** Error message constants. */
 var FUNC_ERROR_TEXT = 'Expected a function';
-
-/**
- * Creates a function that memoizes the result of `func`. If `resolver` is
- * provided, it determines the cache key for storing the result based on the
- * arguments provided to the memoized function. By default, the first argument
- * provided to the memoized function is used as the map cache key. The `func`
- * is invoked with the `this` binding of the memoized function.
- *
- * **Note:** The cache is exposed as the `cache` property on the memoized
- * function. Its creation may be customized by replacing the `_.memoize.Cache`
- * constructor with one whose instances implement the
- * [`Map`](http://ecma-international.org/ecma-262/7.0/#sec-properties-of-the-map-prototype-object)
- * method interface of `clear`, `delete`, `get`, `has`, and `set`.
- *
- * @static
- * @memberOf _
- * @since 0.1.0
- * @category Function
- * @param {Function} func The function to have its output memoized.
- * @param {Function} [resolver] The function to resolve the cache key.
- * @returns {Function} Returns the new memoized function.
- * @example
- *
- * var object = { 'a': 1, 'b': 2 };
- * var other = { 'c': 3, 'd': 4 };
- *
- * var values = _.memoize(_.values);
- * values(object);
- * // => [1, 2]
- *
- * values(other);
- * // => [3, 4]
- *
- * object.a = 2;
- * values(object);
- * // => [1, 2]
- *
- * // Modify the result cache.
- * values.cache.set(object, ['a', 'b']);
- * values(object);
- * // => ['a', 'b']
- *
- * // Replace `_.memoize.Cache`.
- * _.memoize.Cache = WeakMap;
- */
 function memoize(func, resolver) {
   if (typeof func != 'function' || resolver != null && typeof resolver != 'function') {
     throw new TypeError(FUNC_ERROR_TEXT);
@@ -3716,7 +1910,6 @@ function memoize(func, resolver) {
     var args = arguments,
         key = resolver ? resolver.apply(this, args) : args[0],
         cache = memoized.cache;
-
     if (cache.has(key)) {
       return cache.get(key);
     }
@@ -3727,21 +1920,9 @@ function memoize(func, resolver) {
   memoized.cache = new (memoize.Cache || MapCache)();
   return memoized;
 }
-
-// Expose `MapCache`.
 memoize.Cache = MapCache;
 
-/** Used as the maximum memoize cache size. */
 var MAX_MEMOIZE_SIZE = 500;
-
-/**
- * A specialized version of `_.memoize` which clears the memoized function's
- * cache when it exceeds `MAX_MEMOIZE_SIZE`.
- *
- * @private
- * @param {Function} func The function to have its output memoized.
- * @returns {Function} Returns the new memoized function.
- */
 function memoizeCapped(func) {
   var result = memoize(func, function (key) {
     if (cache.size === MAX_MEMOIZE_SIZE) {
@@ -3749,25 +1930,13 @@ function memoizeCapped(func) {
     }
     return key;
   });
-
   var cache = result.cache;
   return result;
 }
 
-/** Used to match property names within property paths. */
 var reLeadingDot = /^\./;
 var rePropName = /[^.[\]]+|\[(?:(-?\d+(?:\.\d+)?)|(["'])((?:(?!\2)[^\\]|\\.)*?)\2)\]|(?=(?:\.|\[\])(?:\.|\[\]|$))/g;
-
-/** Used to match backslashes in property paths. */
 var reEscapeChar = /\\(\\)?/g;
-
-/**
- * Converts `string` to a property path array.
- *
- * @private
- * @param {string} string The string to convert.
- * @returns {Array} Returns the property path array.
- */
 var stringToPath = memoizeCapped(function (string) {
   var result = [];
   if (reLeadingDot.test(string)) {
@@ -3779,28 +1948,14 @@ var stringToPath = memoizeCapped(function (string) {
   return result;
 });
 
-/** Used as references for various `Number` constants. */
 var INFINITY = 1 / 0;
-
-/** Used to convert symbols to primitives and strings. */
 var symbolProto$1 = _Symbol ? _Symbol.prototype : undefined;
 var symbolToString = symbolProto$1 ? symbolProto$1.toString : undefined;
-
-/**
- * The base implementation of `_.toString` which doesn't convert nullish
- * values to empty strings.
- *
- * @private
- * @param {*} value The value to process.
- * @returns {string} Returns the string.
- */
 function baseToString(value) {
-  // Exit early for strings to avoid a performance hit in some environments.
   if (typeof value == 'string') {
     return value;
   }
   if (isArray(value)) {
-    // Recursively convert values (susceptible to call stack limits).
     return arrayMap(value, baseToString) + '';
   }
   if (isSymbol(value)) {
@@ -3810,39 +1965,10 @@ function baseToString(value) {
   return result == '0' && 1 / value == -INFINITY ? '-0' : result;
 }
 
-/**
- * Converts `value` to a string. An empty string is returned for `null`
- * and `undefined` values. The sign of `-0` is preserved.
- *
- * @static
- * @memberOf _
- * @since 4.0.0
- * @category Lang
- * @param {*} value The value to convert.
- * @returns {string} Returns the converted string.
- * @example
- *
- * _.toString(null);
- * // => ''
- *
- * _.toString(-0);
- * // => '-0'
- *
- * _.toString([1, 2, 3]);
- * // => '1,2,3'
- */
 function toString(value) {
   return value == null ? '' : baseToString(value);
 }
 
-/**
- * Casts `value` to a path array if it's not one.
- *
- * @private
- * @param {*} value The value to inspect.
- * @param {Object} [object] The object to query keys on.
- * @returns {Array} Returns the cast property path array.
- */
 function castPath(value, object) {
   if (isArray(value)) {
     return value;
@@ -3850,16 +1976,7 @@ function castPath(value, object) {
   return isKey(value, object) ? [value] : stringToPath(toString(value));
 }
 
-/** Used as references for various `Number` constants. */
 var INFINITY$1 = 1 / 0;
-
-/**
- * Converts `value` to a string key if it's not a string or symbol.
- *
- * @private
- * @param {*} value The value to inspect.
- * @returns {string|symbol} Returns the key.
- */
 function toKey(value) {
   if (typeof value == 'string' || isSymbol(value)) {
     return value;
@@ -3868,84 +1985,30 @@ function toKey(value) {
   return result == '0' && 1 / value == -INFINITY$1 ? '-0' : result;
 }
 
-/**
- * The base implementation of `_.get` without support for default values.
- *
- * @private
- * @param {Object} object The object to query.
- * @param {Array|string} path The path of the property to get.
- * @returns {*} Returns the resolved value.
- */
 function baseGet(object, path) {
   path = castPath(path, object);
-
   var index = 0,
       length = path.length;
-
   while (object != null && index < length) {
     object = object[toKey(path[index++])];
   }
   return index && index == length ? object : undefined;
 }
 
-/**
- * Gets the value at `path` of `object`. If the resolved value is
- * `undefined`, the `defaultValue` is returned in its place.
- *
- * @static
- * @memberOf _
- * @since 3.7.0
- * @category Object
- * @param {Object} object The object to query.
- * @param {Array|string} path The path of the property to get.
- * @param {*} [defaultValue] The value returned for `undefined` resolved values.
- * @returns {*} Returns the resolved value.
- * @example
- *
- * var object = { 'a': [{ 'b': { 'c': 3 } }] };
- *
- * _.get(object, 'a[0].b.c');
- * // => 3
- *
- * _.get(object, ['a', '0', 'b', 'c']);
- * // => 3
- *
- * _.get(object, 'a.b.c', 'default');
- * // => 'default'
- */
 function get$1(object, path, defaultValue) {
   var result = object == null ? undefined : baseGet(object, path);
   return result === undefined ? defaultValue : result;
 }
 
-/**
- * The base implementation of `_.hasIn` without support for deep paths.
- *
- * @private
- * @param {Object} [object] The object to query.
- * @param {Array|string} key The key to check.
- * @returns {boolean} Returns `true` if `key` exists, else `false`.
- */
 function baseHasIn(object, key) {
   return object != null && key in Object(object);
 }
 
-/**
- * Checks if `path` exists on `object`.
- *
- * @private
- * @param {Object} object The object to query.
- * @param {Array|string} path The path to check.
- * @param {Function} hasFunc The function to check properties.
- * @returns {boolean} Returns `true` if `path` exists, else `false`.
- */
 function hasPath(object, path, hasFunc) {
   path = castPath(path, object);
-
   var index = -1,
       length = path.length,
       result = false;
-
   while (++index < length) {
     var key = toKey(path[index]);
     if (!(result = object != null && hasFunc(object, key))) {
@@ -3960,48 +2023,12 @@ function hasPath(object, path, hasFunc) {
   return !!length && isLength(length) && isIndex(key, length) && (isArray(object) || isArguments(object));
 }
 
-/**
- * Checks if `path` is a direct or inherited property of `object`.
- *
- * @static
- * @memberOf _
- * @since 4.0.0
- * @category Object
- * @param {Object} object The object to query.
- * @param {Array|string} path The path to check.
- * @returns {boolean} Returns `true` if `path` exists, else `false`.
- * @example
- *
- * var object = _.create({ 'a': _.create({ 'b': 2 }) });
- *
- * _.hasIn(object, 'a');
- * // => true
- *
- * _.hasIn(object, 'a.b');
- * // => true
- *
- * _.hasIn(object, ['a', 'b']);
- * // => true
- *
- * _.hasIn(object, 'b');
- * // => false
- */
 function hasIn(object, path) {
   return object != null && hasPath(object, path, baseHasIn);
 }
 
-/** Used to compose bitmasks for value comparisons. */
 var COMPARE_PARTIAL_FLAG$5 = 1;
 var COMPARE_UNORDERED_FLAG$3 = 2;
-
-/**
- * The base implementation of `_.matchesProperty` which doesn't clone `srcValue`.
- *
- * @private
- * @param {string} path The path of the property to get.
- * @param {*} srcValue The value to match.
- * @returns {Function} Returns the new spec function.
- */
 function baseMatchesProperty(path, srcValue) {
   if (isKey(path) && isStrictComparable(srcValue)) {
     return matchesStrictComparable(toKey(path), srcValue);
@@ -4012,88 +2039,27 @@ function baseMatchesProperty(path, srcValue) {
   };
 }
 
-/**
- * This method returns the first argument it receives.
- *
- * @static
- * @since 0.1.0
- * @memberOf _
- * @category Util
- * @param {*} value Any value.
- * @returns {*} Returns `value`.
- * @example
- *
- * var object = { 'a': 1 };
- *
- * console.log(_.identity(object) === object);
- * // => true
- */
 function identity(value) {
   return value;
 }
 
-/**
- * The base implementation of `_.property` without support for deep paths.
- *
- * @private
- * @param {string} key The key of the property to get.
- * @returns {Function} Returns the new accessor function.
- */
 function baseProperty(key) {
   return function (object) {
     return object == null ? undefined : object[key];
   };
 }
 
-/**
- * A specialized version of `baseProperty` which supports deep paths.
- *
- * @private
- * @param {Array|string} path The path of the property to get.
- * @returns {Function} Returns the new accessor function.
- */
 function basePropertyDeep(path) {
   return function (object) {
     return baseGet(object, path);
   };
 }
 
-/**
- * Creates a function that returns the value at `path` of a given object.
- *
- * @static
- * @memberOf _
- * @since 2.4.0
- * @category Util
- * @param {Array|string} path The path of the property to get.
- * @returns {Function} Returns the new accessor function.
- * @example
- *
- * var objects = [
- *   { 'a': { 'b': 2 } },
- *   { 'a': { 'b': 1 } }
- * ];
- *
- * _.map(objects, _.property('a.b'));
- * // => [2, 1]
- *
- * _.map(_.sortBy(objects, _.property(['a', 'b'])), 'a.b');
- * // => [1, 2]
- */
 function property(path) {
   return isKey(path) ? baseProperty(toKey(path)) : basePropertyDeep(path);
 }
 
-/**
- * The base implementation of `_.iteratee`.
- *
- * @private
- * @param {*} [value=_.identity] The value to convert to an iteratee.
- * @returns {Function} Returns the iteratee.
- */
 function baseIteratee(value) {
-  // Don't store the `typeof` result in a variable to avoid a JIT bug in Safari 9.
-  // See https://bugs.webkit.org/show_bug.cgi?id=156034 for more details.
   if (typeof value == 'function') {
     return value;
   }
@@ -4106,20 +2072,12 @@ function baseIteratee(value) {
   return property(value);
 }
 
-/**
- * Creates a base function for methods like `_.forIn` and `_.forOwn`.
- *
- * @private
- * @param {boolean} [fromRight] Specify iterating from right to left.
- * @returns {Function} Returns the new base function.
- */
 function createBaseFor(fromRight) {
   return function (object, iteratee, keysFunc) {
     var index = -1,
         iterable = Object(object),
         props = keysFunc(object),
         length = props.length;
-
     while (length--) {
       var key = props[fromRight ? length : ++index];
       if (iteratee(iterable[key], key, iterable) === false) {
@@ -4130,39 +2088,12 @@ function createBaseFor(fromRight) {
   };
 }
 
-/**
- * The base implementation of `baseForOwn` which iterates over `object`
- * properties returned by `keysFunc` and invokes `iteratee` for each property.
- * Iteratee functions may exit iteration early by explicitly returning `false`.
- *
- * @private
- * @param {Object} object The object to iterate over.
- * @param {Function} iteratee The function invoked per iteration.
- * @param {Function} keysFunc The function to get the keys of `object`.
- * @returns {Object} Returns `object`.
- */
 var baseFor = createBaseFor();
 
-/**
- * The base implementation of `_.forOwn` without support for iteratee shorthands.
- *
- * @private
- * @param {Object} object The object to iterate over.
- * @param {Function} iteratee The function invoked per iteration.
- * @returns {Object} Returns `object`.
- */
 function baseForOwn(object, iteratee) {
   return object && baseFor(object, iteratee, keys);
 }
 
-/**
- * Creates a `baseEach` or `baseEachRight` function.
- *
- * @private
- * @param {Function} eachFunc The function to iterate over a collection.
- * @param {boolean} [fromRight] Specify iterating from right to left.
- * @returns {Function} Returns the new base function.
- */
 function createBaseEach(eachFunc, fromRight) {
   return function (collection, iteratee) {
     if (collection == null) {
@@ -4174,7 +2105,6 @@ function createBaseEach(eachFunc, fromRight) {
     var length = collection.length,
         index = fromRight ? length : -1,
         iterable = Object(collection);
-
     while (fromRight ? index-- : ++index < length) {
       if (iteratee(iterable[index], index, iterable) === false) {
         break;
@@ -4184,94 +2114,25 @@ function createBaseEach(eachFunc, fromRight) {
   };
 }
 
-/**
- * The base implementation of `_.forEach` without support for iteratee shorthands.
- *
- * @private
- * @param {Array|Object} collection The collection to iterate over.
- * @param {Function} iteratee The function invoked per iteration.
- * @returns {Array|Object} Returns `collection`.
- */
 var baseEach = createBaseEach(baseForOwn);
 
-/**
- * The base implementation of `_.map` without support for iteratee shorthands.
- *
- * @private
- * @param {Array|Object} collection The collection to iterate over.
- * @param {Function} iteratee The function invoked per iteration.
- * @returns {Array} Returns the new mapped array.
- */
 function baseMap(collection, iteratee) {
   var index = -1,
       result = isArrayLike(collection) ? Array(collection.length) : [];
-
   baseEach(collection, function (value, key, collection) {
     result[++index] = iteratee(value, key, collection);
   });
   return result;
 }
 
-/**
- * Creates an array of values by running each element in `collection` thru
- * `iteratee`. The iteratee is invoked with three arguments:
- * (value, index|key, collection).
- *
- * Many lodash methods are guarded to work as iteratees for methods like
- * `_.every`, `_.filter`, `_.map`, `_.mapValues`, `_.reject`, and `_.some`.
- *
- * The guarded methods are:
- * `ary`, `chunk`, `curry`, `curryRight`, `drop`, `dropRight`, `every`,
- * `fill`, `invert`, `parseInt`, `random`, `range`, `rangeRight`, `repeat`,
- * `sampleSize`, `slice`, `some`, `sortBy`, `split`, `take`, `takeRight`,
- * `template`, `trim`, `trimEnd`, `trimStart`, and `words`
- *
- * @static
- * @memberOf _
- * @since 0.1.0
- * @category Collection
- * @param {Array|Object} collection The collection to iterate over.
- * @param {Function} [iteratee=_.identity] The function invoked per iteration.
- * @returns {Array} Returns the new mapped array.
- * @example
- *
- * function square(n) {
- *   return n * n;
- * }
- *
- * _.map([4, 8], square);
- * // => [16, 64]
- *
- * _.map({ 'a': 4, 'b': 8 }, square);
- * // => [16, 64] (iteration order is not guaranteed)
- *
- * var users = [
- *   { 'user': 'barney' },
- *   { 'user': 'fred' }
- * ];
- *
- * // The `_.property` iteratee shorthand.
- * _.map(users, 'user');
- * // => ['barney', 'fred']
- */
 function map(collection, iteratee) {
   var func = isArray(collection) ? arrayMap : baseMap;
   return func(collection, baseIteratee(iteratee, 3));
 }
 
-/**
- * A specialized version of `_.forEach` for arrays without support for
- * iteratee shorthands.
- *
- * @private
- * @param {Array} [array] The array to iterate over.
- * @param {Function} iteratee The function invoked per iteration.
- * @returns {Array} Returns `array`.
- */
 function arrayEach(array, iteratee) {
   var index = -1,
       length = array == null ? 0 : array.length;
-
   while (++index < length) {
     if (iteratee(array[index], index, array) === false) {
       break;
@@ -4280,58 +2141,15 @@ function arrayEach(array, iteratee) {
   return array;
 }
 
-/**
- * Casts `value` to `identity` if it's not a function.
- *
- * @private
- * @param {*} value The value to inspect.
- * @returns {Function} Returns cast function.
- */
 function castFunction(value) {
   return typeof value == 'function' ? value : identity;
 }
 
-/**
- * Iterates over elements of `collection` and invokes `iteratee` for each element.
- * The iteratee is invoked with three arguments: (value, index|key, collection).
- * Iteratee functions may exit iteration early by explicitly returning `false`.
- *
- * **Note:** As with other "Collections" methods, objects with a "length"
- * property are iterated like arrays. To avoid this behavior use `_.forIn`
- * or `_.forOwn` for object iteration.
- *
- * @static
- * @memberOf _
- * @since 0.1.0
- * @alias each
- * @category Collection
- * @param {Array|Object} collection The collection to iterate over.
- * @param {Function} [iteratee=_.identity] The function invoked per iteration.
- * @returns {Array|Object} Returns `collection`.
- * @see _.forEachRight
- * @example
- *
- * _.forEach([1, 2], function(value) {
- *   console.log(value);
- * });
- * // => Logs `1` then `2`.
- *
- * _.forEach({ 'a': 1, 'b': 2 }, function(value, key) {
- *   console.log(key);
- * });
- * // => Logs 'a' then 'b' (iteration order is not guaranteed).
- */
 function forEach(collection, iteratee) {
   var func = isArray(collection) ? arrayEach : baseEach;
   return func(collection, castFunction(iteratee));
 }
 
-/**
- * Converts a coordinate pair into a {@link google.maps.LatLngLiteral}
- * @param  {Position|google.maps.LatLngLiteral|google.maps.LatLng} position a coordinate pair 
- * @return {google.maps.LatLngLiteral}     a {@link google.maps.LatLngLiteral}
- * @private
- */
 function toLatLng(position) {
 	if (position instanceof google.maps.LatLng) {
 		return {
@@ -4347,22 +2165,9 @@ function toLatLng(position) {
 		};
 	}
 }
-
-/**
- * Transforma un array de LatLng en un array de coordenadas [lng,lat]
- * @param {Array.<Position>} arrayLatLng [description]
- * @return {Array.<google.maps.LatLngLiteral>} array of {@link google.maps.LatLngLiteral}
- */
 function toLatLngs(coordinates) {
 	return map(coordinates, toLatLng);
 }
-
-/**
- * Transforms a {@link google.maps.LatLng} or {@link google.maps.LatLngLiteral}
- * @param  {google.maps.LatLng|google.maps.LatLngLiteral|Position} LatLng a coordinate to transform
- * @return {Position}   a coordinate pair
- * @private
- */
 function toCoord$1(LatLng) {
 	if (google.maps && google.maps.LatLng && LatLng instanceof google.maps.LatLng) {
 		return [LatLng.lng(), LatLng.lat()];
@@ -4374,17 +2179,8 @@ function toCoord$1(LatLng) {
 		throw new Error('google.maps is not present in the global scope');
 	}
 }
-
-/**
- * Transforms an array of coordinates to an array of [Lng, Lat]
- * @param {Array.<google.maps.LatLng>|Array.<google.maps.LatLngLiteral>} arrayLatLng Array of {@link google.maps.LatLng} or {@link google.maps.LatLngLiteral}
- * @param {bool} [closeRing=false] optionally, ensure the passed coordinate array forms a closed ring
- * @return {Array.<Position>} an array of {@link Position}
- */
 function toCoords(arrayLatLng, closeRing) {
-
 	var ring = map(arrayLatLng, toCoord$1);
-
 	if (closeRing === true) {
 		var last_coord = ring.pop();
 		if (last_coord[0] === ring[0][0] && last_coord[1] === ring[0][1]) {
@@ -4397,17 +2193,12 @@ function toCoords(arrayLatLng, closeRing) {
 	return ring;
 }
 
-/** Used to compose unicode character classes. */
-
-/** Used to compose unicode character classes. */
 var rsAstralRange$1 = '\\ud800-\\udfff';
 var rsComboMarksRange$1 = '\\u0300-\\u036f';
 var reComboHalfMarksRange$1 = '\\ufe20-\\ufe2f';
 var rsComboSymbolsRange$1 = '\\u20d0-\\u20ff';
 var rsComboRange$1 = rsComboMarksRange$1 + reComboHalfMarksRange$1 + rsComboSymbolsRange$1;
 var rsVarRange$1 = '\\ufe0e\\ufe0f';
-
-/** Used to compose unicode capture groups. */
 var rsAstral = '[' + rsAstralRange$1 + ']';
 var rsCombo = '[' + rsComboRange$1 + ']';
 var rsFitz = '\\ud83c[\\udffb-\\udfff]';
@@ -4416,48 +2207,12 @@ var rsNonAstral = '[^' + rsAstralRange$1 + ']';
 var rsRegional = '(?:\\ud83c[\\udde6-\\uddff]){2}';
 var rsSurrPair = '[\\ud800-\\udbff][\\udc00-\\udfff]';
 var rsZWJ$1 = '\\u200d';
-
-/** Used to compose unicode regexes. */
 var reOptMod = rsModifier + '?';
 var rsOptVar = '[' + rsVarRange$1 + ']?';
 var rsOptJoin = '(?:' + rsZWJ$1 + '(?:' + [rsNonAstral, rsRegional, rsSurrPair].join('|') + ')' + rsOptVar + reOptMod + ')*';
 var rsSymbol = '(?:' + [rsNonAstral + rsCombo + '?', rsCombo, rsRegional, rsSurrPair, rsAstral].join('|') + ')';
 
-/**
- * A specialized version of `_.reduce` for arrays without support for
- * iteratee shorthands.
- *
- * @private
- * @param {Array} [array] The array to iterate over.
- * @param {Function} iteratee The function invoked per iteration.
- * @param {*} [accumulator] The initial value.
- * @param {boolean} [initAccum] Specify using the first element of `array` as
- *  the initial value.
- * @returns {*} Returns the accumulated value.
- */
-
-/**
- * The base implementation of `_.reduce` and `_.reduceRight`, without support
- * for iteratee shorthands, which iterates over `collection` using `eachFunc`.
- *
- * @private
- * @param {Array|Object} collection The collection to iterate over.
- * @param {Function} iteratee The function invoked per iteration.
- * @param {*} accumulator The initial value.
- * @param {boolean} initAccum Specify using the first or last element of
- *  `collection` as the initial value.
- * @param {Function} eachFunc The function to iterate over `collection`.
- * @returns {*} Returns the accumulated value.
- */
-
-/**
- * Earth Radius used with the Harvesine formula and approximates using a spherical (non-ellipsoid) Earth.
- */
 var earthRadius = 6371008.8;
-
-/**
- * Unit of measurement factors using a spherical (non-ellipsoid) earth radius.
- */
 var factors = {
     meters: earthRadius,
     metres: earthRadius,
@@ -4476,35 +2231,7 @@ var factors = {
     degrees: earthRadius / 111325
 };
 
-/**
- * Units of measurement factors based on 1 meter.
- */
 
-
-/**
- * Area of measurement factors based on 1 square meter.
- */
-
-
-/**
- * Wraps a GeoJSON {@link Geometry} in a GeoJSON {@link Feature}.
- *
- * @name feature
- * @param {Geometry} geometry input geometry
- * @param {Object} [properties={}] an Object of key-value pairs to add as properties
- * @param {Array<number>} [bbox] BBox [west, south, east, north]
- * @param {string|number} [id] Identifier
- * @returns {Feature} a GeoJSON Feature
- * @example
- * var geometry = {
- *   "type": "Point",
- *   "coordinates": [110, 50]
- * };
- *
- * var feature = turf.feature(geometry);
- *
- * //=feature
- */
 function feature(geometry, properties, bbox, id) {
     if (geometry === undefined) throw new Error('geometry is required');
     if (properties && properties.constructor !== Object) throw new Error('properties must be an Object');
@@ -4513,7 +2240,6 @@ function feature(geometry, properties, bbox, id) {
         if (bbox.length !== 4) throw new Error('bbox must be an Array of 4 numbers');
     }
     if (id && ['string', 'number'].indexOf(typeof id === 'undefined' ? 'undefined' : _typeof(id)) === -1) throw new Error('id must be a number or a string');
-
     var feat = { type: 'Feature' };
     if (id) feat.id = id;
     if (bbox) feat.bbox = bbox;
@@ -4522,445 +2248,121 @@ function feature(geometry, properties, bbox, id) {
     return feat;
 }
 
-/**
- * Creates a GeoJSON {@link Geometry} from a Geometry string type & coordinates.
- * For GeometryCollection type use `helpers.geometryCollection`
- *
- * @name geometry
- * @param {string} type Geometry Type
- * @param {Array<number>} coordinates Coordinates
- * @param {Array<number>} [bbox] BBox [west, south, east, north]
- * @returns {Geometry} a GeoJSON Geometry
- * @example
- * var type = 'Point';
- * var coordinates = [110, 50];
- *
- * var geometry = turf.geometry(type, coordinates);
- *
- * //=geometry
- */
-
-
-/**
- * Takes coordinates and properties (optional) and returns a new {@link Point} feature.
- *
- * @name point
- * @param {Array<number>} coordinates longitude, latitude position (each in decimal degrees)
- * @param {Object} [properties={}] an Object of key-value pairs to add as properties
- * @param {Array<number>} [bbox] BBox [west, south, east, north]
- * @param {string|number} [id] Identifier
- * @returns {Feature<Point>} a Point feature
- * @example
- * var point = turf.point([-75.343, 39.984]);
- *
- * //=point
- */
 function point(coordinates, properties, bbox, id) {
     if (!coordinates) throw new Error('No coordinates passed');
     if (!Array.isArray(coordinates)) throw new Error('Coordinates must be an Array');
     if (coordinates.length < 2) throw new Error('Coordinates must be at least 2 numbers long');
     if (!isNumber(coordinates[0]) || !isNumber(coordinates[1])) throw new Error('Coordinates must contain numbers');
-
     return feature({
         type: 'Point',
         coordinates: coordinates
     }, properties, bbox, id);
 }
-
-/**
- * Takes an array of LinearRings and optionally an {@link Object} with properties and returns a {@link Polygon} feature.
- *
- * @name polygon
- * @param {Array<Array<Array<number>>>} coordinates an array of LinearRings
- * @param {Object} [properties={}] an Object of key-value pairs to add as properties
- * @param {Array<number>} [bbox] BBox [west, south, east, north]
- * @param {string|number} [id] Identifier
- * @returns {Feature<Polygon>} a Polygon feature
- * @throws {Error} throw an error if a LinearRing of the polygon has too few positions
- * or if a LinearRing of the Polygon does not have matching Positions at the beginning & end.
- * @example
- * var polygon = turf.polygon([[
- *   [-2.275543, 53.464547],
- *   [-2.275543, 53.489271],
- *   [-2.215118, 53.489271],
- *   [-2.215118, 53.464547],
- *   [-2.275543, 53.464547]
- * ]], { name: 'poly1', population: 400});
- *
- * //=polygon
- */
 function polygon(coordinates, properties, bbox, id) {
     if (!coordinates) throw new Error('No coordinates passed');
-
     for (var i = 0; i < coordinates.length; i++) {
         var ring = coordinates[i];
         if (ring.length < 4) {
             throw new Error('Each LinearRing of a Polygon must have 4 or more Positions.');
         }
         for (var j = 0; j < ring[ring.length - 1].length; j++) {
-            // Check if first point of Polygon contains two numbers
             if (i === 0 && j === 0 && !isNumber(ring[0][0]) || !isNumber(ring[0][1])) throw new Error('Coordinates must contain numbers');
             if (ring[ring.length - 1][j] !== ring[0][j]) {
                 throw new Error('First and last Position are not equivalent.');
             }
         }
     }
-
     return feature({
         type: 'Polygon',
         coordinates: coordinates
     }, properties, bbox, id);
 }
-
-/**
- * Creates a {@link LineString} based on a
- * coordinate array. Properties can be added optionally.
- *
- * @name lineString
- * @param {Array<Array<number>>} coordinates an array of Positions
- * @param {Object} [properties={}] an Object of key-value pairs to add as properties
- * @param {Array<number>} [bbox] BBox [west, south, east, north]
- * @param {string|number} [id] Identifier
- * @returns {Feature<LineString>} a LineString feature
- * @throws {Error} if no coordinates are passed
- * @example
- * var linestring1 = turf.lineString([
- *   [-21.964416, 64.148203],
- *   [-21.956176, 64.141316],
- *   [-21.93901, 64.135924],
- *   [-21.927337, 64.136673]
- * ]);
- * var linestring2 = turf.lineString([
- *   [-21.929054, 64.127985],
- *   [-21.912918, 64.134726],
- *   [-21.916007, 64.141016],
- *   [-21.930084, 64.14446]
- * ], {name: 'line 1', distance: 145});
- *
- * //=linestring1
- *
- * //=linestring2
- */
 function lineString(coordinates, properties, bbox, id) {
     if (!coordinates) throw new Error('No coordinates passed');
     if (coordinates.length < 2) throw new Error('Coordinates must be an array of two or more positions');
-    // Check if first point of LineString contains two numbers
     if (!isNumber(coordinates[0][1]) || !isNumber(coordinates[0][1])) throw new Error('Coordinates must contain numbers');
-
     return feature({
         type: 'LineString',
         coordinates: coordinates
     }, properties, bbox, id);
 }
-
-/**
- * Takes one or more {@link Feature|Features} and creates a {@link FeatureCollection}.
- *
- * @name featureCollection
- * @param {Feature[]} features input features
- * @param {Array<number>} [bbox] BBox [west, south, east, north]
- * @param {string|number} [id] Identifier
- * @returns {FeatureCollection} a FeatureCollection of input features
- * @example
- * var features = [
- *  turf.point([-75.343, 39.984], {name: 'Location A'}),
- *  turf.point([-75.833, 39.284], {name: 'Location B'}),
- *  turf.point([-75.534, 39.123], {name: 'Location C'})
- * ];
- *
- * var collection = turf.featureCollection(features);
- *
- * //=collection
- */
 function featureCollection(features, bbox, id) {
     if (!features) throw new Error('No features passed');
     if (!Array.isArray(features)) throw new Error('features must be an Array');
     if (bbox && bbox.length !== 4) throw new Error('bbox must be an Array of 4 numbers');
     if (id && ['string', 'number'].indexOf(typeof id === 'undefined' ? 'undefined' : _typeof(id)) === -1) throw new Error('id must be a number or a string');
-
     var fc = { type: 'FeatureCollection' };
     if (id) fc.id = id;
     if (bbox) fc.bbox = bbox;
     fc.features = features;
     return fc;
 }
-
-/**
- * Creates a {@link Feature<MultiLineString>} based on a
- * coordinate array. Properties can be added optionally.
- *
- * @name multiLineString
- * @param {Array<Array<Array<number>>>} coordinates an array of LineStrings
- * @param {Object} [properties={}] an Object of key-value pairs to add as properties
- * @param {Array<number>} [bbox] BBox [west, south, east, north]
- * @param {string|number} [id] Identifier
- * @returns {Feature<MultiLineString>} a MultiLineString feature
- * @throws {Error} if no coordinates are passed
- * @example
- * var multiLine = turf.multiLineString([[[0,0],[10,10]]]);
- *
- * //=multiLine
- */
 function multiLineString(coordinates, properties, bbox, id) {
     if (!coordinates) throw new Error('No coordinates passed');
-
     return feature({
         type: 'MultiLineString',
         coordinates: coordinates
     }, properties, bbox, id);
 }
 
-/**
- * Creates a {@link Feature<MultiPoint>} based on a
- * coordinate array. Properties can be added optionally.
- *
- * @name multiPoint
- * @param {Array<Array<number>>} coordinates an array of Positions
- * @param {Object} [properties={}] an Object of key-value pairs to add as properties
- * @param {Array<number>} [bbox] BBox [west, south, east, north]
- * @param {string|number} [id] Identifier
- * @returns {Feature<MultiPoint>} a MultiPoint feature
- * @throws {Error} if no coordinates are passed
- * @example
- * var multiPt = turf.multiPoint([[0,0],[10,10]]);
- *
- * //=multiPt
- */
 
-
-/**
- * Creates a {@link Feature<MultiPolygon>} based on a
- * coordinate array. Properties can be added optionally.
- *
- * @name multiPolygon
- * @param {Array<Array<Array<Array<number>>>>} coordinates an array of Polygons
- * @param {Object} [properties={}] an Object of key-value pairs to add as properties
- * @param {Array<number>} [bbox] BBox [west, south, east, north]
- * @param {string|number} [id] Identifier
- * @returns {Feature<MultiPolygon>} a multipolygon feature
- * @throws {Error} if no coordinates are passed
- * @example
- * var multiPoly = turf.multiPolygon([[[[0,0],[0,10],[10,10],[10,0],[0,0]]]]);
- *
- * //=multiPoly
- *
- */
-
-
-/**
- * Creates a {@link Feature<GeometryCollection>} based on a
- * coordinate array. Properties can be added optionally.
- *
- * @name geometryCollection
- * @param {Array<Geometry>} geometries an array of GeoJSON Geometries
- * @param {Object} [properties={}] an Object of key-value pairs to add as properties
- * @param {Array<number>} [bbox] BBox [west, south, east, north]
- * @param {string|number} [id] Identifier
- * @returns {Feature<GeometryCollection>} a GeoJSON GeometryCollection Feature
- * @example
- * var pt = {
- *     "type": "Point",
- *       "coordinates": [100, 0]
- *     };
- * var line = {
- *     "type": "LineString",
- *     "coordinates": [ [101, 0], [102, 1] ]
- *   };
- * var collection = turf.geometryCollection([pt, line]);
- *
- * //=collection
- */
 function geometryCollection(geometries, properties, bbox, id) {
     if (!geometries) throw new Error('geometries is required');
     if (!Array.isArray(geometries)) throw new Error('geometries must be an Array');
-
     return feature({
         type: 'GeometryCollection',
         geometries: geometries
     }, properties, bbox, id);
 }
 
-/**
- * Round number to precision
- *
- * @param {number} num Number
- * @param {number} [precision=0] Precision
- * @returns {number} rounded number
- * @example
- * turf.round(120.4321)
- * //=120
- *
- * turf.round(120.4321, 2)
- * //=120.43
- */
-
-
-/**
- * Convert a distance measurement (assuming a spherical Earth) from radians to a more friendly unit.
- * Valid units: miles, nauticalmiles, inches, yards, meters, metres, kilometers, centimeters, feet
- *
- * @name radiansToLength
- * @param {number} radians in radians across the sphere
- * @param {string} [units='kilometers'] can be degrees, radians, miles, or kilometers inches, yards, metres, meters, kilometres, kilometers.
- * @returns {number} distance
- */
 function radiansToLength(radians, units) {
     if (radians === undefined || radians === null) throw new Error('radians is required');
-
     if (units && typeof units !== 'string') throw new Error('units must be a string');
     var factor = factors[units || 'kilometers'];
     if (!factor) throw new Error(units + ' units is invalid');
     return radians * factor;
 }
-
-/**
- * Convert a distance measurement (assuming a spherical Earth) from a real-world unit into radians
- * Valid units: miles, nauticalmiles, inches, yards, meters, metres, kilometers, centimeters, feet
- *
- * @name lengthToRadians
- * @param {number} distance in real units
- * @param {string} [units='kilometers'] can be degrees, radians, miles, or kilometers inches, yards, metres, meters, kilometres, kilometers.
- * @returns {number} radians
- */
 function lengthToRadians(distance, units) {
     if (distance === undefined || distance === null) throw new Error('distance is required');
-
     if (units && typeof units !== 'string') throw new Error('units must be a string');
     var factor = factors[units || 'kilometers'];
     if (!factor) throw new Error(units + ' units is invalid');
     return distance / factor;
 }
 
-/**
- * Convert a distance measurement (assuming a spherical Earth) from a real-world unit into degrees
- * Valid units: miles, nauticalmiles, inches, yards, meters, metres, centimeters, kilometres, feet
- *
- * @name lengthToDegrees
- * @param {number} distance in real units
- * @param {string} [units='kilometers'] can be degrees, radians, miles, or kilometers inches, yards, metres, meters, kilometres, kilometers.
- * @returns {number} degrees
- */
 
-
-/**
- * Converts any bearing angle from the north line direction (positive clockwise)
- * and returns an angle between 0-360 degrees (positive clockwise), 0 being the north line
- *
- * @name bearingToAzimuth
- * @param {number} bearing angle, between -180 and +180 degrees
- * @returns {number} angle between 0 and 360 degrees
- */
-
-
-/**
- * Converts an angle in radians to degrees
- *
- * @name radiansToDegrees
- * @param {number} radians angle in radians
- * @returns {number} degrees between 0 and 360 degrees
- */
 function radiansToDegrees(radians) {
     if (radians === null || radians === undefined) throw new Error('radians is required');
-
     var degrees = radians % (2 * Math.PI);
     return degrees * 180 / Math.PI;
 }
-
-/**
- * Converts an angle in degrees to radians
- *
- * @name degreesToradians
- * @param {number} degrees angle between 0 and 360 degrees
- * @returns {number} angle in radians
- */
 function degreesToRadians(degrees) {
     if (degrees === null || degrees === undefined) throw new Error('degrees is required');
-
     var radians = degrees % 360;
     return radians * Math.PI / 180;
 }
 
-/**
- * Converts a length to the requested unit.
- * Valid units: miles, nauticalmiles, inches, yards, meters, metres, kilometers, centimeters, feet
- *
- * @param {number} length to be converted
- * @param {string} originalUnit of the length
- * @param {string} [finalUnit='kilometers'] returned unit
- * @returns {number} the converted length
- */
 
-
-/**
- * Converts a area to the requested unit.
- * Valid units: kilometers, kilometres, meters, metres, centimetres, millimeter, acre, mile, yard, foot, inch
- * @param {number} area to be converted
- * @param {string} [originalUnit='meters'] of the distance
- * @param {string} [finalUnit='kilometers'] returned unit
- * @returns {number} the converted distance
- */
-
-
-/**
- * isNumber
- *
- * @param {*} num Number to validate
- * @returns {boolean} true/false
- * @example
- * turf.isNumber(123)
- * //=true
- * turf.isNumber('foo')
- * //=false
- */
 function isNumber(num) {
     return !isNaN(num) && num !== null && !Array.isArray(num);
 }
-
-/**
- * isObject
- *
- * @param {*} input variable to validate
- * @returns {boolean} true/false
- * @example
- * turf.isObject({elevation: 10})
- * //=true
- * turf.isObject('foo')
- * //=false
- */
 function isObject$2(input) {
     return !!input && input.constructor === Object;
 }
 
-// Deprecated methods
-
 var debug = console.debug.bind(console, '%c turfHelper' + ':', "color:#00CC00;font-weight:bold;");
 var warn = console.debug.bind(console, '%c turfHelper' + ':', "color:orange;font-weight:bold;");
-
-/**
- * Transforma un array de gmaps.LatLng en un Feature.Polygon
- * @param  {Array.<google.maps.LatLng>} LatLngArray [description]
- * @return {Feature.<Polygon>}             [description]
- */
 function arrayToFeaturePolygon(LatLngArray) {
-
     var vertices = toCoords(LatLngArray, true);
-
     return {
         type: "Feature",
         properties: {},
         geometry: {
             type: "Polygon",
-
             coordinates: [vertices]
         }
     };
 }
-
-/**
- * Transforms a {@link google.maps.Marker} to a {@link Feature<Point>}
- * @param  {google.maps.Marker} marker  - marker object to transform
- * @return {Feature<Point>}    output Feature
- */
 function markerToFeaturePoint(marker) {
     if (!marker.getPosition || typeof marker.getPosition !== 'function') {
         throw new Error('input object does not have a getPosition method');
@@ -4974,15 +2376,8 @@ function markerToFeaturePoint(marker) {
             coordinates: [position.lng(), position.lat()]
         }
     };
-
     return Feature;
 }
-
-/**
- * [polylineToFeatureLinestring description]
- * @param  {Array.<google.maps.LatLng>|google.maps.Polyline} objeto array of positions or a google.maps.Polyline
- * @return {Feature.<LineString>}          [description]
- */
 function polylineToFeatureLinestring(objeto) {
     var vertices;
     if (objeto instanceof google.maps.Polyline) {
@@ -4990,31 +2385,20 @@ function polylineToFeatureLinestring(objeto) {
     } else {
         vertices = toCoords(objeto);
     }
-
     return lineString(vertices);
 }
-
-/**
- * Receives an object and returns a GeoJson Feature of type Polygon
- * @param  {google.maps.Polygon|Array.<google.maps.LatLng>|Feature.Polygon|Geometry} object object to transform into a Feature.Polygon
- * @return {Feature.Polygon}        [description]
- */
 function polygonToFeaturePolygon(object) {
     var ring, polygonFeature;
-
     if (object.type === 'Feature') {
         polygonFeature = object;
     } else if (object instanceof google.maps.Polygon) {
-
         object = object.getPath().getArray();
         ring = toCoords(object, true);
         polygonFeature = arrayToFeaturePolygon(ring);
     } else if (!!(object && object.constructor === Array)) {
-
         ring = toCoords(object, true);
         polygonFeature = arrayToFeaturePolygon(ring);
     } else if (object.geometry) {
-
         polygonFeature = {
             type: "Feature",
             properties: {},
@@ -5023,20 +2407,10 @@ function polygonToFeaturePolygon(object) {
     } else {
         throw new Error('object is not a Feature, google.maps.Polygon nor an array of google.maps.LatLng');
     }
-
     polygonFeature.properties = {};
-
     return polygonFeature;
 }
-
-/**
- * Transforma un array de gmaps.LatLng en un featurecollection geoJson
- * donde cada Feature es un punto del array de entrada
- * @param  {Array<google.maps.LatLng>|google.maps.MVCArray} latLngArray array de posiciones {@link google.maps.LatLng}
- * @return {FeatureCollection}             geojson FeatureCollection
- */
 function arrayToFeaturePoints(latLngArray) {
-
     var FeatureCollection = {
         "type": "FeatureCollection",
         "features": []
@@ -5051,47 +2425,11 @@ function arrayToFeaturePoints(latLngArray) {
         };
         FeatureCollection.features.push(Feature);
     });
-
     return FeatureCollection;
 }
 
-//http://en.wikipedia.org/wiki/Delaunay_triangulation
-//https://github.com/ironwallaby/delaunay
-/**
- * Takes a set of {@link Point|points} and creates a
- * [Triangulated Irregular Network](http://en.wikipedia.org/wiki/Triangulated_irregular_network),
- * or a TIN for short, returned as a collection of Polygons. These are often used
- * for developing elevation contour maps or stepped heat visualizations.
- *
- * If an optional z-value property is provided then it is added as properties called `a`, `b`,
- * and `c` representing its value at each of the points that represent the corners of the
- * triangle.
- *
- * @name tin
- * @param {FeatureCollection<Point>} points input points
- * @param {String} [z] name of the property from which to pull z values
- * This is optional: if not given, then there will be no extra data added to the derived triangles.
- * @returns {FeatureCollection<Polygon>} TIN output
- * @example
- * // generate some random point data
- * var points = turf.randomPoint(30, {bbox: [50, 30, 70, 50]});
- *
- * // add a random property to each point between 0 and 9
- * for (var i = 0; i < points.features.length; i++) {
- *   points.features[i].properties.z = ~~(Math.random() * 9);
- * }
- * var tin = turf.tin(points, 'z');
- *
- * //addToMap
- * var addToMap = [tin, points]
- * for (var i = 0; i < tin.features.length; i++) {
- *   var properties  = tin.features[i].properties;
- *   properties.fill = '#' + properties.a + properties.b + properties.c;
- * }
- */
 function tin(points, z) {
     if (points.type !== 'FeatureCollection') throw new Error('points must be a FeatureCollection');
-    //break down points
     var isPointZ = false;
     return featureCollection(triangulate(points.features.map(function (p) {
         var point$$1 = {
@@ -5106,14 +2444,10 @@ function tin(points, z) {
         }
         return point$$1;
     })).map(function (triangle) {
-
         var a = [triangle.a.x, triangle.a.y];
         var b = [triangle.b.x, triangle.b.y];
         var c = [triangle.c.x, triangle.c.y];
         var properties = {};
-
-        // Add z coordinates to triangle points if user passed
-        // them in that way otherwise add it as a property.
         if (isPointZ) {
             a.push(triangle.a.z);
             b.push(triangle.b.z);
@@ -5125,16 +2459,13 @@ function tin(points, z) {
                 c: triangle.c.z
             };
         }
-
         return polygon([[a, b, c, a]], properties);
     }));
 }
-
 function Triangle(a, b, c) {
     this.a = a;
     this.b = b;
     this.c = c;
-
     var A = b.x - a.x,
         B = b.y - a.y,
         C = c.x - a.x,
@@ -5144,20 +2475,15 @@ function Triangle(a, b, c) {
         G = 2 * (A * (c.y - b.y) - B * (c.x - b.x)),
         dx,
         dy;
-
-    // If the points of the triangle are collinear, then just find the
-    // extremes and use the midpoint as the center of the circumcircle.
     this.x = (D * E - B * F) / G;
     this.y = (A * F - C * E) / G;
     dx = this.x - a.x;
     dy = this.y - a.y;
     this.r = dx * dx + dy * dy;
 }
-
 function byX(a, b) {
     return b.x - a.x;
 }
-
 function dedup(edges) {
     var j = edges.length,
         a,
@@ -5165,7 +2491,6 @@ function dedup(edges) {
         i,
         m,
         n;
-
     outer: while (j) {
         b = edges[--j];
         a = edges[--j];
@@ -5182,38 +2507,20 @@ function dedup(edges) {
         }
     }
 }
-
 function triangulate(vertices) {
-    // Bail if there aren't enough vertices to form any triangles.
     if (vertices.length < 3) return [];
-
-    // Ensure the vertex array is in order of descending X coordinate
-    // (which is needed to ensure a subquadratic runtime), and then find
-    // the bounding box around the points.
     vertices.sort(byX);
-
     var i = vertices.length - 1,
         xmin = vertices[i].x,
         xmax = vertices[0].x,
         ymin = vertices[i].y,
         ymax = ymin,
         epsilon = 1e-12;
-
     var a, b, c, A, B, G;
-
     while (i--) {
         if (vertices[i].y < ymin) ymin = vertices[i].y;
         if (vertices[i].y > ymax) ymax = vertices[i].y;
     }
-
-    //Find a supertriangle, which is a triangle that surrounds all the
-    //vertices. This is used like something of a sentinel value to remove
-    //cases in the main algorithm, and is removed before we return any
-    // results.
-
-    // Once found, put it in the "open" list. (The "open" list is for
-    // triangles who may still need to be considered; the "closed" list is
-    // for triangles which do not.)
     var dx = xmax - xmin,
         dy = ymax - ymin,
         dmax = dx > dy ? dx : dy,
@@ -5235,46 +2542,28 @@ function triangulate(vertices) {
         closed = [],
         edges = [],
         j;
-
-    // Incrementally add each vertex to the mesh.
     i = vertices.length;
     while (i--) {
-        // For each open triangle, check to see if the current point is
-        // inside it's circumcircle. If it is, remove the triangle and add
-        // it's edges to an edge list.
         edges.length = 0;
         j = open.length;
         while (j--) {
-            // If this point is to the right of this triangle's circumcircle,
-            // then this triangle should never get checked again. Remove it
-            // from the open list, add it to the closed list, and skip.
             dx = vertices[i].x - open[j].x;
             if (dx > 0 && dx * dx > open[j].r) {
                 closed.push(open[j]);
                 open.splice(j, 1);
                 continue;
             }
-
-            // If not, skip this triangle.
             dy = vertices[i].y - open[j].y;
             if (dx * dx + dy * dy > open[j].r) continue;
-
-            // Remove the triangle and add it's edges to the edge list.
             edges.push(open[j].a, open[j].b, open[j].b, open[j].c, open[j].c, open[j].a);
             open.splice(j, 1);
         }
-
-        // Remove any doubled edges.
         dedup(edges);
-
-        // Add a new triangle for each edge.
         j = edges.length;
         while (j) {
             b = edges[--j];
             a = edges[--j];
             c = vertices[i];
-            // Avoid adding colinear triangles (which have error-prone
-            // circumcircles)
             A = b.x - a.x;
             B = b.y - a.y;
             G = 2 * (A * (c.y - b.y) - B * (c.x - b.x));
@@ -5283,32 +2572,15 @@ function triangulate(vertices) {
             }
         }
     }
-
-    // Copy any remaining open triangles to the closed list, and then
-    // remove any triangles that share a vertex with the supertriangle.
     Array.prototype.push.apply(closed, open);
-
     i = closed.length;
     while (i--) {
         if (closed[i].a.__sentinel || closed[i].b.__sentinel || closed[i].c.__sentinel) closed.splice(i, 1);
     }return closed;
 }
 
-/**
- * Returns a cloned copy of the passed GeoJSON Object, including possible 'Foreign Members'.
- * ~3-5x faster than the common JSON.parse + JSON.stringify combo method.
- *
- * @name clone
- * @param {GeoJSON} geojson GeoJSON Object
- * @returns {GeoJSON} cloned GeoJSON Object
- * @example
- * var line = turf.lineString([[-74, 40], [-78, 42], [-82, 35]], {color: 'red'});
- *
- * var lineCloned = turf.clone(line);
- */
 function clone(geojson) {
     if (!geojson) throw new Error('geojson is required');
-
     switch (geojson.type) {
         case 'Feature':
             return cloneFeature(geojson);
@@ -5326,17 +2598,8 @@ function clone(geojson) {
             throw new Error('unknown GeoJSON type');
     }
 }
-
-/**
- * Clone Feature
- *
- * @private
- * @param {Feature<any>} geojson GeoJSON Feature
- * @returns {Feature<any>} cloned Feature
- */
 function cloneFeature(geojson) {
     var cloned = { type: 'Feature' };
-    // Preserve Foreign Members
     Object.keys(geojson).forEach(function (key) {
         switch (key) {
             case 'type':
@@ -5347,47 +2610,26 @@ function cloneFeature(geojson) {
                 cloned[key] = geojson[key];
         }
     });
-    // Add properties & geometry last
     cloned.properties = cloneProperties(geojson.properties);
     cloned.geometry = cloneGeometry(geojson.geometry);
     return cloned;
 }
-
-/**
- * Clone Properties
- *
- * @private
- * @param {Object} properties GeoJSON Properties
- * @returns {Object} cloned Properties
- */
 function cloneProperties(properties) {
     var cloned = {};
     if (!properties) return cloned;
     Object.keys(properties).forEach(function (key) {
         var value = properties[key];
         if ((typeof value === 'undefined' ? 'undefined' : _typeof(value)) === 'object') {
-            // handle Array
             if (value.length) cloned[key] = value.map(function (item) {
                 return item;
             });
-            // handle Object
             cloned[key] = cloneProperties(value);
         } else cloned[key] = value;
     });
     return cloned;
 }
-
-/**
- * Clone Feature Collection
- *
- * @private
- * @param {FeatureCollection<any>} geojson GeoJSON Feature Collection
- * @returns {FeatureCollection<any>} cloned Feature Collection
- */
 function cloneFeatureCollection(geojson) {
     var cloned = { type: 'FeatureCollection' };
-
-    // Preserve Foreign Members
     Object.keys(geojson).forEach(function (key) {
         switch (key) {
             case 'type':
@@ -5397,24 +2639,14 @@ function cloneFeatureCollection(geojson) {
                 cloned[key] = geojson[key];
         }
     });
-    // Add features
     cloned.features = geojson.features.map(function (feature) {
         return cloneFeature(feature);
     });
     return cloned;
 }
-
-/**
- * Clone Geometry
- *
- * @private
- * @param {Geometry<any>} geometry GeoJSON Geometry
- * @returns {Geometry<any>} cloned Geometry
- */
 function cloneGeometry(geometry) {
     var geom = { type: geometry.type };
     if (geometry.bbox) geom.bbox = geometry.bbox;
-
     if (geometry.type === 'GeometryCollection') {
         geom.geometries = geometry.geometries.map(function (geom) {
             return cloneGeometry(geom);
@@ -5424,14 +2656,6 @@ function cloneGeometry(geometry) {
     geom.coordinates = deepSlice(geometry.coordinates);
     return geom;
 }
-
-/**
- * Deep Slice coordinates
- *
- * @private
- * @param {Coordinates} coords Coordinates
- * @returns {Coordinates} all coordinates sliced
- */
 function deepSlice(coords) {
     if (_typeof(coords[0]) !== 'object') {
         return coords.slice();
@@ -5441,207 +2665,53 @@ function deepSlice(coords) {
     });
 }
 
-/**
- * Unwrap a coordinate from a Point Feature, Geometry or a single coordinate.
- *
- * @name getCoord
- * @param {Array<number>|Geometry<Point>|Feature<Point>} obj Object
- * @returns {Array<number>} coordinates
- * @example
- * var pt = turf.point([10, 10]);
- *
- * var coord = turf.getCoord(pt);
- * //= [10, 10]
- */
 function getCoord(obj) {
     if (!obj) throw new Error('obj is required');
-
     var coordinates = getCoords(obj);
-
-    // getCoord() must contain at least two numbers (Point)
     if (coordinates.length > 1 && isNumber(coordinates[0]) && isNumber(coordinates[1])) {
         return coordinates;
     } else {
         throw new Error('Coordinate is not a valid Point');
     }
 }
-
-/**
- * Unwrap coordinates from a Feature, Geometry Object or an Array of numbers
- *
- * @name getCoords
- * @param {Array<number>|Geometry|Feature} obj Object
- * @returns {Array<number>} coordinates
- * @example
- * var poly = turf.polygon([[[119.32, -8.7], [119.55, -8.69], [119.51, -8.54], [119.32, -8.7]]]);
- *
- * var coord = turf.getCoords(poly);
- * //= [[[119.32, -8.7], [119.55, -8.69], [119.51, -8.54], [119.32, -8.7]]]
- */
 function getCoords(obj) {
     if (!obj) throw new Error('obj is required');
     var coordinates;
-
-    // Array of numbers
     if (obj.length) {
         coordinates = obj;
-
-        // Geometry Object
     } else if (obj.coordinates) {
         coordinates = obj.coordinates;
-
-        // Feature
     } else if (obj.geometry && obj.geometry.coordinates) {
         coordinates = obj.geometry.coordinates;
     }
-    // Checks if coordinates contains a number
     if (coordinates) {
         containsNumber(coordinates);
         return coordinates;
     }
     throw new Error('No valid coordinates');
 }
-
-/**
- * Checks if coordinates contains a number
- *
- * @name containsNumber
- * @param {Array<any>} coordinates GeoJSON Coordinates
- * @returns {boolean} true if Array contains a number
- */
 function containsNumber(coordinates) {
     if (coordinates.length > 1 && isNumber(coordinates[0]) && isNumber(coordinates[1])) {
         return true;
     }
-
     if (Array.isArray(coordinates[0]) && coordinates[0].length) {
         return containsNumber(coordinates[0]);
     }
     throw new Error('coordinates must only contain numbers');
 }
 
-/**
- * Enforce expectations about types of GeoJSON objects for Turf.
- *
- * @name geojsonType
- * @param {GeoJSON} value any GeoJSON object
- * @param {string} type expected GeoJSON type
- * @param {string} name name of calling function
- * @throws {Error} if value is not the expected type.
- */
 
 
-/**
- * Enforce expectations about types of {@link Feature} inputs for Turf.
- * Internally this uses {@link geojsonType} to judge geometry types.
- *
- * @name featureOf
- * @param {Feature} feature a feature with an expected geometry type
- * @param {string} type expected GeoJSON type
- * @param {string} name name of calling function
- * @throws {Error} error if value is not the expected type.
- */
 
 
-/**
- * Enforce expectations about types of {@link FeatureCollection} inputs for Turf.
- * Internally this uses {@link geojsonType} to judge geometry types.
- *
- * @name collectionOf
- * @param {FeatureCollection} featureCollection a FeatureCollection for which features will be judged
- * @param {string} type expected GeoJSON type
- * @param {string} name name of calling function
- * @throws {Error} if value is not the expected type.
- */
-
-
-/**
- * Get Geometry from Feature or Geometry Object
- *
- * @param {Feature|Geometry} geojson GeoJSON Feature or Geometry Object
- * @returns {Geometry|null} GeoJSON Geometry Object
- * @throws {Error} if geojson is not a Feature or Geometry Object
- * @example
- * var point = {
- *   "type": "Feature",
- *   "properties": {},
- *   "geometry": {
- *     "type": "Point",
- *     "coordinates": [110, 40]
- *   }
- * }
- * var geom = turf.getGeom(point)
- * //={"type": "Point", "coordinates": [110, 40]}
- */
-
-
-/**
- * Get Geometry Type from Feature or Geometry Object
- *
- * @throws {Error} **DEPRECATED** in v5.0.0 in favor of getType
- */
-
-
-/**
- * Get GeoJSON object's type, Geometry type is prioritize.
- *
- * @param {GeoJSON} geojson GeoJSON object
- * @param {string} [name] name of the variable to display in error message
- * @returns {string} GeoJSON type
- * @example
- * var point = {
- *   "type": "Feature",
- *   "properties": {},
- *   "geometry": {
- *     "type": "Point",
- *     "coordinates": [110, 40]
- *   }
- * }
- * var geom = turf.getType(point)
- * //="Point"
- */
 function getType(geojson, name) {
     if (!geojson) throw new Error((name || 'geojson') + ' is required');
-    // GeoJSON Feature & GeometryCollection
     if (geojson.geometry && geojson.geometry.type) return geojson.geometry.type;
-    // GeoJSON Geometry & FeatureCollection
     if (geojson.type) return geojson.type;
     throw new Error((name || 'geojson') + ' is invalid');
 }
 
-/**
- * Callback for coordEach
- *
- * @callback coordEachCallback
- * @param {Array<number>} currentCoord The current coordinate being processed.
- * @param {number} coordIndex The current index of the coordinate being processed.
- * Starts at index 0.
- * @param {number} featureIndex The current index of the feature being processed.
- * @param {number} featureSubIndex The current subIndex of the feature being processed.
- */
-
-/**
- * Iterate over coordinates in any GeoJSON object, similar to Array.forEach()
- *
- * @name coordEach
- * @param {(FeatureCollection|Feature|Geometry)} geojson any GeoJSON object
- * @param {Function} callback a method that takes (currentCoord, coordIndex, featureIndex, featureSubIndex)
- * @param {boolean} [excludeWrapCoord=false] whether or not to include the final coordinate of LinearRings that wraps the ring in its iteration.
- * @example
- * var features = turf.featureCollection([
- *   turf.point([26, 37], {"foo": "bar"}),
- *   turf.point([36, 53], {"hello": "world"})
- * ]);
- *
- * turf.coordEach(features, function (currentCoord, coordIndex, featureIndex, featureSubIndex) {
- *   //=currentCoord
- *   //=coordIndex
- *   //=featureIndex
- *   //=featureSubIndex
- * });
- */
 function coordEach(geojson, callback, excludeWrapCoord) {
-    // Handles null Geometry -- Skips this GeoJSON
     if (geojson === null) return;
     var featureIndex,
         geometryIndex,
@@ -5659,35 +2729,17 @@ function coordEach(geojson, callback, excludeWrapCoord) {
         isFeatureCollection = type === 'FeatureCollection',
         isFeature = type === 'Feature',
         stop = isFeatureCollection ? geojson.features.length : 1;
-
-    // This logic may look a little weird. The reason why it is that way
-    // is because it's trying to be fast. GeoJSON supports multiple kinds
-    // of objects at its root: FeatureCollection, Features, Geometries.
-    // This function has the responsibility of handling all of them, and that
-    // means that some of the `for` loops you see below actually just don't apply
-    // to certain inputs. For instance, if you give this just a
-    // Point geometry, then both loops are short-circuited and all we do
-    // is gradually rename the input until it's called 'geometry'.
-    //
-    // This also aims to allocate as few resources as possible: just a
-    // few numbers and booleans, rather than any temporary arrays as would
-    // be required with the normalization approach.
     for (featureIndex = 0; featureIndex < stop; featureIndex++) {
         geometryMaybeCollection = isFeatureCollection ? geojson.features[featureIndex].geometry : isFeature ? geojson.geometry : geojson;
         isGeometryCollection = geometryMaybeCollection ? geometryMaybeCollection.type === 'GeometryCollection' : false;
         stopG = isGeometryCollection ? geometryMaybeCollection.geometries.length : 1;
-
         for (geometryIndex = 0; geometryIndex < stopG; geometryIndex++) {
             var featureSubIndex = 0;
             geometry$$1 = isGeometryCollection ? geometryMaybeCollection.geometries[geometryIndex] : geometryMaybeCollection;
-
-            // Handles null Geometry -- Skips this geometry
             if (geometry$$1 === null) continue;
             coords = geometry$$1.coordinates;
             var geomType = geometry$$1.type;
-
             wrapShrink = excludeWrapCoord && (geomType === 'Polygon' || geomType === 'MultiPolygon') ? 1 : 0;
-
             switch (geomType) {
                 case null:
                     break;
@@ -5737,158 +2789,8 @@ function coordEach(geojson, callback, excludeWrapCoord) {
     }
 }
 
-/**
- * Callback for coordReduce
- *
- * The first time the callback function is called, the values provided as arguments depend
- * on whether the reduce method has an initialValue argument.
- *
- * If an initialValue is provided to the reduce method:
- *  - The previousValue argument is initialValue.
- *  - The currentValue argument is the value of the first element present in the array.
- *
- * If an initialValue is not provided:
- *  - The previousValue argument is the value of the first element present in the array.
- *  - The currentValue argument is the value of the second element present in the array.
- *
- * @callback coordReduceCallback
- * @param {*} previousValue The accumulated value previously returned in the last invocation
- * of the callback, or initialValue, if supplied.
- * @param {Array<number>} currentCoord The current coordinate being processed.
- * @param {number} coordIndex The current index of the coordinate being processed.
- * Starts at index 0, if an initialValue is provided, and at index 1 otherwise.
- * @param {number} featureIndex The current index of the feature being processed.
- * @param {number} featureSubIndex The current subIndex of the feature being processed.
- */
-
-/**
- * Reduce coordinates in any GeoJSON object, similar to Array.reduce()
- *
- * @name coordReduce
- * @param {FeatureCollection|Geometry|Feature} geojson any GeoJSON object
- * @param {Function} callback a method that takes (previousValue, currentCoord, coordIndex)
- * @param {*} [initialValue] Value to use as the first argument to the first call of the callback.
- * @param {boolean} [excludeWrapCoord=false] whether or not to include the final coordinate of LinearRings that wraps the ring in its iteration.
- * @returns {*} The value that results from the reduction.
- * @example
- * var features = turf.featureCollection([
- *   turf.point([26, 37], {"foo": "bar"}),
- *   turf.point([36, 53], {"hello": "world"})
- * ]);
- *
- * turf.coordReduce(features, function (previousValue, currentCoord, coordIndex, featureIndex, featureSubIndex) {
- *   //=previousValue
- *   //=currentCoord
- *   //=coordIndex
- *   //=featureIndex
- *   //=featureSubIndex
- *   return currentCoord;
- * });
- */
 
 
-/**
- * Callback for propEach
- *
- * @callback propEachCallback
- * @param {Object} currentProperties The current properties being processed.
- * @param {number} featureIndex The index of the current element being processed in the
- * array.Starts at index 0, if an initialValue is provided, and at index 1 otherwise.
- */
-
-/**
- * Iterate over properties in any GeoJSON object, similar to Array.forEach()
- *
- * @name propEach
- * @param {(FeatureCollection|Feature)} geojson any GeoJSON object
- * @param {Function} callback a method that takes (currentProperties, featureIndex)
- * @example
- * var features = turf.featureCollection([
- *     turf.point([26, 37], {foo: 'bar'}),
- *     turf.point([36, 53], {hello: 'world'})
- * ]);
- *
- * turf.propEach(features, function (currentProperties, featureIndex) {
- *   //=currentProperties
- *   //=featureIndex
- * });
- */
-
-
-/**
- * Callback for propReduce
- *
- * The first time the callback function is called, the values provided as arguments depend
- * on whether the reduce method has an initialValue argument.
- *
- * If an initialValue is provided to the reduce method:
- *  - The previousValue argument is initialValue.
- *  - The currentValue argument is the value of the first element present in the array.
- *
- * If an initialValue is not provided:
- *  - The previousValue argument is the value of the first element present in the array.
- *  - The currentValue argument is the value of the second element present in the array.
- *
- * @callback propReduceCallback
- * @param {*} previousValue The accumulated value previously returned in the last invocation
- * of the callback, or initialValue, if supplied.
- * @param {*} currentProperties The current properties being processed.
- * @param {number} featureIndex The index of the current element being processed in the
- * array.Starts at index 0, if an initialValue is provided, and at index 1 otherwise.
- */
-
-/**
- * Reduce properties in any GeoJSON object into a single value,
- * similar to how Array.reduce works. However, in this case we lazily run
- * the reduction, so an array of all properties is unnecessary.
- *
- * @name propReduce
- * @param {(FeatureCollection|Feature)} geojson any GeoJSON object
- * @param {Function} callback a method that takes (previousValue, currentProperties, featureIndex)
- * @param {*} [initialValue] Value to use as the first argument to the first call of the callback.
- * @returns {*} The value that results from the reduction.
- * @example
- * var features = turf.featureCollection([
- *     turf.point([26, 37], {foo: 'bar'}),
- *     turf.point([36, 53], {hello: 'world'})
- * ]);
- *
- * turf.propReduce(features, function (previousValue, currentProperties, featureIndex) {
- *   //=previousValue
- *   //=currentProperties
- *   //=featureIndex
- *   return currentProperties
- * });
- */
-
-
-/**
- * Callback for featureEach
- *
- * @callback featureEachCallback
- * @param {Feature<any>} currentFeature The current feature being processed.
- * @param {number} featureIndex The index of the current element being processed in the
- * array.Starts at index 0, if an initialValue is provided, and at index 1 otherwise.
- */
-
-/**
- * Iterate over features in any GeoJSON object, similar to
- * Array.forEach.
- *
- * @name featureEach
- * @param {(FeatureCollection|Feature|Geometry)} geojson any GeoJSON object
- * @param {Function} callback a method that takes (currentFeature, featureIndex)
- * @example
- * var features = turf.featureCollection([
- *   turf.point([26, 37], {foo: 'bar'}),
- *   turf.point([36, 53], {hello: 'world'})
- * ]);
- *
- * turf.featureEach(features, function (currentFeature, featureIndex) {
- *   //=currentFeature
- *   //=featureIndex
- * });
- */
 function featureEach(geojson, callback) {
     if (geojson.type === 'Feature') {
         callback(geojson, 0);
@@ -5899,98 +2801,7 @@ function featureEach(geojson, callback) {
     }
 }
 
-/**
- * Callback for featureReduce
- *
- * The first time the callback function is called, the values provided as arguments depend
- * on whether the reduce method has an initialValue argument.
- *
- * If an initialValue is provided to the reduce method:
- *  - The previousValue argument is initialValue.
- *  - The currentValue argument is the value of the first element present in the array.
- *
- * If an initialValue is not provided:
- *  - The previousValue argument is the value of the first element present in the array.
- *  - The currentValue argument is the value of the second element present in the array.
- *
- * @callback featureReduceCallback
- * @param {*} previousValue The accumulated value previously returned in the last invocation
- * of the callback, or initialValue, if supplied.
- * @param {Feature} currentFeature The current Feature being processed.
- * @param {number} featureIndex The index of the current element being processed in the
- * array.Starts at index 0, if an initialValue is provided, and at index 1 otherwise.
- */
 
-/**
- * Reduce features in any GeoJSON object, similar to Array.reduce().
- *
- * @name featureReduce
- * @param {(FeatureCollection|Feature|Geometry)} geojson any GeoJSON object
- * @param {Function} callback a method that takes (previousValue, currentFeature, featureIndex)
- * @param {*} [initialValue] Value to use as the first argument to the first call of the callback.
- * @returns {*} The value that results from the reduction.
- * @example
- * var features = turf.featureCollection([
- *   turf.point([26, 37], {"foo": "bar"}),
- *   turf.point([36, 53], {"hello": "world"})
- * ]);
- *
- * turf.featureReduce(features, function (previousValue, currentFeature, featureIndex) {
- *   //=previousValue
- *   //=currentFeature
- *   //=featureIndex
- *   return currentFeature
- * });
- */
-
-
-/**
- * Get all coordinates from any GeoJSON object.
- *
- * @name coordAll
- * @param {(FeatureCollection|Feature|Geometry)} geojson any GeoJSON object
- * @returns {Array<Array<number>>} coordinate position array
- * @example
- * var features = turf.featureCollection([
- *   turf.point([26, 37], {foo: 'bar'}),
- *   turf.point([36, 53], {hello: 'world'})
- * ]);
- *
- * var coords = turf.coordAll(features);
- * //= [[26, 37], [36, 53]]
- */
-
-
-/**
- * Callback for geomEach
- *
- * @callback geomEachCallback
- * @param {Geometry} currentGeometry The current geometry being processed.
- * @param {number} featureIndex The index of the current element being processed in the
- * array. Starts at index 0, if an initialValue is provided, and at index 1 otherwise.
- * @param {Object} featureProperties The current feature properties being processed.
- * @param {Array<number>} featureBBox The current feature BBox being processed.
- * @param {number|string} featureId The current feature Id being processed.
- */
-
-/**
- * Iterate over each geometry in any GeoJSON object, similar to Array.forEach()
- *
- * @name geomEach
- * @param {(FeatureCollection|Feature|Geometry)} geojson any GeoJSON object
- * @param {Function} callback a method that takes (currentGeometry, featureIndex, currentProperties)
- * @example
- * var features = turf.featureCollection([
- *     turf.point([26, 37], {foo: 'bar'}),
- *     turf.point([36, 53], {hello: 'world'})
- * ]);
- *
- * turf.geomEach(features, function (currentGeometry, featureIndex, currentProperties) {
- *   //=currentGeometry
- *   //=featureIndex
- *   //=currentProperties
- * });
- */
 function geomEach(geojson, callback) {
     var i,
         j,
@@ -6006,32 +2817,15 @@ function geomEach(geojson, callback) {
         isFeatureCollection = geojson.type === 'FeatureCollection',
         isFeature = geojson.type === 'Feature',
         stop = isFeatureCollection ? geojson.features.length : 1;
-
-    // This logic may look a little weird. The reason why it is that way
-    // is because it's trying to be fast. GeoJSON supports multiple kinds
-    // of objects at its root: FeatureCollection, Features, Geometries.
-    // This function has the responsibility of handling all of them, and that
-    // means that some of the `for` loops you see below actually just don't apply
-    // to certain inputs. For instance, if you give this just a
-    // Point geometry, then both loops are short-circuited and all we do
-    // is gradually rename the input until it's called 'geometry'.
-    //
-    // This also aims to allocate as few resources as possible: just a
-    // few numbers and booleans, rather than any temporary arrays as would
-    // be required with the normalization approach.
     for (i = 0; i < stop; i++) {
-
         geometryMaybeCollection = isFeatureCollection ? geojson.features[i].geometry : isFeature ? geojson.geometry : geojson;
         featureProperties = isFeatureCollection ? geojson.features[i].properties : isFeature ? geojson.properties : {};
         featureBBox = isFeatureCollection ? geojson.features[i].bbox : isFeature ? geojson.bbox : undefined;
         featureId = isFeatureCollection ? geojson.features[i].id : isFeature ? geojson.id : undefined;
         isGeometryCollection = geometryMaybeCollection ? geometryMaybeCollection.type === 'GeometryCollection' : false;
         stopG = isGeometryCollection ? geometryMaybeCollection.geometries.length : 1;
-
         for (g = 0; g < stopG; g++) {
             geometry$$1 = isGeometryCollection ? geometryMaybeCollection.geometries[g] : geometryMaybeCollection;
-
-            // Handle null Geometry
             if (geometry$$1 === null) {
                 callback(null, featureIndex, featureProperties, featureBBox, featureId);
                 continue;
@@ -6058,56 +2852,9 @@ function geomEach(geojson, callback) {
                     throw new Error('Unknown Geometry Type');
             }
         }
-        // Only increase `featureIndex` per each feature
         featureIndex++;
     }
 }
-
-/**
- * Callback for geomReduce
- *
- * The first time the callback function is called, the values provided as arguments depend
- * on whether the reduce method has an initialValue argument.
- *
- * If an initialValue is provided to the reduce method:
- *  - The previousValue argument is initialValue.
- *  - The currentValue argument is the value of the first element present in the array.
- *
- * If an initialValue is not provided:
- *  - The previousValue argument is the value of the first element present in the array.
- *  - The currentValue argument is the value of the second element present in the array.
- *
- * @callback geomReduceCallback
- * @param {*} previousValue The accumulated value previously returned in the last invocation
- * of the callback, or initialValue, if supplied.
- * @param {Geometry} currentGeometry The current Feature being processed.
- * @param {number} currentIndex The index of the current element being processed in the
- * array.Starts at index 0, if an initialValue is provided, and at index 1 otherwise.
- * @param {Object} currentProperties The current feature properties being processed.
- */
-
-/**
- * Reduce geometry in any GeoJSON object, similar to Array.reduce().
- *
- * @name geomReduce
- * @param {(FeatureCollection|Feature|Geometry)} geojson any GeoJSON object
- * @param {Function} callback a method that takes (previousValue, currentGeometry, featureIndex, currentProperties)
- * @param {*} [initialValue] Value to use as the first argument to the first call of the callback.
- * @returns {*} The value that results from the reduction.
- * @example
- * var features = turf.featureCollection([
- *     turf.point([26, 37], {foo: 'bar'}),
- *     turf.point([36, 53], {hello: 'world'})
- * ]);
- *
- * turf.geomReduce(features, function (previousValue, currentGeometry, featureIndex, currentProperties) {
- *   //=previousValue
- *   //=currentGeometry
- *   //=featureIndex
- *   //=currentProperties
- *   return currentGeometry
- * });
- */
 function geomReduce(geojson, callback, initialValue) {
     var previousValue = initialValue;
     geomEach(geojson, function (currentGeometry, currentIndex, currentProperties) {
@@ -6115,40 +2862,8 @@ function geomReduce(geojson, callback, initialValue) {
     });
     return previousValue;
 }
-
-/**
- * Callback for flattenEach
- *
- * @callback flattenEachCallback
- * @param {Feature} currentFeature The current flattened feature being processed.
- * @param {number} featureIndex The index of the current element being processed in the
- * array. Starts at index 0, if an initialValue is provided, and at index 1 otherwise.
- * @param {number} featureSubIndex The subindex of the current element being processed in the
- * array. Starts at index 0 and increases if the flattened feature was a multi-geometry.
- */
-
-/**
- * Iterate over flattened features in any GeoJSON object, similar to
- * Array.forEach.
- *
- * @name flattenEach
- * @param {(FeatureCollection|Feature|Geometry)} geojson any GeoJSON object
- * @param {Function} callback a method that takes (currentFeature, featureIndex, featureSubIndex)
- * @example
- * var features = turf.featureCollection([
- *     turf.point([26, 37], {foo: 'bar'}),
- *     turf.multiPoint([[40, 30], [36, 53]], {hello: 'world'})
- * ]);
- *
- * turf.flattenEach(features, function (currentFeature, featureIndex, featureSubIndex) {
- *   //=currentFeature
- *   //=featureIndex
- *   //=featureSubIndex
- * });
- */
 function flattenEach(geojson, callback) {
     geomEach(geojson, function (geometry$$1, featureIndex, properties, bbox, id) {
-        // Callback for single geometry
         var type = geometry$$1 === null ? null : geometry$$1.type;
         switch (type) {
             case null:
@@ -6158,10 +2873,7 @@ function flattenEach(geojson, callback) {
                 callback(feature(geometry$$1, properties, bbox, id), featureIndex, 0);
                 return;
         }
-
         var geomType;
-
-        // Callback for multi-geometry
         switch (type) {
             case 'MultiPoint':
                 geomType = 'Point';
@@ -6173,7 +2885,6 @@ function flattenEach(geojson, callback) {
                 geomType = 'Polygon';
                 break;
         }
-
         geometry$$1.coordinates.forEach(function (coordinate, featureSubIndex) {
             var geom = {
                 type: geomType,
@@ -6184,178 +2895,10 @@ function flattenEach(geojson, callback) {
     });
 }
 
-/**
- * Callback for flattenReduce
- *
- * The first time the callback function is called, the values provided as arguments depend
- * on whether the reduce method has an initialValue argument.
- *
- * If an initialValue is provided to the reduce method:
- *  - The previousValue argument is initialValue.
- *  - The currentValue argument is the value of the first element present in the array.
- *
- * If an initialValue is not provided:
- *  - The previousValue argument is the value of the first element present in the array.
- *  - The currentValue argument is the value of the second element present in the array.
- *
- * @callback flattenReduceCallback
- * @param {*} previousValue The accumulated value previously returned in the last invocation
- * of the callback, or initialValue, if supplied.
- * @param {Feature} currentFeature The current Feature being processed.
- * @param {number} featureIndex The index of the current element being processed in the
- * array.Starts at index 0, if an initialValue is provided, and at index 1 otherwise.
- * @param {number} featureSubIndex The subindex of the current element being processed in the
- * array. Starts at index 0 and increases if the flattened feature was a multi-geometry.
- */
-
-/**
- * Reduce flattened features in any GeoJSON object, similar to Array.reduce().
- *
- * @name flattenReduce
- * @param {(FeatureCollection|Feature|Geometry)} geojson any GeoJSON object
- * @param {Function} callback a method that takes (previousValue, currentFeature, featureIndex, featureSubIndex)
- * @param {*} [initialValue] Value to use as the first argument to the first call of the callback.
- * @returns {*} The value that results from the reduction.
- * @example
- * var features = turf.featureCollection([
- *     turf.point([26, 37], {foo: 'bar'}),
- *     turf.multiPoint([[40, 30], [36, 53]], {hello: 'world'})
- * ]);
- *
- * turf.flattenReduce(features, function (previousValue, currentFeature, featureIndex, featureSubIndex) {
- *   //=previousValue
- *   //=currentFeature
- *   //=featureIndex
- *   //=featureSubIndex
- *   return currentFeature
- * });
- */
 
 
-/**
- * Callback for segmentEach
- *
- * @callback segmentEachCallback
- * @param {Feature<LineString>} currentSegment The current segment being processed.
- * @param {number} featureIndex The featureIndex currently being processed, starts at index 0.
- * @param {number} featureSubIndex The featureSubIndex currently being processed, starts at index 0.
- * @param {number} segmentIndex The segmentIndex currently being processed, starts at index 0.
- * @returns {void}
- */
-
-/**
- * Iterate over 2-vertex line segment in any GeoJSON object, similar to Array.forEach()
- * (Multi)Point geometries do not contain segments therefore they are ignored during this operation.
- *
- * @param {(FeatureCollection|Feature|Geometry)} geojson any GeoJSON
- * @param {Function} callback a method that takes (currentSegment, featureIndex, featureSubIndex)
- * @returns {void}
- * @example
- * var polygon = turf.polygon([[[-50, 5], [-40, -10], [-50, -10], [-40, 5], [-50, 5]]]);
- *
- * // Iterate over GeoJSON by 2-vertex segments
- * turf.segmentEach(polygon, function (currentSegment, featureIndex, featureSubIndex, segmentIndex) {
- *   //= currentSegment
- *   //= featureIndex
- *   //= featureSubIndex
- *   //= segmentIndex
- * });
- *
- * // Calculate the total number of segments
- * var total = 0;
- * turf.segmentEach(polygon, function () {
- *     total++;
- * });
- */
-
-
-/**
- * Callback for segmentReduce
- *
- * The first time the callback function is called, the values provided as arguments depend
- * on whether the reduce method has an initialValue argument.
- *
- * If an initialValue is provided to the reduce method:
- *  - The previousValue argument is initialValue.
- *  - The currentValue argument is the value of the first element present in the array.
- *
- * If an initialValue is not provided:
- *  - The previousValue argument is the value of the first element present in the array.
- *  - The currentValue argument is the value of the second element present in the array.
- *
- * @callback segmentReduceCallback
- * @param {*} [previousValue] The accumulated value previously returned in the last invocation
- * of the callback, or initialValue, if supplied.
- * @param {Feature<LineString>} [currentSegment] The current segment being processed.
- * @param {number} featureIndex The featureIndex currently being processed, starts at index 0.
- * @param {number} featureSubIndex The featureSubIndex currently being processed, starts at index 0.
- * @param {number} segmentIndex The segmentIndex currently being processed, starts at index 0.
- */
-
-/**
- * Reduce 2-vertex line segment in any GeoJSON object, similar to Array.reduce()
- * (Multi)Point geometries do not contain segments therefore they are ignored during this operation.
- *
- * @param {(FeatureCollection|Feature|Geometry)} geojson any GeoJSON
- * @param {Function} callback a method that takes (previousValue, currentSegment, currentIndex)
- * @param {*} [initialValue] Value to use as the first argument to the first call of the callback.
- * @returns {void}
- * @example
- * var polygon = turf.polygon([[[-50, 5], [-40, -10], [-50, -10], [-40, 5], [-50, 5]]]);
- *
- * // Iterate over GeoJSON by 2-vertex segments
- * turf.segmentReduce(polygon, function (previousSegment, currentSegment, featureIndex, featureSubIndex, segmentIndex) {
- *   //= previousSegment
- *   //= currentSegment
- *   //= featureIndex
- *   //= featureSubIndex
- *   //= segmentInex
- *   return currentSegment
- * });
- *
- * // Calculate the total number of segments
- * var initialValue = 0
- * var total = turf.segmentReduce(polygon, function (previousValue) {
- *     previousValue++;
- *     return previousValue;
- * }, initialValue);
- */
-
-
-/**
- * Callback for lineEach
- *
- * @callback lineEachCallback
- * @param {Feature<LineString>} currentLine The current LineString|LinearRing being processed.
- * @param {number} featureIndex The feature index of the current element being processed in the array, starts at index 0.
- * @param {number} featureSubIndex The feature sub-index of the current line being processed at index 0
- * @param {number} lineIndex The current line being processed at index 0
- */
-
-/**
- * Iterate over line or ring coordinates in LineString, Polygon, MultiLineString, MultiPolygon Features or Geometries,
- * similar to Array.forEach.
- *
- * @name lineEach
- * @param {Geometry|Feature<LineString|Polygon|MultiLineString|MultiPolygon>} geojson object
- * @param {Function} callback a method that takes (currentLine, featureIndex, featureSubIndex, lineIndex)
- * @example
- * var multiLine = turf.multiLineString([
- *   [[26, 37], [35, 45]],
- *   [[36, 53], [38, 50], [41, 55]]
- * ]);
- *
- * turf.lineEach(multiLine, function (currentLine, featureIndex, featureSubIndex, lineIndex) {
- *   //=currentLine
- *   //=featureIndex
- *   //=featureSubIndex
- *   //=lineIndex
- * });
- */
 function lineEach(geojson, callback) {
-    // validation
     if (!geojson) throw new Error('geojson is required');
-
     flattenEach(geojson, function (feature$$1, featureIndex, featureSubIndex) {
         if (feature$$1.geometry === null) return;
         var type = feature$$1.geometry.type;
@@ -6372,53 +2915,6 @@ function lineEach(geojson, callback) {
         }
     });
 }
-
-/**
- * Callback for lineReduce
- *
- * The first time the callback function is called, the values provided as arguments depend
- * on whether the reduce method has an initialValue argument.
- *
- * If an initialValue is provided to the reduce method:
- *  - The previousValue argument is initialValue.
- *  - The currentValue argument is the value of the first element present in the array.
- *
- * If an initialValue is not provided:
- *  - The previousValue argument is the value of the first element present in the array.
- *  - The currentValue argument is the value of the second element present in the array.
- *
- * @callback lineReduceCallback
- * @param {*} previousValue The accumulated value previously returned in the last invocation
- * of the callback, or initialValue, if supplied.
- * @param {Feature<LineString>} currentLine The current LineString|LinearRing being processed.
- * @param {number} featureIndex The feature index of the current element being processed in the array, starts at index 0.
- * @param {number} featureSubIndex The feature sub-index of the current line being processed at index 0
- * @param {number} lineIndex The current line being processed at index 0
- */
-
-/**
- * Reduce features in any GeoJSON object, similar to Array.reduce().
- *
- * @name lineReduce
- * @param {Geometry|Feature<LineString|Polygon|MultiLineString|MultiPolygon>} geojson object
- * @param {Function} callback a method that takes (previousValue, currentFeature, featureIndex)
- * @param {*} [initialValue] Value to use as the first argument to the first call of the callback.
- * @returns {*} The value that results from the reduction.
- * @example
- * var mtp = turf.multiPolygon([
- *   turf.polygon([[[12,48],[2,41],[24,38],[12,48]], [[9,44],[13,41],[13,45],[9,44]]]),
- *   turf.polygon([[[5, 5], [0, 0], [2, 2], [4, 4], [5, 5]]])
- * ]);
- *
- * turf.lineReduce(mtp, function (previousValue, currentLine, featureIndex, featureSubIndex, lineIndex) {
- *   //=previousValue
- *   //=currentLine
- *   //=featureIndex
- *   //=featureSubIndex
- *   //=lineIndex
- *   return currentLine
- * }, 2);
- */
 function lineReduce(geojson, callback, initialValue) {
     var previousValue = initialValue;
     lineEach(geojson, function (currentLine, featureIndex, featureSubIndex, lineIndex) {
@@ -6427,82 +2923,41 @@ function lineReduce(geojson, callback, initialValue) {
     return previousValue;
 }
 
-/**
- * Merges all connected (non-forking, non-junctioning) line strings into single lineStrings.
- * [LineString] -> LineString|MultiLineString
- *
- * @param {FeatureCollection<LineString|MultiLineString>} geojson Lines to dissolve
- * @param {Object} [options={}] Optional parameters
- * @param {boolean} [options.mutate=false] Prevent input mutation
- * @returns {Feature<LineString|MultiLineString>} Dissolved lines
- */
 function lineDissolve(geojson, options) {
-    // Optional parameters
     options = options || {};
     if (!isObject$2(options)) throw new Error('options is invalid');
     var mutate = options.mutate;
-
-    // Validation
     if (getType(geojson) !== 'FeatureCollection') throw new Error('geojson must be a FeatureCollection');
     if (!geojson.features.length) throw new Error('geojson is empty');
-
-    // Clone geojson to avoid side effects
     if (mutate === false || mutate === undefined) geojson = clone(geojson);
-
     var result = [];
     var lastLine = lineReduce(geojson, function (previousLine, currentLine) {
-        // Attempt to merge this LineString with the other LineStrings, updating
-        // the reference as it is merged with others and grows.
         var merged = mergeLineStrings(previousLine, currentLine);
-
-        // Accumulate the merged LineString
         if (merged) return merged;
-
-        // Put the unmerged LineString back into the list
         else {
                 result.push(previousLine);
                 return currentLine;
             }
     });
-    // Append the last line
     if (lastLine) result.push(lastLine);
-
-    // Return null if no lines were dissolved
     if (!result.length) return null;
-    // Return LineString if only 1 line was dissolved
     else if (result.length === 1) return result[0];
-        // Return MultiLineString if multiple lines were dissolved with gaps
         else return multiLineString(result.map(function (line) {
                 return line.coordinates;
             }));
 }
-
-// [Number, Number] -> String
 function coordId(coord) {
     return coord[0].toString() + ',' + coord[1].toString();
 }
-
-/**
- * LineString, LineString -> LineString
- *
- * @private
- * @param {Feature<LineString>} a line1
- * @param {Feature<LineString>} b line2
- * @returns {Feature<LineString>|null} Merged LineString
- */
 function mergeLineStrings(a, b) {
     var coords1 = a.geometry.coordinates;
     var coords2 = b.geometry.coordinates;
-
     var s1 = coordId(coords1[0]);
     var e1 = coordId(coords1[coords1.length - 1]);
     var s2 = coordId(coords2[0]);
     var e2 = coordId(coords2[coords2.length - 1]);
-
-    // TODO: handle case where more than one of these is true!
     var coords;
     if (s1 === e2) coords = coords2.concat(coords1.slice(1));else if (s2 === e1) coords = coords1.concat(coords2.slice(1));else if (s1 === s2) coords = coords1.slice(1).reverse().concat(coords2);else if (e1 === e2) coords = coords1.concat(coords2.reverse().slice(1));else return null;
-
     return lineString(coords);
 }
 
@@ -6543,7 +2998,6 @@ var reverse = function (array, n) {
 function object(topology, o) {
   var transformPoint = transform(topology.transform),
       arcs = topology.arcs;
-
   function arc(i, points) {
     if (points.length) points.pop();
     for (var a = arcs[i < 0 ? ~i : i], k = 0, n = a.length; k < n; ++k) {
@@ -6551,31 +3005,26 @@ function object(topology, o) {
     }
     if (i < 0) reverse(points, n);
   }
-
   function point(p) {
     return transformPoint(p);
   }
-
   function line(arcs) {
     var points = [];
     for (var i = 0, n = arcs.length; i < n; ++i) {
       arc(arcs[i], points);
-    }if (points.length < 2) points.push(points[0]); // This should never happen per the specification.
+    }if (points.length < 2) points.push(points[0]);
     return points;
   }
-
   function ring(arcs) {
     var points = line(arcs);
     while (points.length < 4) {
       points.push(points[0]);
-    } // This may happen if an arc has only two points.
+    }
     return points;
   }
-
   function polygon(arcs) {
     return arcs.map(ring);
   }
-
   function geometry(o) {
     var type = o.type,
         coordinates;
@@ -6599,7 +3048,6 @@ function object(topology, o) {
     }
     return { type: type, coordinates: coordinates };
   }
-
   return geometry(o);
 }
 
@@ -6609,8 +3057,6 @@ var stitch = function (topology, arcs) {
       fragmentByEnd = {},
       fragments = [],
       emptyIndex = -1;
-
-  // Stitch empty arcs first, since they may be subsumed by other arcs.
   arcs.forEach(function (i, j) {
     var arc = topology.arcs[i < 0 ? ~i : i],
         t;
@@ -6618,14 +3064,12 @@ var stitch = function (topology, arcs) {
       t = arcs[++emptyIndex], arcs[emptyIndex] = i, arcs[j] = t;
     }
   });
-
   arcs.forEach(function (i) {
     var e = ends(i),
         start = e[0],
         end = e[1],
         f,
         g;
-
     if (f = fragmentByEnd[start]) {
       delete fragmentByEnd[f.end];
       f.push(i);
@@ -6653,7 +3097,6 @@ var stitch = function (topology, arcs) {
       fragmentByStart[f.start = start] = fragmentByEnd[f.end = end] = f;
     }
   });
-
   function ends(i) {
     var arc = topology.arcs[i < 0 ? ~i : i],
         p0 = arc[0],
@@ -6663,7 +3106,6 @@ var stitch = function (topology, arcs) {
     });else p1 = arc[arc.length - 1];
     return i < 0 ? [p1, p0] : [p0, p1];
   }
-
   function flush(fragmentByEnd, fragmentByStart) {
     for (var k in fragmentByEnd) {
       var f = fragmentByEnd[k];
@@ -6676,13 +3118,11 @@ var stitch = function (topology, arcs) {
       fragments.push(f);
     }
   }
-
   flush(fragmentByEnd, fragmentByStart);
   flush(fragmentByStart, fragmentByEnd);
   arcs.forEach(function (i) {
     if (!stitchedArcs[i < 0 ? ~i : i]) fragments.push([i]);
   });
-
   return fragments;
 };
 
@@ -6694,20 +3134,16 @@ function planarRingArea(ring) {
       area = 0;
   while (++i < n) {
     a = b, b = ring[i], area += a[0] * b[1] - a[1] * b[0];
-  }return Math.abs(area); // Note: doubled area!
+  }return Math.abs(area);
 }
-
 var merge = function (topology) {
   return object(topology, mergeArcs.apply(this, arguments));
 };
-
 function mergeArcs(topology, objects) {
   var polygonsByArc = {},
       polygons = [],
       groups = [];
-
   objects.forEach(geometry);
-
   function geometry(o) {
     switch (o.type) {
       case "GeometryCollection":
@@ -6718,7 +3154,6 @@ function mergeArcs(topology, objects) {
         o.arcs.forEach(extract);break;
     }
   }
-
   function extract(polygon) {
     polygon.forEach(function (ring) {
       ring.forEach(function (arc) {
@@ -6727,11 +3162,9 @@ function mergeArcs(topology, objects) {
     });
     polygons.push(polygon);
   }
-
   function area(ring) {
     return planarRingArea(object(topology, { type: "Polygon", arcs: [ring] }).coordinates[0]);
   }
-
   polygons.forEach(function (polygon) {
     if (!polygon._) {
       var group = [],
@@ -6753,18 +3186,14 @@ function mergeArcs(topology, objects) {
       }
     }
   });
-
   polygons.forEach(function (polygon) {
     delete polygon._;
   });
-
   return {
     type: "MultiPolygon",
     arcs: groups.map(function (polygons) {
       var arcs = [],
           n;
-
-      // Extract the exterior (unique) arcs.
       polygons.forEach(function (polygon) {
         polygon.forEach(function (ring) {
           ring.forEach(function (arc) {
@@ -6774,13 +3203,7 @@ function mergeArcs(topology, objects) {
           });
         });
       });
-
-      // Stitch the arcs into one or more rings.
       arcs = stitch(topology, arcs);
-
-      // If more than one ring is returned,
-      // at most one of these rings can be the exterior;
-      // choose the one with the greatest absolute area.
       if ((n = arcs.length) > 1) {
         for (var i = 1, k = area(arcs[0]), ki, t; i < n; ++i) {
           if ((ki = area(arcs[i])) > k) {
@@ -6788,23 +3211,19 @@ function mergeArcs(topology, objects) {
           }
         }
       }
-
       return arcs;
     })
   };
 }
 
-// Computes the bounding box of the specified hash of GeoJSON objects.
 var bounds = function (objects) {
   var x0 = Infinity,
       y0 = Infinity,
       x1 = -Infinity,
       y1 = -Infinity;
-
   function boundGeometry(geometry) {
     if (geometry != null && boundGeometryType.hasOwnProperty(geometry.type)) boundGeometryType[geometry.type](geometry);
   }
-
   var boundGeometryType = {
     GeometryCollection: function GeometryCollection(o) {
       o.geometries.forEach(boundGeometry);
@@ -6828,7 +3247,6 @@ var bounds = function (objects) {
       o.arcs.forEach(boundMultiLine);
     }
   };
-
   function boundPoint(coordinates) {
     var x = coordinates[0],
         y = coordinates[1];
@@ -6837,19 +3255,15 @@ var bounds = function (objects) {
     if (y < y0) y0 = y;
     if (y > y1) y1 = y;
   }
-
   function boundLine(coordinates) {
     coordinates.forEach(boundPoint);
   }
-
   function boundMultiLine(coordinates) {
     coordinates.forEach(boundLine);
   }
-
   for (var key in objects) {
     boundGeometry(objects[key]);
   }
-
   return x1 >= x0 && y1 >= y0 ? [x0, y0, x1, y1] : undefined;
 };
 
@@ -6858,14 +3272,11 @@ var hashset = function (size, hash, equal, type, empty) {
     type = Array;
     empty = null;
   }
-
   var store = new type(size = 1 << Math.max(4, Math.ceil(Math.log(size) / Math.LN2))),
       mask = size - 1;
-
   for (var i = 0; i < size; ++i) {
     store[i] = empty;
   }
-
   function add(value) {
     var index = hash(value) & mask,
         match = store[index],
@@ -6878,7 +3289,6 @@ var hashset = function (size, hash, equal, type, empty) {
     store[index] = value;
     return true;
   }
-
   function has(value) {
     var index = hash(value) & mask,
         match = store[index],
@@ -6890,7 +3300,6 @@ var hashset = function (size, hash, equal, type, empty) {
     }
     return false;
   }
-
   function values() {
     var values = [];
     for (var i = 0, n = store.length; i < n; ++i) {
@@ -6899,7 +3308,6 @@ var hashset = function (size, hash, equal, type, empty) {
     }
     return values;
   }
-
   return {
     add: add,
     has: has,
@@ -6912,15 +3320,12 @@ var hashmap = function (size, hash, equal, keyType, keyEmpty, valueType) {
     keyType = valueType = Array;
     keyEmpty = null;
   }
-
   var keystore = new keyType(size = 1 << Math.max(4, Math.ceil(Math.log(size) / Math.LN2))),
       valstore = new valueType(size),
       mask = size - 1;
-
   for (var i = 0; i < size; ++i) {
     keystore[i] = keyEmpty;
   }
-
   function set(key, value) {
     var index = hash(key) & mask,
         matchKey = keystore[index],
@@ -6934,7 +3339,6 @@ var hashmap = function (size, hash, equal, keyType, keyEmpty, valueType) {
     valstore[index] = value;
     return value;
   }
-
   function maybeSet(key, value) {
     var index = hash(key) & mask,
         matchKey = keystore[index],
@@ -6948,7 +3352,6 @@ var hashmap = function (size, hash, equal, keyType, keyEmpty, valueType) {
     valstore[index] = value;
     return value;
   }
-
   function get(key, missingValue) {
     var index = hash(key) & mask,
         matchKey = keystore[index],
@@ -6960,7 +3363,6 @@ var hashmap = function (size, hash, equal, keyType, keyEmpty, valueType) {
     }
     return missingValue;
   }
-
   function keys() {
     var keys = [];
     for (var i = 0, n = keystore.length; i < n; ++i) {
@@ -6969,10 +3371,9 @@ var hashmap = function (size, hash, equal, keyType, keyEmpty, valueType) {
     }
     return keys;
   }
-
   return {
     set: set,
-    maybeSet: maybeSet, // set if unset
+    maybeSet: maybeSet,
     get: get,
     keys: keys
   };
@@ -6982,12 +3383,9 @@ var equalPoint = function (pointA, pointB) {
   return pointA[0] === pointB[0] && pointA[1] === pointB[1];
 };
 
-// TODO if quantized, use simpler Int32 hashing?
-
 var buffer = new ArrayBuffer(16);
 var floats = new Float64Array(buffer);
 var uints = new Uint32Array(buffer);
-
 var hashPoint = function (point) {
   floats[0] = point[0];
   floats[1] = point[1];
@@ -6996,20 +3394,6 @@ var hashPoint = function (point) {
   return hash & 0x7fffffff;
 };
 
-// Given an extracted (pre-)topology, identifies all of the junctions. These are
-// the points at which arcs (lines or rings) will need to be cut so that each
-// arc is represented uniquely.
-//
-// A junction is a point where at least one arc deviates from another arc going
-// through the same point. For example, consider the point B. If there is a arc
-// through ABC and another arc through CBA, then B is not a junction because in
-// both cases the adjacent point pairs are {A,C}. However, if there is an
-// additional arc ABD, then {A,D} != {A,C}, and thus B becomes a junction.
-//
-// For a closed ring ABCA, the first point A’s adjacent points are the second
-// and last point {B,C}. For a line, the first and last point are always
-// considered junctions, even if the line is closed; this ensures that a closed
-// line is never rotated.
 var join = function (topology) {
   var coordinates = topology.coordinates,
       lines = topology.lines,
@@ -7020,34 +3404,29 @@ var join = function (topology) {
       rightByIndex = new Int32Array(coordinates.length),
       junctionByIndex = new Int8Array(coordinates.length),
       junctionCount = 0,
-      // upper bound on number of junctions
   i,
       n,
       previousIndex,
       currentIndex,
       nextIndex;
-
   for (i = 0, n = coordinates.length; i < n; ++i) {
     visitedByIndex[i] = leftByIndex[i] = rightByIndex[i] = -1;
   }
-
   for (i = 0, n = lines.length; i < n; ++i) {
     var line = lines[i],
         lineStart = line[0],
         lineEnd = line[1];
     currentIndex = indexes[lineStart];
     nextIndex = indexes[++lineStart];
-    ++junctionCount, junctionByIndex[currentIndex] = 1; // start
+    ++junctionCount, junctionByIndex[currentIndex] = 1;
     while (++lineStart <= lineEnd) {
       sequence(i, previousIndex = currentIndex, currentIndex = nextIndex, nextIndex = indexes[lineStart]);
     }
-    ++junctionCount, junctionByIndex[nextIndex] = 1; // end
+    ++junctionCount, junctionByIndex[nextIndex] = 1;
   }
-
   for (i = 0, n = coordinates.length; i < n; ++i) {
     visitedByIndex[i] = -1;
   }
-
   for (i = 0, n = rings.length; i < n; ++i) {
     var ring = rings[i],
         ringStart = ring[0] + 1,
@@ -7060,9 +3439,8 @@ var join = function (topology) {
       sequence(i, previousIndex = currentIndex, currentIndex = nextIndex, nextIndex = indexes[ringStart]);
     }
   }
-
   function sequence(i, previousIndex, currentIndex, nextIndex) {
-    if (visitedByIndex[currentIndex] === i) return; // ignore self-intersection
+    if (visitedByIndex[currentIndex] === i) return;
     visitedByIndex[currentIndex] = i;
     var leftIndex = leftByIndex[currentIndex];
     if (leftIndex >= 0) {
@@ -7075,44 +3453,31 @@ var join = function (topology) {
       rightByIndex[currentIndex] = nextIndex;
     }
   }
-
   function index() {
     var indexByPoint = hashmap(coordinates.length * 1.4, hashIndex, equalIndex, Int32Array, -1, Int32Array),
         indexes = new Int32Array(coordinates.length);
-
     for (var i = 0, n = coordinates.length; i < n; ++i) {
       indexes[i] = indexByPoint.maybeSet(i, i);
     }
-
     return indexes;
   }
-
   function hashIndex(i) {
     return hashPoint(coordinates[i]);
   }
-
   function equalIndex(i, j) {
     return equalPoint(coordinates[i], coordinates[j]);
   }
-
   visitedByIndex = leftByIndex = rightByIndex = null;
-
   var junctionByPoint = hashset(junctionCount * 1.4, hashPoint, equalPoint),
       j;
-
-  // Convert back to a standard hashset by point for caller convenience.
   for (i = 0, n = coordinates.length; i < n; ++i) {
     if (junctionByIndex[j = indexes[i]]) {
       junctionByPoint.add(coordinates[j]);
     }
   }
-
   return junctionByPoint;
 };
 
-// Given an extracted (pre-)topology, cuts (or rotates) arcs so that all shared
-// point sequences are identified. The topology can then be subsequently deduped
-// to remove exact duplicate arcs.
 var cut = function (topology) {
   var junctions = join(topology),
       coordinates = topology.coordinates,
@@ -7121,7 +3486,6 @@ var cut = function (topology) {
       next,
       i,
       n;
-
   for (i = 0, n = lines.length; i < n; ++i) {
     var line = lines[i],
         lineMid = line[0],
@@ -7134,7 +3498,6 @@ var cut = function (topology) {
       }
     }
   }
-
   for (i = 0, n = rings.length; i < n; ++i) {
     var ring = rings[i],
         ringStart = ring[0],
@@ -7148,32 +3511,27 @@ var cut = function (topology) {
           ring[1] = ringMid;
           ring = ring.next = next;
         } else {
-          // For the first junction, we can rotate rather than cut.
           rotateArray(coordinates, ringStart, ringEnd, ringEnd - ringMid);
           coordinates[ringEnd] = coordinates[ringStart];
           ringFixed = true;
-          ringMid = ringStart; // restart; we may have skipped junctions
+          ringMid = ringStart;
         }
       }
     }
   }
-
   return topology;
 };
-
 function rotateArray(array, start, end, offset) {
   reverse$1(array, start, end);
   reverse$1(array, start, start + offset);
   reverse$1(array, start + offset, end);
 }
-
 function reverse$1(array, start, end) {
   for (var mid = start + (end-- - start >> 1), t; start < mid; ++start, --end) {
     t = array[start], array[start] = array[end], array[end] = t;
   }
 }
 
-// Given a cut topology, combines duplicate arcs.
 var dedup$1 = function (topology) {
   var coordinates = topology.coordinates,
       lines = topology.lines,
@@ -7183,11 +3541,8 @@ var dedup$1 = function (topology) {
       arcCount = lines.length + rings.length,
       i,
       n;
-
   delete topology.lines;
   delete topology.rings;
-
-  // Count the number of (non-unique) arcs to initialize the hashmap safely.
   for (i = 0, n = lines.length; i < n; ++i) {
     line = lines[i];while (line = line.next) {
       ++arcCount;
@@ -7198,21 +3553,17 @@ var dedup$1 = function (topology) {
       ++arcCount;
     }
   }
-
   var arcsByEnd = hashmap(arcCount * 2 * 1.4, hashPoint, equalPoint),
       arcs = topology.arcs = [];
-
   for (i = 0, n = lines.length; i < n; ++i) {
     line = lines[i];
     do {
       dedupLine(line);
     } while (line = line.next);
   }
-
   for (i = 0, n = rings.length; i < n; ++i) {
     ring = rings[i];
     if (ring.next) {
-      // arc is no longer closed
       do {
         dedupLine(ring);
       } while (ring = ring.next);
@@ -7220,11 +3571,8 @@ var dedup$1 = function (topology) {
       dedupRing(ring);
     }
   }
-
   function dedupLine(arc) {
     var startPoint, endPoint, startArcs, startArc, endArcs, endArc, i, n;
-
-    // Does this arc match an existing arc in order?
     if (startArcs = arcsByEnd.get(startPoint = coordinates[arc[0]])) {
       for (i = 0, n = startArcs.length; i < n; ++i) {
         startArc = startArcs[i];
@@ -7235,8 +3583,6 @@ var dedup$1 = function (topology) {
         }
       }
     }
-
-    // Does this arc match an existing arc in reverse order?
     if (endArcs = arcsByEnd.get(endPoint = coordinates[arc[1]])) {
       for (i = 0, n = endArcs.length; i < n; ++i) {
         endArc = endArcs[i];
@@ -7247,17 +3593,12 @@ var dedup$1 = function (topology) {
         }
       }
     }
-
     if (startArcs) startArcs.push(arc);else arcsByEnd.set(startPoint, [arc]);
     if (endArcs) endArcs.push(arc);else arcsByEnd.set(endPoint, [arc]);
     arcs.push(arc);
   }
-
   function dedupRing(arc) {
     var endPoint, endArcs, endArc, i, n;
-
-    // Does this arc match an existing line in order, or reverse order?
-    // Rings are closed, so their start point and end point is the same.
     if (endArcs = arcsByEnd.get(endPoint = coordinates[arc[0]])) {
       for (i = 0, n = endArcs.length; i < n; ++i) {
         endArc = endArcs[i];
@@ -7273,8 +3614,6 @@ var dedup$1 = function (topology) {
         }
       }
     }
-
-    // Otherwise, does this arc match an existing ring in order, or reverse order?
     if (endArcs = arcsByEnd.get(endPoint = coordinates[arc[0] + findMinimumOffset(arc)])) {
       for (i = 0, n = endArcs.length; i < n; ++i) {
         endArc = endArcs[i];
@@ -7290,11 +3629,9 @@ var dedup$1 = function (topology) {
         }
       }
     }
-
     if (endArcs) endArcs.push(arc);else arcsByEnd.set(endPoint, [arc]);
     arcs.push(arc);
   }
-
   function equalLine(arcA, arcB) {
     var ia = arcA[0],
         ib = arcB[0],
@@ -7305,7 +3642,6 @@ var dedup$1 = function (topology) {
       if (!equalPoint(coordinates[ia], coordinates[ib])) return false;
     }return true;
   }
-
   function reverseEqualLine(arcA, arcB) {
     var ia = arcA[0],
         ib = arcB[0],
@@ -7316,7 +3652,6 @@ var dedup$1 = function (topology) {
       if (!equalPoint(coordinates[ia], coordinates[jb])) return false;
     }return true;
   }
-
   function equalRing(arcA, arcB) {
     var ia = arcA[0],
         ib = arcB[0],
@@ -7331,7 +3666,6 @@ var dedup$1 = function (topology) {
     }
     return true;
   }
-
   function reverseEqualRing(arcA, arcB) {
     var ia = arcA[0],
         ib = arcB[0],
@@ -7346,9 +3680,6 @@ var dedup$1 = function (topology) {
     }
     return true;
   }
-
-  // Rings are rotated to a consistent, but arbitrary, start point.
-  // This is necessary to detect when a ring and a rotated copy are dupes.
   function findMinimumOffset(arc) {
     var start = arc[0],
         end = arc[1],
@@ -7364,17 +3695,12 @@ var dedup$1 = function (topology) {
     }
     return minimum - start;
   }
-
   return topology;
 };
 
-// Given an array of arcs in absolute (but already quantized!) coordinates,
-// converts to fixed-point delta encoding.
-// This is a destructive operation that modifies the given arcs!
 var delta = function (arcs) {
   var i = -1,
       n = arcs.length;
-
   while (++i < n) {
     var arc = arcs[i],
         j = 0,
@@ -7385,47 +3711,24 @@ var delta = function (arcs) {
         y0 = point[1],
         x1,
         y1;
-
     while (++j < m) {
       point = arc[j], x1 = point[0], y1 = point[1];
       if (x1 !== x0 || y1 !== y0) arc[k++] = [x1 - x0, y1 - y0], x0 = x1, y0 = y1;
     }
-
-    if (k === 1) arc[k++] = [0, 0]; // Each arc must be an array of two or more positions.
-
+    if (k === 1) arc[k++] = [0, 0];
     arc.length = k;
   }
-
   return arcs;
 };
 
-// Extracts the lines and rings from the specified hash of geometry objects.
-//
-// Returns an object with three properties:
-//
-// * coordinates - shared buffer of [x, y] coordinates
-// * lines - lines extracted from the hash, of the form [start, end]
-// * rings - rings extracted from the hash, of the form [start, end]
-//
-// For each ring or line, start and end represent inclusive indexes into the
-// coordinates buffer. For rings (and closed lines), coordinates[start] equals
-// coordinates[end].
-//
-// For each line or polygon geometry in the input hash, including nested
-// geometries as in geometry collections, the `coordinates` array is replaced
-// with an equivalent `arcs` array that, for each line (for line string
-// geometries) or ring (for polygon geometries), points to one of the above
-// lines or rings.
 var extract = function (objects) {
   var index = -1,
       lines = [],
       rings = [],
       coordinates = [];
-
   function extractGeometry(geometry) {
     if (geometry && extractGeometryType.hasOwnProperty(geometry.type)) extractGeometryType[geometry.type](geometry);
   }
-
   var extractGeometryType = {
     GeometryCollection: function GeometryCollection(o) {
       o.geometries.forEach(extractGeometry);
@@ -7443,7 +3746,6 @@ var extract = function (objects) {
       o.arcs = o.arcs.map(extractMultiRing);
     }
   };
-
   function extractLine(line) {
     for (var i = 0, n = line.length; i < n; ++i) {
       coordinates[++index] = line[i];
@@ -7451,7 +3753,6 @@ var extract = function (objects) {
     lines.push(arc);
     return arc;
   }
-
   function extractRing(ring) {
     for (var i = 0, n = ring.length; i < n; ++i) {
       coordinates[++index] = ring[i];
@@ -7459,15 +3760,12 @@ var extract = function (objects) {
     rings.push(arc);
     return arc;
   }
-
   function extractMultiRing(rings) {
     return rings.map(extractRing);
   }
-
   for (var key in objects) {
     extractGeometry(objects[key]);
   }
-
   return {
     type: "Topology",
     coordinates: coordinates,
@@ -7477,10 +3775,6 @@ var extract = function (objects) {
   };
 };
 
-// Given a hash of GeoJSON objects, returns a hash of GeoJSON geometry objects.
-// Any null input geometry objects are represented as {type: null} in the output.
-// Any feature.{id,properties,bbox} are transferred to the output geometry object.
-// Each output geometry object is a shallow copy of the input (e.g., properties, coordinates)!
 var geometry$1 = function (inputs) {
   var outputs = {},
       key;
@@ -7488,20 +3782,17 @@ var geometry$1 = function (inputs) {
     outputs[key] = geomifyObject(inputs[key]);
   }return outputs;
 };
-
 function geomifyObject(input) {
   return input == null ? { type: null } : (input.type === "FeatureCollection" ? geomifyFeatureCollection : input.type === "Feature" ? geomifyFeature : geomifyGeometry)(input);
 }
-
 function geomifyFeatureCollection(input) {
   var output = { type: "GeometryCollection", geometries: input.features.map(geomifyFeature) };
   if (input.bbox != null) output.bbox = input.bbox;
   return output;
 }
-
 function geomifyFeature(input) {
   var output = geomifyGeometry(input.geometry),
-      key; // eslint-disable-line no-unused-vars
+      key;
   if (input.id != null) output.id = input.id;
   if (input.bbox != null) output.bbox = input.bbox;
   for (key in input.properties) {
@@ -7509,10 +3800,9 @@ function geomifyFeature(input) {
   }
   return output;
 }
-
 function geomifyGeometry(input) {
   if (input == null) return { type: null };
-  var output = input.type === "GeometryCollection" ? { type: "GeometryCollection", geometries: input.geometries.map(geomifyGeometry) } : input.type === "Point" || input.type === "MultiPoint" ? { type: input.type, coordinates: input.coordinates } : { type: input.type, arcs: input.coordinates }; // TODO Check for unknown types?
+  var output = input.type === "GeometryCollection" ? { type: "GeometryCollection", geometries: input.geometries.map(geomifyGeometry) } : input.type === "Point" || input.type === "MultiPoint" ? { type: input.type, coordinates: input.coordinates } : { type: input.type, arcs: input.coordinates };
   if (input.bbox != null) output.bbox = input.bbox;
   return output;
 }
@@ -7524,52 +3814,42 @@ var prequantize = function (objects, bbox, n) {
       y1 = bbox[3],
       kx = x1 - x0 ? (n - 1) / (x1 - x0) : 1,
       ky = y1 - y0 ? (n - 1) / (y1 - y0) : 1;
-
   function quantizePoint(input) {
     return [Math.round((input[0] - x0) * kx), Math.round((input[1] - y0) * ky)];
   }
-
   function quantizePoints(input, m) {
     var i = -1,
         j = 0,
         n = input.length,
         output = new Array(n),
-        // pessimistic
     pi,
         px,
         py,
         x,
         y;
-
     while (++i < n) {
       pi = input[i];
       x = Math.round((pi[0] - x0) * kx);
       y = Math.round((pi[1] - y0) * ky);
-      if (x !== px || y !== py) output[j++] = [px = x, py = y]; // non-coincident points
+      if (x !== px || y !== py) output[j++] = [px = x, py = y];
     }
-
     output.length = j;
     while (j < m) {
       j = output.push([output[0][0], output[0][1]]);
     }return output;
   }
-
   function quantizeLine(input) {
     return quantizePoints(input, 2);
   }
-
   function quantizeRing(input) {
     return quantizePoints(input, 4);
   }
-
   function quantizePolygon(input) {
     return input.map(quantizeRing);
   }
-
   function quantizeGeometry(o) {
     if (o != null && quantizeGeometryType.hasOwnProperty(o.type)) quantizeGeometryType[o.type](o);
   }
-
   var quantizeGeometryType = {
     GeometryCollection: function GeometryCollection(o) {
       o.geometries.forEach(quantizeGeometry);
@@ -7593,41 +3873,32 @@ var prequantize = function (objects, bbox, n) {
       o.arcs = o.arcs.map(quantizePolygon);
     }
   };
-
   for (var key in objects) {
     quantizeGeometry(objects[key]);
   }
-
   return {
     scale: [1 / kx, 1 / ky],
     translate: [x0, y0]
   };
 };
 
-// Constructs the TopoJSON Topology for the specified hash of features.
-// Each object in the specified hash must be a GeoJSON object,
-// meaning FeatureCollection, a Feature or a geometry object.
 var topology = function (objects, quantization) {
   var bbox = bounds(objects = geometry$1(objects)),
       transform = quantization > 0 && bbox && prequantize(objects, bbox, quantization),
       topology = dedup$1(cut(extract(objects))),
       coordinates = topology.coordinates,
       indexByArc = hashmap(topology.arcs.length * 1.4, hashArc, equalArc);
-
-  objects = topology.objects; // for garbage collection
+  objects = topology.objects;
   topology.bbox = bbox;
   topology.arcs = topology.arcs.map(function (arc, i) {
     indexByArc.set(arc, i);
     return coordinates.slice(arc[0], arc[1] + 1);
   });
-
   delete topology.coordinates;
   coordinates = null;
-
   function indexGeometry(geometry) {
     if (geometry && indexGeometryType.hasOwnProperty(geometry.type)) indexGeometryType[geometry.type](geometry);
   }
-
   var indexGeometryType = {
     GeometryCollection: function GeometryCollection(o) {
       o.geometries.forEach(indexGeometry);
@@ -7645,7 +3916,6 @@ var topology = function (objects, quantization) {
       o.arcs = o.arcs.map(indexMultiArcs);
     }
   };
-
   function indexArcs(arc) {
     var indexes = [];
     do {
@@ -7654,23 +3924,18 @@ var topology = function (objects, quantization) {
     } while (arc = arc.next);
     return indexes;
   }
-
   function indexMultiArcs(arcs) {
     return arcs.map(indexArcs);
   }
-
   for (var key in objects) {
     indexGeometry(objects[key]);
   }
-
   if (transform) {
     topology.transform = transform;
     topology.arcs = delta(topology.arcs);
   }
-
   return topology;
 };
-
 function hashArc(arc) {
   var i = arc[0],
       j = arc[1],
@@ -7678,7 +3943,6 @@ function hashArc(arc) {
   if (j < i) t = i, i = j, j = t;
   return i + 31 * j;
 }
-
 function equalArc(arcA, arcB) {
   var ia = arcA[0],
       ja = arcA[1],
@@ -7690,28 +3954,13 @@ function equalArc(arcA, arcB) {
   return ia === ib && ja === jb;
 }
 
-/**
- * Dissolves all overlapping (Multi)Polygon
- *
- * @param {FeatureCollection<Polygon|MultiPolygon>} geojson Polygons to dissolve
- * @param {Object} [options={}] Optional parameters
- * @param {boolean} [options.mutate=false] Prevent input mutation
- * @returns {Feature<Polygon|MultiPolygon>} Dissolved Polygons
- */
 function polygonDissolve(geojson, options) {
-    // Optional parameters
     options = options || {};
     if (!isObject$2(options)) throw new Error('options is invalid');
     var mutate = options.mutate;
-
-    // Validation
     if (getType(geojson) !== 'FeatureCollection') throw new Error('geojson must be a FeatureCollection');
     if (!geojson.features.length) throw new Error('geojson is empty');
-
-    // Clone geojson to avoid side effects
-    // Topojson modifies in place, so we need to deep clone first
     if (mutate === false || mutate === undefined) geojson = clone(geojson);
-
     var geoms = [];
     flattenEach(geojson, function (feature$$1) {
         geoms.push(feature$$1.geometry);
@@ -7720,34 +3969,15 @@ function polygonDissolve(geojson, options) {
     return merge(topo, topo.objects.geoms.geometries);
 }
 
-/**
- * Transform function: attempts to dissolve geojson objects where possible
- * [GeoJSON] -> GeoJSON geometry
- *
- * @private
- * @param {FeatureCollection<LineString|MultiLineString|Polygon|MultiPolygon>} geojson Features to dissolved
- * @param {Object} [options={}] Optional parameters
- * @param {boolean} [options.mutate=false] Prevent input mutation
- * @returns {Feature<MultiLineString|MultiPolygon>} Dissolved Features
- */
 function dissolve(geojson, options) {
-    // Optional parameters
     options = options || {};
     if (!isObject$2(options)) throw new Error('options is invalid');
     var mutate = options.mutate;
-
-    // Validation
     if (getType(geojson) !== 'FeatureCollection') throw new Error('geojson must be a FeatureCollection');
     if (!geojson.features.length) throw new Error('geojson is empty');
-
-    // Clone geojson to avoid side effects
-    // Topojson modifies in place, so we need to deep clone first
     if (mutate === false || mutate === undefined) geojson = clone(geojson);
-
-    // Assert homogenity
     var type = getHomogenousType(geojson);
     if (!type) throw new Error('geojson must be homogenous');
-
     switch (type) {
         case 'LineString':
             return lineDissolve(geojson, options);
@@ -7757,14 +3987,6 @@ function dissolve(geojson, options) {
             throw new Error(type + ' is not supported');
     }
 }
-
-/**
- * Checks if GeoJSON is Homogenous
- *
- * @private
- * @param {GeoJSON} geojson GeoJSON
- * @returns {string|null} Homogenous type or null if multiple types
- */
 function getHomogenousType(geojson) {
     var types = {};
     flattenEach(geojson, function (feature$$1) {
@@ -7775,92 +3997,28 @@ function getHomogenousType(geojson) {
     return null;
 }
 
-//http://en.wikipedia.org/wiki/Haversine_formula
-//http://www.movable-type.co.uk/scripts/latlong.html
-
-/**
- * Calculates the distance between two {@link Point|points} in degrees, radians,
- * miles, or kilometers. This uses the
- * [Haversine formula](http://en.wikipedia.org/wiki/Haversine_formula)
- * to account for global curvature.
- *
- * @name distance
- * @param {Coord} from origin point
- * @param {Coord} to destination point
- * @param {Object} [options={}] Optional parameters
- * @param {string} [options.units='kilometers'] can be degrees, radians, miles, or kilometers
- * @returns {number} distance between the two points
- * @example
- * var from = turf.point([-75.343, 39.984]);
- * var to = turf.point([-75.534, 39.123]);
- * var options = {units: 'miles'};
- *
- * var distance = turf.distance(from, to, options);
- *
- * //addToMap
- * var addToMap = [from, to];
- * from.properties.distance = distance;
- * to.properties.distance = distance;
- */
 function distance(from, to, options) {
-  // Optional parameters
   options = options || {};
   if (!isObject$2(options)) throw new Error('options is invalid');
   var units = options.units;
-
   var coordinates1 = getCoord(from);
   var coordinates2 = getCoord(to);
   var dLat = degreesToRadians(coordinates2[1] - coordinates1[1]);
   var dLon = degreesToRadians(coordinates2[0] - coordinates1[0]);
   var lat1 = degreesToRadians(coordinates1[1]);
   var lat2 = degreesToRadians(coordinates2[1]);
-
   var a = Math.pow(Math.sin(dLat / 2), 2) + Math.pow(Math.sin(dLon / 2), 2) * Math.cos(lat1) * Math.cos(lat2);
-
   return radiansToLength(2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)), units);
 }
 
-/**
- * Takes a set of {@link Point|points} and returns a concave hull Polygon or MultiPolygon.
- * Internally, this uses [turf-tin](https://github.com/Turfjs/turf-tin) to generate geometries.
- *
- * @name concave
- * @param {FeatureCollection<Point>} points input points
- * @param {Object} [options={}] Optional parameters
- * @param {number} [options.maxEdge=Infinity] the length (in 'units') of an edge necessary for part of the hull to become concave.
- * @param {string} [options.units='kilometers'] can be degrees, radians, miles, or kilometers
- * @returns {Feature<(Polygon|MultiPolygon)>|null} a concave hull (null value is returned if unable to compute hull)
- * @example
- * var points = turf.featureCollection([
- *   turf.point([-63.601226, 44.642643]),
- *   turf.point([-63.591442, 44.651436]),
- *   turf.point([-63.580799, 44.648749]),
- *   turf.point([-63.573589, 44.641788]),
- *   turf.point([-63.587665, 44.64533]),
- *   turf.point([-63.595218, 44.64765])
- * ]);
- * var options = {units: 'miles', maxEdge: 1};
- *
- * var hull = turf.concave(points, options);
- *
- * //addToMap
- * var addToMap = [points, hull]
- */
 function concave$1(points, options) {
-    // Optional parameters
     options = options || {};
     if (!isObject$2(options)) throw new Error('options is invalid');
-
-    // validation
     if (!points) throw new Error('points is required');
     var maxEdge = options.maxEdge || Infinity;
     if (!isNumber(maxEdge)) throw new Error('maxEdge is invalid');
-
     var cleaned = removeDuplicates(points);
-
     var tinPolys = tin(cleaned);
-    // calculate length of all edges and area of all triangles
-    // and remove triangles that fail the max length test
     tinPolys.features = tinPolys.features.filter(function (triangle) {
         var pt1 = triangle.geometry.coordinates[0][0];
         var pt2 = triangle.geometry.coordinates[0][1];
@@ -7870,31 +4028,17 @@ function concave$1(points, options) {
         var dist3 = distance(pt1, pt3, options);
         return dist1 <= maxEdge && dist2 <= maxEdge && dist3 <= maxEdge;
     });
-
     if (tinPolys.features.length < 1) return null;
-
-    // merge the adjacent triangles
     var dissolved = dissolve(tinPolys, options);
-
-    // geojson-dissolve always returns a MultiPolygon
     if (dissolved.coordinates.length === 1) {
         dissolved.coordinates = dissolved.coordinates[0];
         dissolved.type = 'Polygon';
     }
     return feature(dissolved);
 }
-
-/**
- * Removes duplicated points in a collection returning a new collection
- *
- * @private
- * @param {FeatureCollection<Point>} points to be cleaned
- * @returns {FeatureCollection<Point>} cleaned set of points
- */
 function removeDuplicates(points) {
     var cleaned = [];
     var existing = {};
-
     featureEach(points, function (pt) {
         if (!pt.geometry) return;
         var key = pt.geometry.coordinates.join('-');
@@ -7906,15 +4050,7 @@ function removeDuplicates(points) {
     return featureCollection(cleaned);
 }
 
-/**
- * Takes a set of points and returns a concave hull polygon. Internally, this uses turf-tin to generate geometries.
- * @param  {Array<google.maps.LatLng>|Array<google.maps.LatLngLiteral>|google.maps.MVCArray} latLngArray array of google positions
- * @param  {number} maxEdge the size of an edge necessary for part of the hull to become concave (in miles)
- * @param  {string} units degrees, radians, miles, or kilometers
- * @return {Feature.<Polygon>}  a concave hull
- */
 function concave(latLngArray, maxEdge, units) {
-
   var FeatureCollection = arrayToFeaturePoints(latLngArray);
   return concave$1(FeatureCollection, {
     maxEdge: maxEdge,
@@ -7927,33 +4063,19 @@ function createCommonjsModule(fn, module) {
 }
 
 var simplify$1 = createCommonjsModule(function (module) {
-    /*
-     (c) 2013, Vladimir Agafonkin
-     Simplify.js, a high-performance JS polyline simplification library
-     mourner.github.io/simplify-js
-    */
-
     (function () {
         function getSqDist(p1, p2) {
-
             var dx = p1.x - p2.x,
                 dy = p1.y - p2.y;
-
             return dx * dx + dy * dy;
         }
-
-        // square distance from a point to a segment
         function getSqSegDist(p, p1, p2) {
-
             var x = p1.x,
                 y = p1.y,
                 dx = p2.x - x,
                 dy = p2.y - y;
-
             if (dx !== 0 || dy !== 0) {
-
                 var t = ((p.x - x) * dx + (p.y - y) * dy) / (dx * dx + dy * dy);
-
                 if (t > 1) {
                     x = p2.x;
                     y = p2.y;
@@ -7962,38 +4084,25 @@ var simplify$1 = createCommonjsModule(function (module) {
                     y += dy * t;
                 }
             }
-
             dx = p.x - x;
             dy = p.y - y;
-
             return dx * dx + dy * dy;
         }
-        // rest of the code doesn't care about point format
-
-        // basic distance-based simplification
         function simplifyRadialDist(points, sqTolerance) {
-
             var prevPoint = points[0],
                 newPoints = [prevPoint],
                 point;
-
             for (var i = 1, len = points.length; i < len; i++) {
                 point = points[i];
-
                 if (getSqDist(point, prevPoint) > sqTolerance) {
                     newPoints.push(point);
                     prevPoint = point;
                 }
             }
-
             if (prevPoint !== point) newPoints.push(point);
-
             return newPoints;
         }
-
-        // simplification using optimized Douglas-Peucker algorithm with recursion elimination
         function simplifyDouglasPeucker(points, sqTolerance) {
-
             var len = points.length,
                 MarkerArray = typeof Uint8Array !== 'undefined' ? Uint8Array : Array,
                 markers = new MarkerArray(len),
@@ -8005,83 +4114,45 @@ var simplify$1 = createCommonjsModule(function (module) {
                 maxSqDist,
                 sqDist,
                 index;
-
             markers[first] = markers[last] = 1;
-
             while (last) {
-
                 maxSqDist = 0;
-
                 for (i = first + 1; i < last; i++) {
                     sqDist = getSqSegDist(points[i], points[first], points[last]);
-
                     if (sqDist > maxSqDist) {
                         index = i;
                         maxSqDist = sqDist;
                     }
                 }
-
                 if (maxSqDist > sqTolerance) {
                     markers[index] = 1;
                     stack.push(first, index, index, last);
                 }
-
                 last = stack.pop();
                 first = stack.pop();
             }
-
             for (i = 0; i < len; i++) {
                 if (markers[i]) newPoints.push(points[i]);
             }
-
             return newPoints;
         }
-
-        // both algorithms combined for awesome performance
         function simplify(points, tolerance, highestQuality) {
-
             var sqTolerance = tolerance !== undefined ? tolerance * tolerance : 1;
-
             points = highestQuality ? points : simplifyRadialDist(points, sqTolerance);
             points = simplifyDouglasPeucker(points, sqTolerance);
-
             return points;
         }
-
-        // export as AMD module / Node module / browser or worker variable
         if (typeof undefined === 'function' && undefined.amd) undefined(function () {
             return simplify;
         });else module.exports = simplify;
     })();
 });
 
-/**
- * Removes redundant coordinates from any GeoJSON Geometry.
- *
- * @name cleanCoords
- * @param {Geometry|Feature} geojson Feature or Geometry
- * @param {Object} [options={}] Optional parameters
- * @param {boolean} [options.mutate=false] allows GeoJSON input to be mutated
- * @returns {Geometry|Feature} the cleaned input Feature/Geometry
- * @example
- * var line = turf.lineString([[0, 0], [0, 2], [0, 5], [0, 8], [0, 8], [0, 10]]);
- * var multiPoint = turf.multiPoint([[0, 0], [0, 0], [2, 2]]);
- *
- * turf.cleanCoords(line).geometry.coordinates;
- * //= [[0, 0], [0, 10]]
- *
- * turf.cleanCoords(multiPoint).geometry.coordinates;
- * //= [[0, 0], [2, 2]]
- */
 function cleanCoords(geojson, options) {
-    // Backwards compatible with v4.0
     var mutate = (typeof options === 'undefined' ? 'undefined' : _typeof(options)) === 'object' ? options.mutate : options;
     if (!geojson) throw new Error('geojson is required');
     var type = getType(geojson);
-
-    // Store new "clean" points in this Array
     var newCoords = [];
-
     switch (type) {
         case 'LineString':
             newCoords = cleanLine(geojson);
@@ -8116,8 +4187,6 @@ function cleanCoords(geojson, options) {
         default:
             throw new Error(type + ' geometry not supported');
     }
-
-    // Support input mutation
     if (geojson.coordinates) {
         if (mutate === true) {
             geojson.coordinates = newCoords;
@@ -8132,29 +4201,17 @@ function cleanCoords(geojson, options) {
         return feature({ type: type, coordinates: newCoords }, geojson.properties, geojson.bbox, geojson.id);
     }
 }
-
-/**
- * Clean Coords
- *
- * @private
- * @param {Array<number>|LineString} line Line
- * @returns {Array<number>} Cleaned coordinates
- */
 function cleanLine(line) {
     var points = getCoords(line);
-    // handle "clean" segment
     if (points.length === 2 && !equals(points[0], points[1])) return points;
-
     var prevPoint, point$$1, nextPoint;
     var newPoints = [];
     var secondToLast = points.length - 1;
-
     newPoints.push(points[0]);
     for (var i = 1; i < secondToLast; i++) {
         prevPoint = points[i - 1];
         point$$1 = points[i];
         nextPoint = points[i + 1];
-
         if (!isPointOnLineSegment(prevPoint, nextPoint, point$$1)) {
             newPoints.push(point$$1);
         }
@@ -8162,29 +4219,9 @@ function cleanLine(line) {
     newPoints.push(nextPoint);
     return newPoints;
 }
-
-/**
- * Compares two points and returns if they are equals
- *
- * @private
- * @param {Array<number>} pt1 point
- * @param {Array<number>} pt2 point
- * @returns {boolean} true if they are equals
- */
 function equals(pt1, pt2) {
     return pt1[0] === pt2[0] && pt1[1] === pt2[1];
 }
-
-/**
- * Returns if `point` is on the segment between `start` and `end`.
- * Borrowed from `@turf/boolean-point-on-line` to speed up the evaluation (instead of using the module as dependency)
- *
- * @private
- * @param {Array<number>} start coord pair of start of line
- * @param {Array<number>} end coord pair of end of line
- * @param {Array<number>} point coord pair of point to check
- * @returns {boolean} true/false
- */
 function isPointOnLineSegment(start, end, point$$1) {
     var x = point$$1[0],
         y = point$$1[1];
@@ -8192,94 +4229,32 @@ function isPointOnLineSegment(start, end, point$$1) {
         startY = start[1];
     var endX = end[0],
         endY = end[1];
-
     var dxc = x - startX;
     var dyc = y - startY;
     var dxl = endX - startX;
     var dyl = endY - startY;
     var cross = dxc * dyl - dyc * dxl;
-
     if (cross !== 0) return false;else if (Math.abs(dxl) >= Math.abs(dyl)) return dxl > 0 ? startX <= x && x <= endX : endX <= x && x <= startX;else return dyl > 0 ? startY <= y && y <= endY : endY <= y && y <= startY;
 }
 
-/**
- * Takes a {@link GeoJSON} object and returns a simplified version. Internally uses
- * [simplify-js](http://mourner.github.io/simplify-js/) to perform simplification.
- *
- * @name simplify
- * @param {GeoJSON} geojson object to be simplified
- * @param {Object} [options={}] Optional parameters
- * @param {number} [options.tolerance=1] simplification tolerance
- * @param {boolean} [options.highQuality=false] whether or not to spend more time to create a higher-quality simplification with a different algorithm
- * @param {boolean} [options.mutate=false] allows GeoJSON input to be mutated (significant performance increase if true)
- * @returns {GeoJSON} a simplified GeoJSON
- * @example
- * var geojson = turf.polygon([[
- *   [-70.603637, -33.399918],
- *   [-70.614624, -33.395332],
- *   [-70.639343, -33.392466],
- *   [-70.659942, -33.394759],
- *   [-70.683975, -33.404504],
- *   [-70.697021, -33.419406],
- *   [-70.701141, -33.434306],
- *   [-70.700454, -33.446339],
- *   [-70.694274, -33.458369],
- *   [-70.682601, -33.465816],
- *   [-70.668869, -33.472117],
- *   [-70.646209, -33.473835],
- *   [-70.624923, -33.472117],
- *   [-70.609817, -33.468107],
- *   [-70.595397, -33.458369],
- *   [-70.587158, -33.442901],
- *   [-70.587158, -33.426283],
- *   [-70.590591, -33.414248],
- *   [-70.594711, -33.406224],
- *   [-70.603637, -33.399918]
- * ]]);
- * var options = {tolerance: 0.01, highQuality: false};
- * var simplified = turf.simplify(geojson, options);
- *
- * //addToMap
- * var addToMap = [geojson, simplified]
- */
 function simplify(geojson, options) {
-    // Optional parameters
     options = options || {};
     if (!isObject$2(options)) throw new Error('options is invalid');
     var tolerance = options.tolerance;
     var highQuality = options.highQuality;
     var mutate = options.mutate;
-
     if (!geojson) throw new Error('geojson is required');
     if (tolerance && tolerance < 0) throw new Error('invalid tolerance');
-
-    // Clone geojson to avoid side effects
     if (mutate !== true) geojson = clone(geojson);
-
     geomEach(geojson, function (geom) {
         simplifyGeom(geom, tolerance, highQuality);
     });
     return geojson;
 }
-
-/**
- * Simplifies a feature's coordinates
- *
- * @private
- * @param {Geometry} geometry to be simplified
- * @param {number} [tolerance=1] simplification tolerance
- * @param {boolean} [highQuality=false] whether or not to spend more time to create a higher-quality simplification with a different algorithm
- * @returns {Geometry} output
- */
 function simplifyGeom(geometry$$1, tolerance, highQuality) {
     var type = geometry$$1.type;
-
-    // "unsimplyfiable" geometry types
     if (type === 'Point' || type === 'MultiPoint') return geometry$$1;
-
-    // Remove any extra coordinates
     cleanCoords(geometry$$1, true);
-
     var coordinates = geometry$$1.coordinates;
     switch (type) {
         case 'LineString':
@@ -8300,16 +4275,6 @@ function simplifyGeom(geometry$$1, tolerance, highQuality) {
     }
     return geometry$$1;
 }
-
-/**
- * Simplifies the coordinates of a LineString with simplify-js
- *
- * @private
- * @param {Array<number>} coordinates to be processed
- * @param {number} tolerance simplification tolerance
- * @param {boolean} highQuality whether or not to spend more time to create a higher-quality
- * @returns {Array<Array<number>>} simplified coords
- */
 function simplifyLine(coordinates, tolerance, highQuality) {
     return simplify$1(coordinates.map(function (coord) {
         return {
@@ -8321,16 +4286,6 @@ function simplifyLine(coordinates, tolerance, highQuality) {
         return coords.z ? [coords.x, coords.y, coords.z] : [coords.x, coords.y];
     });
 }
-
-/**
- * Simplifies the coordinates of a Polygon with simplify-js
- *
- * @private
- * @param {Array<number>} coordinates to be processed
- * @param {number} tolerance simplification tolerance
- * @param {boolean} highQuality whether or not to spend more time to create a higher-quality
- * @returns {Array<Array<Array<number>>>} simplified coords
- */
 function simplifyPolygon(coordinates, tolerance, highQuality) {
     return coordinates.map(function (ring) {
         var pts = ring.map(function (coord) {
@@ -8345,7 +4300,6 @@ function simplifyPolygon(coordinates, tolerance, highQuality) {
         var simpleRing = simplify$1(pts, tolerance, highQuality).map(function (coords) {
             return [coords.x, coords.y];
         });
-        //remove 1 percent of tolerance until enough points to make a triangle
         while (!checkValidity(simpleRing)) {
             tolerance -= tolerance * 0.01;
             simpleRing = simplify$1(pts, tolerance, highQuality).map(function (coords) {
@@ -8358,51 +4312,20 @@ function simplifyPolygon(coordinates, tolerance, highQuality) {
         return simpleRing;
     });
 }
-
-/**
- * Returns true if ring has at least 3 coordinates and its first coordinate is the same as its last
- *
- * @private
- * @param {Array<number>} ring coordinates to be checked
- * @returns {boolean} true if valid
- */
 function checkValidity(ring) {
     if (ring.length < 3) return false;
-    //if the last point is the same as the first, it's not a triangle
     return !(ring.length === 3 && ring[2][0] === ring[0][0] && ring[2][1] === ring[0][1]);
 }
 
-/**
- * Simplifies an array of coordinates
- * @param  {Array.<google.maps.LatLng>|Array.<google.maps.LatLngLiteral>} coordArray Array of coordinates
- * @param  {number} tolerance   [description]
- * @param  {boolean} highQuality [description]
- * @return {Array.<Number>}  Array de coordenadas [lng,lat]
- */
 function simplifyPointArray(coordArray, tolerance, highQuality) {
 	tolerance = tolerance || 0.00001;
 	highQuality = highQuality || false;
 	var Feature = lineString(toCoords(coordArray));
-
 	var simplifiedgeom = simplify(Feature, tolerance, highQuality);
-
-	//debug('simplifyPointArray', 'geometry is', Feature.geometry, 'simplifiedgeom is', simplifiedgeom);
-
 	return simplifiedgeom.geometry.coordinates;
 }
-
-/**
- * Simplified a Feature, google.maps.Polygon or google.maps.Polyline
- * @param  {google.maps.Polygon|google.maps.Polyline|Array.<google.maps.LatLng>|Feature.<Polygon>|Feature.<LineString>} object feature to be simplified
- * @param  {string} output either 'feature', 'geometry' or 'object' (google maps). Case insensitive. Defaults to feature
- * @param  {mumber} tolerance   simplification tolerance
- * @param  {boolean} highQuality [description]
- * @return {Feature|Geometry} whether or not to spend more time to create a higher-quality simplification with a different algorithm
- */
 function simplifyFeature(object, output, tolerance, highQuality) {
-
 	output = (output || 'feature').toLowerCase();
-
 	var Feature;
 	if (object instanceof google.maps.Polyline || object instanceof google.maps.Polygon) {
 		var geometry$$1 = Wicket$1().fromObject(object).toJson();
@@ -8416,15 +4339,12 @@ function simplifyFeature(object, output, tolerance, highQuality) {
 	} else {
 		Feature = polygonToFeaturePolygon(object);
 	}
-
 	if (Feature.geometry.type === 'MultiPolygon') {
 		Feature.geometry.type = 'Polygon';
 		Feature.geometry.coordinates = Feature.geometry.coordinates[0];
 	}
 	var simplifiedgeom = simplify(Feature, tolerance, highQuality);
-
 	if (simplifiedgeom && simplifiedgeom.geometry) {
-		//debug('Simplified Feature', Feature, 'simplifiedgeom', simplifiedgeom);
 		Feature = simplifiedgeom;
 	} else {
 		warn('Cannot simplify  Feature', Feature);
@@ -8438,140 +4358,47 @@ function simplifyFeature(object, output, tolerance, highQuality) {
 	}
 }
 
-//http://en.wikipedia.org/wiki/Haversine_formula
-//http://www.movable-type.co.uk/scripts/latlong.html
-
-/**
- * Takes two {@link Point|points} and finds the geographic bearing between them,
- * i.e. the angle measured in degrees from the north line (0 degrees)
- *
- * @name bearing
- * @param {Geometry|Feature<Point>|Array<number>} start starting Point
- * @param {Geometry|Feature<Point>|Array<number>} end ending Point
- * @param {Object} [options] Optional parameters
- * @param {boolean} [options.final=false] calculates the final bearing if true
- * @returns {number} bearing in decimal degrees, between -180 and 180 degrees (positive clockwise)
- * @example
- * var point1 = turf.point([-75.343, 39.984]);
- * var point2 = turf.point([-75.534, 39.123]);
- *
- * var bearing = turf.bearing(point1, point2);
- *
- * //addToMap
- * var addToMap = [point1, point2]
- * point1.properties['marker-color'] = '#f00'
- * point2.properties['marker-color'] = '#0f0'
- * point1.properties.bearing = bearing
- */
 function bearing(start, end, options) {
-    // Optional parameters
     options = options || {};
     if (!isObject$2(options)) throw new Error('options is invalid');
     var final = options.final;
-
-    // Reverse calculation
     if (final === true) return calculateFinalBearing(start, end);
-
     var coordinates1 = getCoord(start);
     var coordinates2 = getCoord(end);
-
     var lon1 = degreesToRadians(coordinates1[0]);
     var lon2 = degreesToRadians(coordinates2[0]);
     var lat1 = degreesToRadians(coordinates1[1]);
     var lat2 = degreesToRadians(coordinates2[1]);
     var a = Math.sin(lon2 - lon1) * Math.cos(lat2);
     var b = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(lon2 - lon1);
-
     return radiansToDegrees(Math.atan2(a, b));
 }
-
-/**
- * Calculates Final Bearing
- * @private
- * @param {Feature<Point>} start starting Point
- * @param {Feature<Point>} end ending Point
- * @returns {number} bearing
- */
 function calculateFinalBearing(start, end) {
-    // Swap start & end
     var bear = bearing(end, start);
     bear = (bear + 180) % 360;
     return bear;
 }
 
-//http://en.wikipedia.org/wiki/Haversine_formula
-//http://www.movable-type.co.uk/scripts/latlong.html
-/**
- * Takes a {@link Point} and calculates the location of a destination point given a distance in degrees, radians, miles, or kilometers; and bearing in degrees. This uses the [Haversine formula](http://en.wikipedia.org/wiki/Haversine_formula) to account for global curvature.
- *
- * @name destination
- * @param {Geometry|Feature<Point>|Array<number>} origin starting point
- * @param {number} distance distance from the origin point
- * @param {number} bearing ranging from -180 to 180
- * @param {Object} [options={}] Optional parameters
- * @param {string} [options.units='kilometers'] miles, kilometers, degrees, or radians
- * @returns {Feature<Point>} destination point
- * @example
- * var point = turf.point([-75.343, 39.984]);
- * var distance = 50;
- * var bearing = 90;
- * var options = {units: 'miles'};
- *
- * var destination = turf.destination(point, distance, bearing, options);
- *
- * //addToMap
- * var addToMap = [point, destination]
- * destination.properties['marker-color'] = '#f00';
- * point.properties['marker-color'] = '#0f0';
- */
 function destination(origin, distance, bearing, options) {
-    // Optional parameters
     options = options || {};
     if (!isObject$2(options)) throw new Error('options is invalid');
     var units = options.units;
-
-    // Handle input
     var coordinates1 = getCoord(origin);
     var longitude1 = degreesToRadians(coordinates1[0]);
     var latitude1 = degreesToRadians(coordinates1[1]);
     var bearing_rad = degreesToRadians(bearing);
     var radians = lengthToRadians(distance, units);
-
-    // Main
     var latitude2 = Math.asin(Math.sin(latitude1) * Math.cos(radians) + Math.cos(latitude1) * Math.sin(radians) * Math.cos(bearing_rad));
     var longitude2 = longitude1 + Math.atan2(Math.sin(bearing_rad) * Math.sin(radians) * Math.cos(latitude1), Math.cos(radians) - Math.sin(latitude1) * Math.sin(latitude2));
-
     return point([radiansToDegrees(longitude2), radiansToDegrees(latitude2)]);
 }
 
-/**
- * Takes a {@link LineString|line} and returns a {@link Point|point} at a specified distance along the line.
- *
- * @name along
- * @param {Feature<LineString>} line input line
- * @param {number} distance distance along the line
- * @param {Object} [options] Optional parameters
- * @param {string} [options.units="kilometers"] can be degrees, radians, miles, or kilometers
- * @returns {Feature<Point>} Point `distance` `units` along the line
- * @example
- * var line = turf.lineString([[-83, 30], [-84, 36], [-78, 41]]);
- * var options = {units: 'miles'};
- *
- * var along = turf.along(line, 200, options);
- *
- * //addToMap
- * var addToMap = [along, line]
- */
 function along$1(line, distance$$1, options) {
-    // Optional parameters
     options = options || {};
     if (!isObject$2(options)) throw new Error('options is invalid');
-
-    // Validation
     var coords;
     if (line.type === 'Feature') coords = line.geometry.coordinates;else if (line.type === 'LineString') coords = line.coordinates;else throw new Error('input must be a LineString Feature or Geometry');
     if (!isNumber(distance$$1)) throw new Error('distance must be a number');
-
     var travelled = 0;
     for (var i = 0; i < coords.length; i++) {
         if (distance$$1 >= travelled && i === coords.length - 1) break;else if (travelled >= distance$$1) {
@@ -8588,16 +4415,8 @@ function along$1(line, distance$$1, options) {
     return point(coords[coords.length - 1]);
 }
 
-/**
- * Takes a linestring and returns a {@link Point|point} at a specified distance along the line.
- * @param  {google.maps.Polyline|Array.<google.maps.LatLng>|Array.<google.maps.LatLngLiteral>|Feature<LineString>} object input object
- * @param  {Number} distance    [description]
- * @param  {string} units can be degrees, radians, miles, or kilometers. Defaults to kilometers
- * @return {Feature.<Point>} Point distance units along the line
- */
 function along(object, distance, units) {
 	var Feature;
-
 	if (object instanceof google.maps.Polyline) {
 		var geometry$$1 = Wicket$1().fromObject(object).toJson();
 		Feature = {
@@ -8611,7 +4430,6 @@ function along(object, distance, units) {
 		var arrayCoords = toCoords(object);
 		Feature = lineString(arrayCoords);
 	}
-
 	return along$1(Feature, distance, units);
 }
 
@@ -8665,7 +4483,6 @@ function RuntimeException(message) {
   this.stack = new Error().stack;
   Error.call(this, message);
 }
-
 RuntimeException.prototype = Object.create(Error.prototype);
 RuntimeException.prototype.constructor = Error;
 
@@ -8930,197 +4747,57 @@ Coordinate.X = 0;
 Coordinate.Y = 1;
 Coordinate.Z = 2;
 
-/**
- * @see http://download.oracle.com/javase/6/docs/api/java/util/Iterator.html
- * @constructor
- * @private
- */
 function Iterator() {}
-
-/**
- * Returns true if the iteration has more elements.
- * @return {boolean}
- */
 Iterator.prototype.hasNext = function () {};
-
-/**
- * Returns the next element in the iteration.
- * @return {Object}
- */
 Iterator.prototype.next = function () {};
-
-/**
- * Removes from the underlying collection the last element returned by the
- * iterator (optional operation).
- */
 Iterator.prototype.remove = function () {};
 
-/**
- * @see http://download.oracle.com/javase/6/docs/api/java/util/Collection.html
- *
- * @constructor
- * @private
- */
 function Collection() {}
-
-/**
- * Ensures that this collection contains the specified element (optional
- * operation).
- * @param {Object} e
- * @return {boolean}
- */
 Collection.prototype.add = function () {};
-
-/**
- * Appends all of the elements in the specified collection to the end of this
- * list, in the order that they are returned by the specified collection's
- * iterator (optional operation).
- * @param {javascript.util.Collection} c
- * @return {boolean}
- */
 Collection.prototype.addAll = function () {};
-
-/**
- * Returns true if this collection contains no elements.
- * @return {boolean}
- */
 Collection.prototype.isEmpty = function () {};
-
-/**
- * Returns an iterator over the elements in this collection.
- * @return {javascript.util.Iterator}
- */
 Collection.prototype.iterator = function () {};
-
-/**
- * Returns an iterator over the elements in this collection.
- * @return {number}
- */
 Collection.prototype.size = function () {};
-
-/**
- * Returns an array containing all of the elements in this collection.
- * @return {Array}
- */
 Collection.prototype.toArray = function () {};
-
-/**
- * Removes a single instance of the specified element from this collection if it
- * is present. (optional)
- * @param {Object} e
- * @return {boolean}
- */
 Collection.prototype.remove = function () {};
 
-/**
- * @param {string=} message Optional message
- * @extends {Error}
- * @constructor
- * @private
- */
 function IndexOutOfBoundsException$1(message) {
   this.message = message || '';
 }
 IndexOutOfBoundsException$1.prototype = new Error();
-
-/**
- * @type {string}
- */
 IndexOutOfBoundsException$1.prototype.name = 'IndexOutOfBoundsException';
 
-/**
- * @see http://download.oracle.com/javase/6/docs/api/java/util/List.html
- *
- * @extends {javascript.util.Collection}
- * @constructor
- * @private
- */
 function List() {}
 List.prototype = Object.create(Collection.prototype);
 List.prototype.constructor = List;
-
-/**
- * Returns the element at the specified position in this list.
- * @param {number} index
- * @return {Object}
- */
 List.prototype.get = function () {};
-
-/**
- * Replaces the element at the specified position in this list with the
- * specified element (optional operation).
- * @param {number} index
- * @param {Object} e
- * @return {Object}
- */
 List.prototype.set = function () {};
-
-/**
- * Returns true if this collection contains no elements.
- * @return {boolean}
- */
 List.prototype.isEmpty = function () {};
 
-/**
- * @param {string=} message Optional message
- * @extends {Error}
- * @constructor
- * @private
- */
 function NoSuchElementException(message) {
   this.message = message || '';
 }
 NoSuchElementException.prototype = new Error();
-
-/**
- * @type {string}
- */
 NoSuchElementException.prototype.name = 'NoSuchElementException';
 
-/**
- * @param {string=} message Optional message
- * @extends {Error}
- * @constructor
- * @private
- */
 function OperationNotSupported(message) {
   this.message = message || '';
 }
 OperationNotSupported.prototype = new Error();
-
-/**
- * @type {string}
- */
 OperationNotSupported.prototype.name = 'OperationNotSupported';
 
-/**
- * @see http://download.oracle.com/javase/6/docs/api/java/util/ArrayList.html
- *
- * @extends List
- * @private
- */
 function ArrayList() {
-  /**
-   * @type {Array}
-   * @private
-  */
   this.array_ = [];
-
   if (arguments[0] instanceof Collection) {
     this.addAll(arguments[0]);
   }
 }
 ArrayList.prototype = Object.create(List.prototype);
 ArrayList.prototype.constructor = ArrayList;
-
 ArrayList.prototype.ensureCapacity = function () {};
 ArrayList.prototype.interfaces_ = function () {
   return [List, Collection];
 };
-
-/**
- * @override
- */
 ArrayList.prototype.add = function (e) {
   if (arguments.length === 1) {
     this.array_.push(e);
@@ -9129,81 +4806,44 @@ ArrayList.prototype.add = function (e) {
   }
   return true;
 };
-
 ArrayList.prototype.clear = function () {
   this.array_ = [];
 };
-
-/**
- * @override
- */
 ArrayList.prototype.addAll = function (c) {
   for (var i = c.iterator(); i.hasNext();) {
     this.add(i.next());
   }
   return true;
 };
-
-/**
- * @override
- */
 ArrayList.prototype.set = function (index, element) {
   var oldElement = this.array_[index];
   this.array_[index] = element;
   return oldElement;
 };
-
-/**
- * @override
- */
 ArrayList.prototype.iterator = function () {
   return new Iterator_(this);
 };
-
-/**
- * @override
- */
 ArrayList.prototype.get = function (index) {
   if (index < 0 || index >= this.size()) {
     throw new IndexOutOfBoundsException$1();
   }
-
   return this.array_[index];
 };
-
-/**
- * @override
- */
 ArrayList.prototype.isEmpty = function () {
   return this.array_.length === 0;
 };
-
-/**
- * @override
- */
 ArrayList.prototype.size = function () {
   return this.array_.length;
 };
-
-/**
- * @override
- */
 ArrayList.prototype.toArray = function () {
   var array = [];
-
   for (var i = 0, len = this.array_.length; i < len; i++) {
     array.push(this.array_[i]);
   }
-
   return array;
 };
-
-/**
- * @override
- */
 ArrayList.prototype.remove = function (o) {
   var found = false;
-
   for (var i = 0, len = this.array_.length; i < len; i++) {
     if (this.array_[i] === o) {
       this.array_.splice(i, 1);
@@ -9211,42 +4851,18 @@ ArrayList.prototype.remove = function (o) {
       break;
     }
   }
-
   return found;
 };
-
-/**
- * @extends {Iterator}
- * @param {ArrayList} arrayList
- * @constructor
- * @private
- */
 var Iterator_ = function Iterator_(arrayList) {
-  /**
-   * @type {ArrayList}
-   * @private
-  */
   this.arrayList_ = arrayList;
-  /**
-   * @type {number}
-   * @private
-  */
   this.position_ = 0;
 };
-
-/**
- * @override
- */
 Iterator_.prototype.next = function () {
   if (this.position_ === this.arrayList_.size()) {
     throw new NoSuchElementException();
   }
   return this.arrayList_.get(this.position_++);
 };
-
-/**
- * @override
- */
 Iterator_.prototype.hasNext = function () {
   if (this.position_ < this.arrayList_.size()) {
     return true;
@@ -9254,18 +4870,9 @@ Iterator_.prototype.hasNext = function () {
     return false;
   }
 };
-
-/**
- * TODO: should be in ListIterator
- * @override
- */
 Iterator_.prototype.set = function (element) {
   return this.arrayList_.set(this.position_ - 1, element);
 };
-
-/**
- * @override
- */
 Iterator_.prototype.remove = function () {
   this.arrayList_.remove(this.arrayList_.get(this.position_));
 };
@@ -9859,15 +5466,12 @@ MathUtil.LOG_10 = Math.log(10);
 function StringBuffer(str) {
   this.str = str;
 }
-
 StringBuffer.prototype.append = function (e) {
   this.str += e;
 };
-
 StringBuffer.prototype.setCharAt = function (i, c) {
   this.str = this.str.substr(0, i) + c + this.str.substr(i + 1);
 };
-
 StringBuffer.prototype.toString = function (e) {
   return this.str;
 };
@@ -9875,7 +5479,6 @@ StringBuffer.prototype.toString = function (e) {
 function Integer(value) {
   this.value = value;
 }
-
 Integer.prototype.intValue = function () {
   return this.value;
 };
@@ -9884,7 +5487,6 @@ Integer.prototype.compareTo = function (o) {
   if (this.value > o) return 1;
   return 0;
 };
-
 Integer.isNaN = function (n) {
   return Number.isNaN(n);
 };
@@ -10629,7 +6231,6 @@ CoordinateSequence.Z = 2;
 CoordinateSequence.M = 3;
 
 function System() {}
-
 System.arraycopy = function (src, srcPos, dest, destPos, len) {
   var c = 0;
   for (var i = srcPos; i < srcPos + len; i++) {
@@ -10637,7 +6238,6 @@ System.arraycopy = function (src, srcPos, dest, destPos, len) {
     c++;
   }
 };
-
 System.getProperty = function (name) {
   return {
     'line.separator': '\n'
@@ -11300,113 +6900,27 @@ CoordinateArrays.ForwardComparator = ForwardComparator;
 CoordinateArrays.BidirectionalComparator = BidirectionalComparator;
 CoordinateArrays.coordArrayType = new Array(0).fill(null);
 
-/**
- * @see http://download.oracle.com/javase/6/docs/api/java/util/Map.html
- *
- * @constructor
- * @private
- */
 function Map$3() {}
-
-/**
- * Returns the value to which the specified key is mapped, or null if this map
- * contains no mapping for the key.
- * @param {Object} key
- * @return {Object}
- */
 Map$3.prototype.get = function () {};
-
-/**
- * Associates the specified value with the specified key in this map (optional
- * operation).
- * @param {Object} key
- * @param {Object} value
- * @return {Object}
- */
 Map$3.prototype.put = function () {};
-
-/**
- * Returns the number of key-value mappings in this map.
- * @return {number}
- */
 Map$3.prototype.size = function () {};
-
-/**
- * Returns a Collection view of the values contained in this map.
- * @return {javascript.util.Collection}
- */
 Map$3.prototype.values = function () {};
-
-/**
- * Returns a {@link Set} view of the mappings contained in this map.
- * The set is backed by the map, so changes to the map are
- * reflected in the set, and vice-versa.  If the map is modified
- * while an iteration over the set is in progress (except through
- * the iterator's own <tt>remove</tt> operation, or through the
- * <tt>setValue</tt> operation on a map entry returned by the
- * iterator) the results of the iteration are undefined.  The set
- * supports element removal, which removes the corresponding
- * mapping from the map, via the <tt>Iterator.remove</tt>,
- * <tt>Set.remove</tt>, <tt>removeAll</tt>, <tt>retainAll</tt> and
- * <tt>clear</tt> operations.  It does not support the
- * <tt>add</tt> or <tt>addAll</tt> operations.
- *
- * @return {Set} a set view of the mappings contained in this map
- */
 Map$3.prototype.entrySet = function () {};
 
-/**
- * @see http://download.oracle.com/javase/6/docs/api/java/util/SortedMap.html
- *
- * @extends {Map}
- * @constructor
- * @private
- */
 function SortedMap() {}
 SortedMap.prototype = new Map$3();
 
-/**
- * @see http://download.oracle.com/javase/6/docs/api/java/util/Set.html
- *
- * @extends {Collection}
- * @constructor
- * @private
- */
 function Set$2() {}
 Set$2.prototype = new Collection();
-
-/**
- * Returns true if this set contains the specified element. More formally,
- * returns true if and only if this set contains an element e such that (o==null ?
- * e==null : o.equals(e)).
- * @param {Object} e
- * @return {boolean}
- */
 Set$2.prototype.contains = function () {};
 
-/**
- * @see http://docs.oracle.com/javase/6/docs/api/java/util/HashSet.html
- *
- * @extends {javascript.util.Set}
- * @constructor
- * @private
- */
 function HashSet() {
-  /**
-   * @type {Array}
-   * @private
-  */
   this.array_ = [];
-
   if (arguments[0] instanceof Collection) {
     this.addAll(arguments[0]);
   }
 }
 HashSet.prototype = new Set$2();
-
-/**
- * @override
- */
 HashSet.prototype.contains = function (o) {
   for (var i = 0, len = this.array_.length; i < len; i++) {
     var e = this.array_[i];
@@ -11416,103 +6930,48 @@ HashSet.prototype.contains = function (o) {
   }
   return false;
 };
-
-/**
- * @override
- */
 HashSet.prototype.add = function (o) {
   if (this.contains(o)) {
     return false;
   }
-
   this.array_.push(o);
-
   return true;
 };
-
-/**
- * @override
- */
 HashSet.prototype.addAll = function (c) {
   for (var i = c.iterator(); i.hasNext();) {
     this.add(i.next());
   }
   return true;
 };
-
-/**
- * @override
- */
 HashSet.prototype.remove = function (o) {
   throw new javascript.util.OperationNotSupported();
 };
-
-/**
- * @override
- */
 HashSet.prototype.size = function () {
   return this.array_.length;
 };
-
-/**
- * @override
- */
 HashSet.prototype.isEmpty = function () {
   return this.array_.length === 0;
 };
-
-/**
- * @override
- */
 HashSet.prototype.toArray = function () {
   var array = [];
-
   for (var i = 0, len = this.array_.length; i < len; i++) {
     array.push(this.array_[i]);
   }
-
   return array;
 };
-
-/**
- * @override
- */
 HashSet.prototype.iterator = function () {
   return new Iterator_$1(this);
 };
-
-/**
- * @extends {Iterator}
- * @param {HashSet} hashSet
- * @constructor
- * @private
- */
 var Iterator_$1 = function Iterator_(hashSet) {
-  /**
-   * @type {HashSet}
-   * @private
-   */
   this.hashSet_ = hashSet;
-  /**
-   * @type {number}
-   * @private
-   */
   this.position_ = 0;
 };
-
-/**
- * @override
- */
 Iterator_$1.prototype.next = function () {
   if (this.position_ === this.hashSet_.size()) {
     throw new NoSuchElementException();
   }
   return this.hashSet_.array_[this.position_++];
 };
-
-/**
- * @override
- */
 Iterator_$1.prototype.hasNext = function () {
   if (this.position_ < this.hashSet_.size()) {
     return true;
@@ -11520,10 +6979,6 @@ Iterator_$1.prototype.hasNext = function () {
     return false;
   }
 };
-
-/**
- * @override
- */
 Iterator_$1.prototype.remove = function () {
   throw new OperationNotSupported();
 };
@@ -11545,31 +7000,11 @@ function leftOf(p) {
 function rightOf(p) {
   return p == null ? null : p.right;
 }
-
-/**
- * @see http://download.oracle.com/javase/6/docs/api/java/util/TreeMap.html
- *
- * @extends {SortedMap}
- * @constructor
- * @private
- */
 function TreeMap() {
-  /**
-   * @type {Object}
-   * @private
-   */
   this.root_ = null;
-  /**
-   * @type {number}
-   * @private
-  */
   this.size_ = 0;
 }
 TreeMap.prototype = new SortedMap();
-
-/**
- * @override
- */
 TreeMap.prototype.get = function (key) {
   var p = this.root_;
   while (p !== null) {
@@ -11584,10 +7019,6 @@ TreeMap.prototype.get = function (key) {
   }
   return null;
 };
-
-/**
- * @override
- */
 TreeMap.prototype.put = function (key, value) {
   if (this.root_ === null) {
     this.root_ = {
@@ -11646,10 +7077,6 @@ TreeMap.prototype.put = function (key, value) {
   this.size_++;
   return null;
 };
-
-/**
- * @param {Object} x
- */
 TreeMap.prototype.fixAfterInsertion = function (x) {
   x.color = RED;
   while (x != null && x != this.root_ && x.parent.color == RED) {
@@ -11689,10 +7116,6 @@ TreeMap.prototype.fixAfterInsertion = function (x) {
   }
   this.root_.color = BLACK;
 };
-
-/**
- * @override
- */
 TreeMap.prototype.values = function () {
   var arrayList = new ArrayList();
   var p = this.getFirstEntry();
@@ -11704,10 +7127,6 @@ TreeMap.prototype.values = function () {
   }
   return arrayList;
 };
-
-/**
- * @override
- */
 TreeMap.prototype.entrySet = function () {
   var hashSet = new HashSet();
   var p = this.getFirstEntry();
@@ -11719,10 +7138,6 @@ TreeMap.prototype.entrySet = function () {
   }
   return hashSet;
 };
-
-/**
- * @param {Object} p
- */
 TreeMap.prototype.rotateLeft = function (p) {
   if (p != null) {
     var r = p.right;
@@ -11734,10 +7149,6 @@ TreeMap.prototype.rotateLeft = function (p) {
     p.parent = r;
   }
 };
-
-/**
- * @param {Object} p
- */
 TreeMap.prototype.rotateRight = function (p) {
   if (p != null) {
     var l = p.left;
@@ -11749,10 +7160,6 @@ TreeMap.prototype.rotateRight = function (p) {
     p.parent = l;
   }
 };
-
-/**
- * @return {Object}
- */
 TreeMap.prototype.getFirstEntry = function () {
   var p = this.root_;
   if (p != null) {
@@ -11762,12 +7169,6 @@ TreeMap.prototype.getFirstEntry = function () {
   }
   return p;
 };
-
-/**
- * @param {Object} t
- * @return {Object}
- * @private
- */
 TreeMap.successor = function (t) {
   if (t === null) return null;else if (t.right !== null) {
     var p = t.right;
@@ -11785,10 +7186,6 @@ TreeMap.successor = function (t) {
     return p;
   }
 };
-
-/**
- * @override
- */
 TreeMap.prototype.size = function () {
   return this.size_;
 };
@@ -11803,39 +7200,16 @@ extend(Lineal.prototype, {
 	}
 });
 
-/**
- * @see http://download.oracle.com/javase/6/docs/api/java/util/SortedSet.html
- *
- * @extends {Set}
- * @constructor
- * @private
- */
 function SortedSet() {}
 SortedSet.prototype = new Set$2();
 
-/**
- * @see http://download.oracle.com/javase/6/docs/api/java/util/TreeSet.html
- *
- * @extends {SortedSet}
- * @constructor
- * @private
- */
 function TreeSet() {
-  /**
-   * @type {Array}
-   * @private
-  */
   this.array_ = [];
-
   if (arguments[0] instanceof Collection) {
     this.addAll(arguments[0]);
   }
 }
 TreeSet.prototype = new SortedSet();
-
-/**
- * @override
- */
 TreeSet.prototype.contains = function (o) {
   for (var i = 0, len = this.array_.length; i < len; i++) {
     var e = this.array_[i];
@@ -11845,15 +7219,10 @@ TreeSet.prototype.contains = function (o) {
   }
   return false;
 };
-
-/**
- * @override
- */
 TreeSet.prototype.add = function (o) {
   if (this.contains(o)) {
     return false;
   }
-
   for (var i = 0, len = this.array_.length; i < len; i++) {
     var e = this.array_[i];
     if (e['compareTo'](o) === 1) {
@@ -11861,95 +7230,44 @@ TreeSet.prototype.add = function (o) {
       return true;
     }
   }
-
   this.array_.push(o);
-
   return true;
 };
-
-/**
- * @override
- */
 TreeSet.prototype.addAll = function (c) {
   for (var i = c.iterator(); i.hasNext();) {
     this.add(i.next());
   }
   return true;
 };
-
-/**
- * @override
- */
 TreeSet.prototype.remove = function (e) {
   throw new OperationNotSupported();
 };
-
-/**
- * @override
- */
 TreeSet.prototype.size = function () {
   return this.array_.length;
 };
-
-/**
- * @override
- */
 TreeSet.prototype.isEmpty = function () {
   return this.array_.length === 0;
 };
-
-/**
- * @override
- */
 TreeSet.prototype.toArray = function () {
   var array = [];
-
   for (var i = 0, len = this.array_.length; i < len; i++) {
     array.push(this.array_[i]);
   }
-
   return array;
 };
-
-/**
- * @override
- */
 TreeSet.prototype.iterator = function () {
   return new Iterator_$2(this);
 };
-
-/**
- * @extends {javascript.util.Iterator}
- * @param {javascript.util.TreeSet} treeSet
- * @constructor
- * @private
- */
 var Iterator_$2 = function Iterator_(treeSet) {
-  /**
-   * @type {javascript.util.TreeSet}
-   * @private
-   */
   this.treeSet_ = treeSet;
-  /**
-   * @type {number}
-   * @private
-   */
   this.position_ = 0;
 };
-
-/**
- * @override
- */
 Iterator_$2.prototype.next = function () {
   if (this.position_ === this.treeSet_.size()) {
     throw new NoSuchElementException();
   }
   return this.treeSet_.array_[this.position_++];
 };
-
-/**
- * @override
- */
 Iterator_$2.prototype.hasNext = function () {
   if (this.position_ < this.treeSet_.size()) {
     return true;
@@ -11957,24 +7275,11 @@ Iterator_$2.prototype.hasNext = function () {
     return false;
   }
 };
-
-/**
- * @override
- */
 Iterator_$2.prototype.remove = function () {
   throw new OperationNotSupported();
 };
 
-/**
- * @see http://download.oracle.com/javase/6/docs/api/java/util/Arrays.html
- *
- * @constructor
- * @private
- */
 function Arrays() {}
-
-/**
- */
 Arrays.sort = function () {
   var a = arguments[0],
       i,
@@ -12017,11 +7322,6 @@ Arrays.sort = function () {
     return;
   }
 };
-
-/**
- * @param {Array} array
- * @return {ArrayList}
- */
 Arrays.asList = function (array) {
   var arrayList = new ArrayList();
   for (var i = 0, len = array.length; i < len; i++) {
@@ -13833,129 +9133,84 @@ CoordinateArraySequenceFactory.instance = function () {
 CoordinateArraySequenceFactory.serialVersionUID = -4099577099607551657;
 CoordinateArraySequenceFactory.instanceObject = new CoordinateArraySequenceFactory();
 
-// shared pointer
 var i;
-// shortcuts
 var defineProperty$1 = Object.defineProperty;
 function is(a, b) {
   return a === b || a !== a && b !== b;
-} // eslint-disable-line
-
+}
 var MapPolyfill = createCollection({
-  // WeakMap#delete(key:void*):boolean
   'delete': sharedDelete,
-  // :was Map#get(key:void*[, d3fault:void*]):void*
-  // Map#has(key:void*):boolean
   has: mapHas,
-  // Map#get(key:void*):boolean
   get: sharedGet,
-  // Map#set(key:void*, value:void*):void
   set: sharedSet,
-  // Map#keys(void):Iterator
   keys: sharedKeys,
-  // Map#values(void):Iterator
   values: sharedValues,
-  // Map#entries(void):Iterator
   entries: mapEntries,
-  // Map#forEach(callback:Function, context:void*):void ==> callback.call(context, key, value, mapObject) === not in specs`
   forEach: sharedForEach,
-  // Map#clear():
   clear: sharedClear
 });
-
-/**
- * ES6 collection constructor
- * @return {Function} a collection class
- */
 function createCollection(proto, objectOnly) {
   function Collection(a) {
     if (!this || this.constructor !== Collection) return new Collection(a);
     this._keys = [];
     this._values = [];
-    this._itp = []; // iteration pointers
+    this._itp = [];
     this.objectOnly = objectOnly;
-
-    // parse initial iterable argument passed
     if (a) init.call(this, a);
   }
-
-  // define size for non object-only collections
   if (!objectOnly) {
     defineProperty$1(proto, 'size', {
       get: sharedSize
     });
   }
-
-  // set prototype
   proto.constructor = Collection;
   Collection.prototype = proto;
-
   return Collection;
 }
-
-/** parse initial iterable argument passed */
 function init(a) {
-  // init Set argument, like `[1,2,3,{}]`
   if (this.add) a.forEach(this.add, this);
-  // init Map argument like `[[1,2], [{}, 4]]`
   else a.forEach(function (a) {
       this.set(a[0], a[1]);
     }, this);
 }
-
-/** delete */
 function sharedDelete(key) {
   if (this.has(key)) {
     this._keys.splice(i, 1);
     this._values.splice(i, 1);
-    // update iteration pointers
     this._itp.forEach(function (p) {
       if (i < p[0]) p[0]--;
     });
   }
-  // Aurora here does it while Canary doesn't
   return i > -1;
 }
-
 function sharedGet(key) {
   return this.has(key) ? this._values[i] : undefined;
 }
-
 function has(list, key) {
   if (this.objectOnly && key !== Object(key)) throw new TypeError('Invalid value used as weak collection key');
-  // NaN or 0 passed
-  if (key !== key || key === 0) for (i = list.length; i-- && !is(list[i], key);) {} // eslint-disable-line
+  if (key !== key || key === 0) for (i = list.length; i-- && !is(list[i], key);) {}
   else i = list.indexOf(key);
   return i > -1;
 }
-
 function mapHas(value) {
   return has.call(this, this._keys, value);
 }
-
-/** @chainable */
 function sharedSet(key, value) {
   this.has(key) ? this._values[i] = value : this._values[this._keys.push(key) - 1] = value;
   return this;
 }
-
 function sharedClear() {
   (this._keys || 0).length = this._values.length = 0;
 }
-
-/** keys, values, and iterate related methods */
 function sharedKeys() {
   return sharedIterator(this._itp, this._keys);
 }
-
 function sharedValues() {
   return sharedIterator(this._itp, this._values);
 }
-
 function mapEntries() {
   return sharedIterator(this._itp, this._keys, this._values);
 }
-
 function sharedIterator(itp, array, array2) {
   var p = [0];
   var done = false;
@@ -13975,11 +9230,9 @@ function sharedIterator(itp, array, array2) {
     }
   };
 }
-
 function sharedSize() {
   return this._values.length;
 }
-
 function sharedForEach(callback, context) {
   var it = this.entries();
   for (;;) {
@@ -13990,41 +9243,17 @@ function sharedForEach(callback, context) {
 }
 
 var MapImpl = typeof Map === 'undefined' || !Map.prototype.values ? MapPolyfill : Map;
-
-/**
- * @see http://download.oracle.com/javase/6/docs/api/java/util/HashMap.html
- *
- * @extends {javascript.util.Map}
- * @constructor
- * @private
- */
 function HashMap() {
-  /**
-   * @type {Object}
-   * @private
-  */
   this.map_ = new MapImpl();
 }
 HashMap.prototype = new Map$3();
-
-/**
- * @override
- */
 HashMap.prototype.get = function (key) {
   return this.map_.get(key) || null;
 };
-
-/**
- * @override
- */
 HashMap.prototype.put = function (key, value) {
   this.map_.set(key, value);
   return value;
 };
-
-/**
- * @override
- */
 HashMap.prototype.values = function () {
   var arrayList = new ArrayList();
   var it = this.map_.values();
@@ -14035,10 +9264,6 @@ HashMap.prototype.values = function () {
   }
   return arrayList;
 };
-
-/**
- * @override
- */
 HashMap.prototype.entrySet = function () {
   var hashSet = new HashSet();
   this.map_.entries().forEach(function (entry) {
@@ -14046,10 +9271,6 @@ HashMap.prototype.entrySet = function () {
   });
   return hashSet;
 };
-
-/**
- * @override
- */
 HashMap.prototype.size = function () {
   return this.map_.size();
 };
@@ -14444,36 +9665,12 @@ var regExes = {
   'emptyTypeStr': /^\s*(\w+)\s*EMPTY\s*$/,
   'spaces': /\s+/,
   'parenComma': /\)\s*,\s*\(/,
-  'doubleParenComma': /\)\s*\)\s*,\s*\(\s*\(/, // can't use {2} here
+  'doubleParenComma': /\)\s*\)\s*,\s*\(\s*\(/,
   'trimParens': /^\s*\(?(.*?)\)?\s*$/
-
-  /**
-   * Class for reading and writing Well-Known Text.
-   *
-   * NOTE: Adapted from OpenLayers 2.11 implementation.
-   */
-
-  /** Create a new parser for WKT
-   *
-   * @param {GeometryFactory} geometryFactory
-   * @return An instance of WKTParser.
-   * @constructor
-   * @private
-   */
 };function WKTParser(geometryFactory) {
   this.geometryFactory = geometryFactory || new GeometryFactory();
 }
-
 extend(WKTParser.prototype, {
-  /**
-   * Deserialize a WKT string and return a geometry. Supports WKT for POINT,
-   * MULTIPOINT, LINESTRING, LINEARRING, MULTILINESTRING, POLYGON, MULTIPOLYGON,
-   * and GEOMETRYCOLLECTION.
-   *
-   * @param {String} wkt A WKT string.
-   * @return {Geometry} A geometry instance.
-   * @private
-   */
   read: function read(wkt) {
     var geometry, type, str;
     wkt = wkt.replace(/[\n\r]/g, ' ');
@@ -14489,32 +9686,12 @@ extend(WKTParser.prototype, {
         geometry = parse[type].apply(this, [str]);
       }
     }
-
     if (geometry === undefined) throw new Error('Could not parse WKT ' + wkt);
-
     return geometry;
   },
-
-
-  /**
-   * Serialize a geometry into a WKT string.
-   *
-   * @param {Geometry} geometry A feature or array of features.
-   * @return {String} The WKT string representation of the input geometries.
-   * @private
-   */
   write: function write(geometry) {
     return this.extractGeometry(geometry);
   },
-
-
-  /**
-   * Entry point to construct the WKT for a single Geometry object.
-   *
-   * @param {Geometry} geometry
-   * @return {String} A WKT string of representing the geometry.
-   * @private
-   */
   extractGeometry: function extractGeometry(geometry) {
     var type = geometry.getGeometryType().toLowerCase();
     if (!extract$1[type]) {
@@ -14530,38 +9707,13 @@ extend(WKTParser.prototype, {
     return data;
   }
 });
-
-/**
- * Object with properties corresponding to the geometry types. Property values
- * are functions that do the actual data extraction.
- * @private
- */
 var extract$1 = {
   coordinate: function coordinate(_coordinate) {
     return _coordinate.x + ' ' + _coordinate.y;
   },
-
-
-  /**
-   * Return a space delimited string of point coordinates.
-   *
-   * @param {Point}
-   *          point
-   * @return {String} A string of coordinates representing the point.
-   */
   point: function point(_point) {
     return extract$1.coordinate.call(this, _point._coordinates._coordinates[0]);
   },
-
-
-  /**
-   * Return a comma delimited string of point coordinates from a multipoint.
-   *
-   * @param {MultiPoint}
-   *          multipoint
-   * @return {String} A string of point coordinate strings representing the
-   *         multipoint.
-   */
   multipoint: function multipoint(_multipoint) {
     var array = [];
     for (var i = 0, len = _multipoint._geometries.length; i < len; ++i) {
@@ -14569,14 +9721,6 @@ var extract$1 = {
     }
     return array.join(',');
   },
-
-
-  /**
-   * Return a comma delimited string of point coordinates from a line.
-   *
-   * @param {LineString} linestring
-   * @return {String} A string of point coordinate strings representing the linestring.
-   */
   linestring: function linestring(_linestring) {
     var array = [];
     for (var i = 0, len = _linestring._points._coordinates.length; i < len; ++i) {
@@ -14591,15 +9735,6 @@ var extract$1 = {
     }
     return array.join(',');
   },
-
-
-  /**
-   * Return a comma delimited string of linestring strings from a
-   * multilinestring.
-   *
-   * @param {MultiLineString} multilinestring
-   * @return {String} A string of of linestring strings representing the multilinestring.
-   */
   multilinestring: function multilinestring(_multilinestring) {
     var array = [];
     for (var i = 0, len = _multilinestring._geometries.length; i < len; ++i) {
@@ -14607,14 +9742,6 @@ var extract$1 = {
     }
     return array.join(',');
   },
-
-
-  /**
-   * Return a comma delimited string of linear ring arrays from a polygon.
-   *
-   * @param {Polygon} polygon
-   * @return {String} An array of linear ring arrays representing the polygon.
-   */
   polygon: function polygon(_polygon) {
     var array = [];
     array.push('(' + extract$1.linestring.apply(this, [_polygon._shell]) + ')');
@@ -14623,14 +9750,6 @@ var extract$1 = {
     }
     return array.join(',');
   },
-
-
-  /**
-   * Return an array of polygon arrays from a multipolygon.
-   *
-   * @param {MultiPolygon} multipolygon
-   * @return {String} An array of polygon arrays representing the multipolygon.
-   */
   multipolygon: function multipolygon(_multipolygon) {
     var array = [];
     for (var i = 0, len = _multipolygon._geometries.length; i < len; ++i) {
@@ -14638,15 +9757,6 @@ var extract$1 = {
     }
     return array.join(',');
   },
-
-
-  /**
-   * Return the WKT portion between 'GEOMETRYCOLLECTION(' and ')' for an
-   * geometrycollection.
-   *
-   * @param {GeometryCollection} collection
-   * @return {String} internal WKT representation of the collection.
-   */
   geometrycollection: function geometrycollection(collection) {
     var array = [];
     for (var i = 0, len = collection._geometries.length; i < len; ++i) {
@@ -14655,42 +9765,18 @@ var extract$1 = {
     return array.join(',');
   }
 };
-
-/**
- * Object with properties corresponding to the geometry types. Property values
- * are functions that do the actual parsing.
- * @private
- */
 var parse = {
-  /**
-   * Return point geometry given a point WKT fragment.
-   *
-   * @param {String} str A WKT fragment representing the point.
-   * @return {Point} A point geometry.
-   * @private
-   */
   point: function point(str) {
     if (str === undefined) {
       return this.geometryFactory.createPoint();
     }
-
     var coords = str.trim().split(regExes.spaces);
     return this.geometryFactory.createPoint(new Coordinate(Number.parseFloat(coords[0]), Number.parseFloat(coords[1])));
   },
-
-
-  /**
-   * Return a multipoint geometry given a multipoint WKT fragment.
-   *
-   * @param {String} str A WKT fragment representing the multipoint.
-   * @return {Point} A multipoint feature.
-   * @private
-   */
   multipoint: function multipoint(str) {
     if (str === undefined) {
       return this.geometryFactory.createMultiPoint();
     }
-
     var point;
     var points = str.trim().split(',');
     var components = [];
@@ -14700,20 +9786,10 @@ var parse = {
     }
     return this.geometryFactory.createMultiPoint(components);
   },
-
-
-  /**
-   * Return a linestring geometry given a linestring WKT fragment.
-   *
-   * @param {String} str A WKT fragment representing the linestring.
-   * @return {LineString} A linestring geometry.
-   * @private
-   */
   linestring: function linestring(str) {
     if (str === undefined) {
       return this.geometryFactory.createLineString();
     }
-
     var points = str.trim().split(',');
     var components = [];
     var coords;
@@ -14723,20 +9799,10 @@ var parse = {
     }
     return this.geometryFactory.createLineString(components);
   },
-
-
-  /**
-   * Return a linearring geometry given a linearring WKT fragment.
-   *
-   * @param {String} str A WKT fragment representing the linearring.
-   * @return {LinearRing} A linearring geometry.
-   * @private
-   */
   linearring: function linearring(str) {
     if (str === undefined) {
       return this.geometryFactory.createLinearRing();
     }
-
     var points = str.trim().split(',');
     var components = [];
     var coords;
@@ -14746,20 +9812,10 @@ var parse = {
     }
     return this.geometryFactory.createLinearRing(components);
   },
-
-
-  /**
-   * Return a multilinestring geometry given a multilinestring WKT fragment.
-   *
-   * @param {String} str A WKT fragment representing the multilinestring.
-   * @return {MultiLineString} A multilinestring geometry.
-   * @private
-   */
   multilinestring: function multilinestring(str) {
     if (str === undefined) {
       return this.geometryFactory.createMultiLineString();
     }
-
     var line;
     var lines = str.trim().split(regExes.parenComma);
     var components = [];
@@ -14769,20 +9825,10 @@ var parse = {
     }
     return this.geometryFactory.createMultiLineString(components);
   },
-
-
-  /**
-   * Return a polygon geometry given a polygon WKT fragment.
-   *
-   * @param {String} str A WKT fragment representing the polygon.
-   * @return {Polygon} A polygon geometry.
-   * @private
-   */
   polygon: function polygon(str) {
     if (str === undefined) {
       return this.geometryFactory.createPolygon();
     }
-
     var ring, linestring, linearring;
     var rings = str.trim().split(regExes.parenComma);
     var shell;
@@ -14799,20 +9845,10 @@ var parse = {
     }
     return this.geometryFactory.createPolygon(shell, holes);
   },
-
-
-  /**
-   * Return a multipolygon geometry given a multipolygon WKT fragment.
-   *
-   * @param {String} str A WKT fragment representing the multipolygon.
-   * @return {MultiPolygon} A multipolygon geometry.
-   * @private
-   */
   multipolygon: function multipolygon(str) {
     if (str === undefined) {
       return this.geometryFactory.createMultiPolygon();
     }
-
     var polygon;
     var polygons = str.trim().split(regExes.doubleParenComma);
     var components = [];
@@ -14822,21 +9858,10 @@ var parse = {
     }
     return this.geometryFactory.createMultiPolygon(components);
   },
-
-
-  /**
-   * Return a geometrycollection given a geometrycollection WKT fragment.
-   *
-   * @param {String} str A WKT fragment representing the geometrycollection.
-   * @return {GeometryCollection}
-   * @private
-   */
   geometrycollection: function geometrycollection(str) {
     if (str === undefined) {
       return this.geometryFactory.createGeometryCollection();
     }
-
-    // separate components of the collection with |
     str = str.replace(/,\s*([A-Za-z])/g, '|$1');
     var wktArray = str.trim().split('|');
     var components = [];
@@ -14847,58 +9872,19 @@ var parse = {
   }
 };
 
-/**
- * Writes the Well-Known Text representation of a {@link Geometry}. The
- * Well-Known Text format is defined in the <A
- * HREF="http://www.opengis.org/techno/specs.htm"> OGC Simple Features
- * Specification for SQL</A>.
- * <p>
- * The <code>WKTWriter</code> outputs coordinates rounded to the precision
- * model. Only the maximum number of decimal places necessary to represent the
- * ordinates to the required precision will be output.
- * <p>
- * The SFS WKT spec does not define a special tag for {@link LinearRing}s.
- * Under the spec, rings are output as <code>LINESTRING</code>s.
- */
-
-/**
- * @param {GeometryFactory} geometryFactory
- * @constructor
- */
 function WKTWriter(geometryFactory) {
   this.parser = new WKTParser(geometryFactory);
 }
-
 extend(WKTWriter.prototype, {
-  /**
-   * Converts a <code>Geometry</code> to its Well-known Text representation.
-   *
-   * @param {Geometry} geometry a <code>Geometry</code> to process.
-   * @return {string} a <Geometry Tagged Text> string (see the OpenGIS Simple
-   *         Features Specification).
-   * @memberof WKTWriter
-   */
   write: function write(geometry) {
     return this.parser.write(geometry);
   }
 });
-
 extend(WKTWriter, {
-  /**
-   * Generates the WKT for a <tt>LINESTRING</tt> specified by two
-   * {@link Coordinate}s.
-   *
-   * @param p0 the first coordinate.
-   * @param p1 the second coordinate.
-   *
-   * @return the WKT.
-   * @private
-   */
   toLineString: function toLineString(p0, p1) {
     if (arguments.length !== 2) {
       throw new Error('Not implemented');
     }
-
     return 'LINESTRING ( ' + p0.x + ' ' + p0.y + ', ' + p1.x + ' ' + p1.y + ' )';
   }
 });
@@ -16366,98 +11352,42 @@ Centroid.getCentroid = function (geom) {
 	return cent.getCentroid();
 };
 
-/**
- * @param {string=} message Optional message
- * @extends {Error}
- * @constructor
- * @private
- */
 function EmptyStackException(message) {
   this.message = message || '';
 }
 EmptyStackException.prototype = new Error();
-
-/**
- * @type {string}
- */
 EmptyStackException.prototype.name = 'EmptyStackException';
 
-/**
- * @see http://download.oracle.com/javase/6/docs/api/java/util/Stack.html
- *
- * @extends {List}
- * @constructor
- * @private
- */
 function Stack$2() {
-  /**
-   * @type {Array}
-   * @private
-   */
   this.array_ = [];
 }
 Stack$2.prototype = new List();
-
-/**
- * @override
- */
 Stack$2.prototype.add = function (e) {
   this.array_.push(e);
   return true;
 };
-
-/**
- * @override
- */
 Stack$2.prototype.get = function (index) {
   if (index < 0 || index >= this.size()) {
     throw new IndexOutOfBoundsException();
   }
-
   return this.array_[index];
 };
-
-/**
- * Pushes an item onto the top of this stack.
- * @param {Object} e
- * @return {Object}
- */
 Stack$2.prototype.push = function (e) {
   this.array_.push(e);
   return e;
 };
-
-/**
- * Pushes an item onto the top of this stack.
- * @param {Object} e
- * @return {Object}
- */
 Stack$2.prototype.pop = function (e) {
   if (this.array_.length === 0) {
     throw new EmptyStackException();
   }
-
   return this.array_.pop();
 };
-
-/**
- * Looks at the object at the top of this stack without removing it from the
- * stack.
- * @return {Object}
- */
 Stack$2.prototype.peek = function () {
   if (this.array_.length === 0) {
     throw new EmptyStackException();
   }
-
   return this.array_[this.array_.length - 1];
 };
-
-/**
- * Tests if this stack is empty.
- * @return {boolean} true if and only if this stack contains no items; false
- *         otherwise.
- */
 Stack$2.prototype.empty = function () {
   if (this.array_.length === 0) {
     return true;
@@ -16465,50 +11395,20 @@ Stack$2.prototype.empty = function () {
     return false;
   }
 };
-
-/**
- * @return {boolean}
- */
 Stack$2.prototype.isEmpty = function () {
   return this.empty();
 };
-
-/**
- * Returns the 1-based position where an object is on this stack. If the object
- * o occurs as an item in this stack, this method returns the distance from the
- * top of the stack of the occurrence nearest the top of the stack; the topmost
- * item on the stack is considered to be at distance 1. The equals method is
- * used to compare o to the items in this stack.
- *
- * NOTE: does not currently actually use equals. (=== is used)
- *
- * @param {Object} o
- * @return {number} the 1-based position from the top of the stack where the
- *         object is located; the return value -1 indicates that the object is
- *         not on the stack.
- */
 Stack$2.prototype.search = function (o) {
   return this.array_.indexOf(o);
 };
-
-/**
- * @return {number}
- * @export
- */
 Stack$2.prototype.size = function () {
   return this.array_.length;
 };
-
-/**
- * @return {Array}
- */
 Stack$2.prototype.toArray = function () {
   var array = [];
-
   for (var i = 0, len = this.array_.length; i < len; i++) {
     array.push(this.array_[i]);
   }
-
   return array;
 };
 
@@ -23581,17 +18481,6 @@ DoubleBits.exponent = function (d) {
 DoubleBits.powerOf2 = function (exp) {
   return Math.pow(2, exp);
 };
-
-/**
- * Calculates the exponent of the bit-pattern for a number. Uses code from:
- * http://www.merlyn.demon.co.uk/js-exact.htm
- *
- * @param {Number}
- *          NumW 32 or 64 to denote the number of bits.
- * @param {Number}
- *          Qty the number to calculate the bit pattern for.
- * @return {Number} The integer value of the exponent.
- */
 function CVTFWD(NumW, Qty) {
   var Sign;
   var Expo;
@@ -23615,9 +18504,8 @@ function CVTFWD(NumW, Qty) {
     32: 8,
     64: 11
   }[NumW];
-
   if (!Bin) {
-    Sign = Qty < 0 || 1 / Qty < 0; // OK for +-0
+    Sign = Qty < 0 || 1 / Qty < 0;
     if (!isFinite(Qty)) {
       Bin = Inf[NumW];
       if (Sign) {
@@ -23627,7 +18515,6 @@ function CVTFWD(NumW, Qty) {
       Mant = 0;
     }
   }
-
   if (!Bin) {
     Expo = {
       32: 127,
@@ -23656,7 +18543,6 @@ function CVTFWD(NumW, Qty) {
       Mant = 0;
     }
   }
-
   return Expo;
 }
 
@@ -25518,33 +20404,10 @@ Quadtree.ensureExtent = function (itemEnv, minExtent) {
 Quadtree.serialVersionUID = -7461163625812743604;
 
 var geometryTypes = ['Point', 'MultiPoint', 'LineString', 'MultiLineString', 'Polygon', 'MultiPolygon'];
-
-/**
- * Class for reading and writing Well-Known Text.Create a new parser for GeoJSON
- * NOTE: Adapted from OpenLayers 2.11 implementation.
- */
-
-/**
- * Create a new parser for GeoJSON
- *
- * @param {GeometryFactory} geometryFactory
- * @return An instance of GeoJsonParser.
- * @constructor
- * @private
- */
 function GeoJSONParser(geometryFactory) {
   this.geometryFactory = geometryFactory || new GeometryFactory();
 }
-
 extend(GeoJSONParser.prototype, {
-  /**
-   * Deserialize a GeoJSON object and return the Geometry or Feature(Collection) with JSTS Geometries
-   *
-   * @param {}
-   *          A GeoJSON object.
-   * @return {} A Geometry instance or object representing a Feature(Collection) with Geometry instances.
-   * @private
-   */
   read: function read(json) {
     var obj;
     if (typeof json === 'string') {
@@ -25552,61 +20415,31 @@ extend(GeoJSONParser.prototype, {
     } else {
       obj = json;
     }
-
     var type = obj.type;
-
     if (!parse$1[type]) {
       throw new Error('Unknown GeoJSON type: ' + obj.type);
     }
-
     if (geometryTypes.indexOf(type) !== -1) {
       return parse$1[type].apply(this, [obj.coordinates]);
     } else if (type === 'GeometryCollection') {
       return parse$1[type].apply(this, [obj.geometries]);
     }
-
-    // feature or feature collection
     return parse$1[type].apply(this, [obj]);
   },
-
-
-  /**
-   * Serialize a Geometry object into GeoJSON
-   *
-   * @param {Geometry}
-   *          geometry A Geometry or array of Geometries.
-   * @return {Object} A GeoJSON object represting the input Geometry/Geometries.
-   * @private
-   */
   write: function write(geometry) {
     var type = geometry.getGeometryType();
-
     if (!extract$2[type]) {
       throw new Error('Geometry is not supported');
     }
-
     return extract$2[type].apply(this, [geometry]);
   }
 });
-
 var parse$1 = {
-  /**
-   * Parse a GeoJSON Feature object
-   *
-   * @param {Object}
-   *          obj Object to parse.
-   *
-   * @return {Object} Feature with geometry/bbox converted to JSTS Geometries.
-   */
   Feature: function Feature(obj) {
     var feature = {};
-
-    // copy features
     for (var key in obj) {
       feature[key] = obj[key];
     }
-
-    // parse geometry
     if (obj.geometry) {
       var type = obj.geometry.type;
       if (!parse$1[type]) {
@@ -25614,49 +20447,24 @@ var parse$1 = {
       }
       feature.geometry = this.read(obj.geometry);
     }
-
-    // bbox
     if (obj.bbox) {
       feature.bbox = parse$1.bbox.apply(this, [obj.bbox]);
     }
-
     return feature;
   },
-
-  /**
-   * Parse a GeoJSON FeatureCollection object
-   *
-   * @param {Object}
-   *          obj Object to parse.
-   *
-   * @return {Object} FeatureCollection with geometry/bbox converted to JSTS Geometries.
-   */
   FeatureCollection: function FeatureCollection(obj) {
     var featureCollection = {};
-
     if (obj.features) {
       featureCollection.features = [];
-
       for (var i = 0; i < obj.features.length; ++i) {
         featureCollection.features.push(this.read(obj.features[i]));
       }
     }
-
     if (obj.bbox) {
       featureCollection.bbox = this.parse.bbox.apply(this, [obj.bbox]);
     }
-
     return featureCollection;
   },
-
-  /**
-   * Convert the ordinates in an array to an array of Coordinates
-   *
-   * @param {Array}
-   *          array Array with {Number}s.
-   *
-   * @return {Array} Array with Coordinates.
-   */
   coordinates: function coordinates(array) {
     var coordinates = [];
     for (var i = 0; i < array.length; ++i) {
@@ -25665,40 +20473,13 @@ var parse$1 = {
     }
     return coordinates;
   },
-
-  /**
-   * Convert the bbox to a LinearRing
-   *
-   * @param {Array}
-   *          array Array with [xMin, yMin, xMax, yMax].
-   *
-   * @return {Array} Array with Coordinates.
-   */
   bbox: function bbox(array) {
     return this.geometryFactory.createLinearRing([new Coordinate(array[0], array[1]), new Coordinate(array[2], array[1]), new Coordinate(array[2], array[3]), new Coordinate(array[0], array[3]), new Coordinate(array[0], array[1])]);
   },
-
-  /**
-   * Convert an Array with ordinates to a Point
-   *
-   * @param {Array}
-   *          array Array with ordinates.
-   *
-   * @return {Point} Point.
-   */
   Point: function Point(array) {
     var coordinate = new Coordinate(array[0], array[1]);
     return this.geometryFactory.createPoint(coordinate);
   },
-
-  /**
-   * Convert an Array with coordinates to a MultiPoint
-   *
-   * @param {Array}
-   *          array Array with coordinates.
-   *
-   * @return {MultiPoint} MultiPoint.
-   */
   MultiPoint: function MultiPoint(array) {
     var points = [];
     for (var i = 0; i < array.length; ++i) {
@@ -25706,28 +20487,10 @@ var parse$1 = {
     }
     return this.geometryFactory.createMultiPoint(points);
   },
-
-  /**
-   * Convert an Array with coordinates to a LineString
-   *
-   * @param {Array}
-   *          array Array with coordinates.
-   *
-   * @return {LineString} LineString.
-   */
   LineString: function LineString(array) {
     var coordinates = parse$1.coordinates.apply(this, [array]);
     return this.geometryFactory.createLineString(coordinates);
   },
-
-  /**
-   * Convert an Array with coordinates to a MultiLineString
-   *
-   * @param {Array}
-   *          array Array with coordinates.
-   *
-   * @return {MultiLineString} MultiLineString.
-   */
   MultiLineString: function MultiLineString(array) {
     var lineStrings = [];
     for (var i = 0; i < array.length; ++i) {
@@ -25735,15 +20498,6 @@ var parse$1 = {
     }
     return this.geometryFactory.createMultiLineString(lineStrings);
   },
-
-  /**
-   * Convert an Array to a Polygon
-   *
-   * @param {Array}
-   *          array Array with shell and holes.
-   *
-   * @return {Polygon} Polygon.
-   */
   Polygon: function Polygon(array) {
     var shellCoordinates = parse$1.coordinates.apply(this, [array[0]]);
     var shell = this.geometryFactory.createLinearRing(shellCoordinates);
@@ -25756,15 +20510,6 @@ var parse$1 = {
     }
     return this.geometryFactory.createPolygon(shell, holes);
   },
-
-  /**
-   * Convert an Array to a MultiPolygon
-   *
-   * @param {Array}
-   *          array Array of arrays with shell and rings.
-   *
-   * @return {MultiPolygon} MultiPolygon.
-   */
   MultiPolygon: function MultiPolygon(array) {
     var polygons = [];
     for (var i = 0; i < array.length; ++i) {
@@ -25773,15 +20518,6 @@ var parse$1 = {
     }
     return this.geometryFactory.createMultiPolygon(polygons);
   },
-
-  /**
-   * Convert an Array to a GeometryCollection
-   *
-   * @param {Array}
-   *          array Array of GeoJSON geometries.
-   *
-   * @return {GeometryCollection} GeometryCollection.
-   */
   GeometryCollection: function GeometryCollection(array) {
     var geometries = [];
     for (var i = 0; i < array.length; ++i) {
@@ -25791,28 +20527,10 @@ var parse$1 = {
     return this.geometryFactory.createGeometryCollection(geometries);
   }
 };
-
 var extract$2 = {
-  /**
-   * Convert a Coordinate to an Array
-   *
-   * @param {Coordinate}
-   *          coordinate Coordinate to convert.
-   *
-   * @return {Array} Array of ordinates.
-   */
   coordinate: function coordinate(_coordinate) {
     return [_coordinate.x, _coordinate.y];
   },
-
-  /**
-   * Convert a Point to a GeoJSON object
-   *
-   * @param {Point}
-   *          point Point to convert.
-   *
-   * @return {Array} Array of 2 ordinates (paired to a coordinate).
-   */
   Point: function Point(point) {
     var array = extract$2.coordinate.apply(this, [point.getCoordinate()]);
     return {
@@ -25820,15 +20538,6 @@ var extract$2 = {
       coordinates: array
     };
   },
-
-  /**
-   * Convert a MultiPoint to a GeoJSON object
-   *
-   * @param {MultiPoint}
-   *          multipoint MultiPoint to convert.
-   *
-   * @return {Array} Array of coordinates.
-   */
   MultiPoint: function MultiPoint(multipoint) {
     var array = [];
     for (var i = 0; i < multipoint._geometries.length; ++i) {
@@ -25841,15 +20550,6 @@ var extract$2 = {
       coordinates: array
     };
   },
-
-  /**
-   * Convert a LineString to a GeoJSON object
-   *
-   * @param {LineString}
-   *          linestring LineString to convert.
-   *
-   * @return {Array} Array of coordinates.
-   */
   LineString: function LineString(linestring) {
     var array = [];
     var coordinates = linestring.getCoordinates();
@@ -25862,15 +20562,6 @@ var extract$2 = {
       coordinates: array
     };
   },
-
-  /**
-   * Convert a MultiLineString to a GeoJSON object
-   *
-   * @param {MultiLineString}
-   *          multilinestring MultiLineString to convert.
-   *
-   * @return {Array} Array of Array of coordinates.
-   */
   MultiLineString: function MultiLineString(multilinestring) {
     var array = [];
     for (var i = 0; i < multilinestring._geometries.length; ++i) {
@@ -25883,15 +20574,6 @@ var extract$2 = {
       coordinates: array
     };
   },
-
-  /**
-   * Convert a Polygon to a GeoJSON object
-   *
-   * @param {Polygon}
-   *          polygon Polygon to convert.
-   *
-   * @return {Array} Array with shell, holes.
-   */
   Polygon: function Polygon(polygon) {
     var array = [];
     var shellGeoJson = extract$2.LineString.apply(this, [polygon._shell]);
@@ -25906,15 +20588,6 @@ var extract$2 = {
       coordinates: array
     };
   },
-
-  /**
-   * Convert a MultiPolygon to a GeoJSON object
-   *
-   * @param {MultiPolygon}
-   *          multipolygon MultiPolygon to convert.
-   *
-   * @return {Array} Array of polygons.
-   */
   MultiPolygon: function MultiPolygon(multipolygon) {
     var array = [];
     for (var i = 0; i < multipolygon._geometries.length; ++i) {
@@ -25927,15 +20600,6 @@ var extract$2 = {
       coordinates: array
     };
   },
-
-  /**
-   * Convert a GeometryCollection to a GeoJSON object
-   *
-   * @param {GeometryCollection}
-   *          collection GeometryCollection to convert.
-   *
-   * @return {Array} Array of geometries.
-   */
   GeometryCollection: function GeometryCollection(collection) {
     var array = [];
     for (var i = 0; i < collection._geometries.length; ++i) {
@@ -25950,50 +20614,21 @@ var extract$2 = {
   }
 };
 
-/**
- * Converts a geometry in GeoJSON to a {@link Geometry}.
- */
-
-/**
- * A <code>GeoJSONReader</code> is parameterized by a <code>GeometryFactory</code>,
- * to allow it to create <code>Geometry</code> objects of the appropriate
- * implementation. In particular, the <code>GeometryFactory</code> determines
- * the <code>PrecisionModel</code> and <code>SRID</code> that is used.
- *
- * @param {GeometryFactory} geometryFactory
- * @constructor
- */
 function GeoJSONReader(geometryFactory) {
   this.geometryFactory = geometryFactory || new GeometryFactory();
   this.precisionModel = this.geometryFactory.getPrecisionModel();
   this.parser = new GeoJSONParser(this.geometryFactory);
 }
-
 extend(GeoJSONReader.prototype, {
-  /**
-   * Reads a GeoJSON representation of a {@link Geometry}
-   *
-   * Will also parse GeoJSON Features/FeatureCollections as custom objects.
-   *
-   * @param {Object|String} geoJson a GeoJSON Object or String.
-   * @return {Geometry|Object} a <code>Geometry or Feature/FeatureCollection representation.</code>
-   * @memberof GeoJSONReader
-   */
   read: function read(geoJson) {
     var geometry = this.parser.read(geoJson);
-
     if (this.precisionModel.getType() === PrecisionModel.FIXED) {
       this.reducePrecision(geometry);
     }
-
     return geometry;
   },
-
-
-  // NOTE: this is a hack
   reducePrecision: function reducePrecision(geometry) {
     var i, len;
-
     if (geometry.coordinate) {
       this.precisionModel.makePrecise(geometry.coordinate);
     } else if (geometry.points) {
@@ -26008,84 +20643,26 @@ extend(GeoJSONReader.prototype, {
   }
 });
 
-/**
- * @module GeoJSONWriter
- */
-
-/**
- * Writes the GeoJSON representation of a {@link Geometry}. The
- * The GeoJSON format is defined <A
- * HREF="http://geojson.org/geojson-spec.html">here</A>.
- */
-
-/**
- * The <code>GeoJSONWriter</code> outputs coordinates rounded to the precision
- * model. Only the maximum number of decimal places necessary to represent the
- * ordinates to the required precision will be output.
- *
- * @param {GeometryFactory} geometryFactory
- * @constructor
- */
 function GeoJSONWriter() {
   this.parser = new GeoJSONParser(this.geometryFactory);
 }
-
 extend(GeoJSONWriter.prototype, {
-  /**
-   * Converts a <code>Geometry</code> to its GeoJSON representation.
-   *
-   * @param {Geometry}
-   *          geometry a <code>Geometry</code> to process.
-   * @return {Object} The GeoJSON representation of the Geometry.
-   * @memberof GeoJSONWriter
-   */
   write: function write(geometry) {
     return this.parser.write(geometry);
   }
 });
 
-/**
- * Converts a geometry in Well-Known Text format to a {@link Geometry}.
- * <p>
- * <code>WKTReader</code> supports extracting <code>Geometry</code> objects
- * from either {@link Reader}s or {@link String}s. This allows it to function
- * as a parser to read <code>Geometry</code> objects from text blocks embedded
- * in other data formats (e.g. XML).
- */
-
-/**
- * A <code>WKTReader</code> is parameterized by a <code>GeometryFactory</code>,
- * to allow it to create <code>Geometry</code> objects of the appropriate
- * implementation. In particular, the <code>GeometryFactory</code> determines
- * the <code>PrecisionModel</code> and <code>SRID</code> that is used.
- * @param {GeometryFactory} geometryFactory
- * @constructor
- */
 function WKTReader(geometryFactory) {
   this.geometryFactory = geometryFactory || new GeometryFactory();
   this.precisionModel = this.geometryFactory.getPrecisionModel();
   this.parser = new WKTParser(this.geometryFactory);
 }
-
 extend(WKTReader.prototype, {
-  /**
-   * Reads a Well-Known Text representation of a {@link Geometry}
-   *
-   * @param {string}
-   *          wkt a <Geometry Tagged Text> string (see the OpenGIS Simple Features
-   *          Specification).
-   * @return {Geometry} a <code>Geometry</code> read from
-   *         <code>string.</code>
-   * @memberof WKTReader
-   */
   read: function read(wkt) {
     var geometry = this.parser.read(wkt);
-
-    // TODO: port and use GeometryPrecisionReducer, this is a hack
     if (this.precisionModel.getType() === PrecisionModel.FIXED) {
       this.reducePrecision(geometry);
     }
-
     return geometry;
   },
   reducePrecision: function reducePrecision(geometry) {
@@ -26103,29 +20680,14 @@ extend(WKTReader.prototype, {
   }
 });
 
-/*eslint-disable no-undef */
-
 function p2c(p) {
   return [p.x, p.y];
 }
-
-/**
- * OpenLayers 3 Geometry parser and writer
- * @param {GeometryFactory} geometryFactory
- * @param {ol} olReference
- * @constructor
- */
 function OL3Parser(geometryFactory, olReference) {
   this.geometryFactory = geometryFactory || new GeometryFactory();
   this.ol = olReference || typeof ol !== 'undefined' && ol;
 }
-
 extend(OL3Parser.prototype, {
-  /**
-   * @param geometry {ol.geom.Geometry}
-   * @return {Geometry}
-   * @memberof OL3Parser
-   */
   read: function read(geometry) {
     var ol = this.ol;
     if (geometry instanceof ol.geom.Point) {
@@ -26198,14 +20760,6 @@ extend(OL3Parser.prototype, {
     }, this);
     return this.geometryFactory.createGeometryCollection(geometries);
   },
-
-
-  /**
-   * @param geometry
-   *          {Geometry}
-   * @return {ol.geom.Geometry}
-   * @memberof! OL3Parser
-   */
   write: function write(geometry) {
     if (geometry.getGeometryType() === 'Point') {
       return this.convertToPoint(geometry.getCoordinate());
@@ -35458,44 +30012,14 @@ extend(LengthIndexedLine.prototype, {
 	}
 });
 
-/**
- * Takes two or more {@link Polygon|polygons} and returns a combined polygon. If the input polygons are not contiguous, this function returns a {@link MultiPolygon} feature.
- *
- * @name union
- * @param {...Feature<Polygon>} A polygon to combine
- * @returns {Feature<(Polygon|MultiPolygon)>} a combined {@link Polygon} or {@link MultiPolygon} feature
- * @example
- * var poly1 = turf.polygon([[
- *     [-82.574787, 35.594087],
- *     [-82.574787, 35.615581],
- *     [-82.545261, 35.615581],
- *     [-82.545261, 35.594087],
- *     [-82.574787, 35.594087]
- * ]], {"fill": "#0f0"});
- * var poly2 = turf.polygon([[
- *     [-82.560024, 35.585153],
- *     [-82.560024, 35.602602],
- *     [-82.52964, 35.602602],
- *     [-82.52964, 35.585153],
- *     [-82.560024, 35.585153]
- * ]], {"fill": "#00f"});
- *
- * var union = turf.union(poly1, poly2);
- *
- * //addToMap
- * var addToMap = [poly1, poly2, union];
- */
 function union$1() {
     var reader = new GeoJSONReader();
     var result = reader.read(JSON.stringify(arguments[0].geometry));
-
     for (var i = 1; i < arguments.length; i++) {
         result = UnionOp.union(result, reader.read(JSON.stringify(arguments[i].geometry)));
     }
-
     var writer = new GeoJSONWriter();
     result = writer.write(result);
-
     return {
         type: 'Feature',
         geometry: result,
@@ -35503,12 +30027,6 @@ function union$1() {
     };
 }
 
-/**
- * Superpone dos Feature.<Polygon>
- * @param  {google.maps.Polygon|Array.<google.maps.LatLng>|Feature.Polygon} poly1 object to transform into a Feature.Polygon
- * @param  {google.maps.Polygon|Array.<google.maps.LatLng>|Feature.Polygon} poly1 object to transform into a Feature.Polygon
- * @return {Feature.<Polygon>|Feature.<MultiPolygon>}  result of the union. If inputs are disjoint, returns a Feature.Multipolygon
- */
 function union(poly1, poly2) {
   var featurePolygon1 = polygonToFeaturePolygon(poly1),
       featurePolygon2 = polygonToFeaturePolygon(poly2),
@@ -35516,20 +30034,6 @@ function union(poly1, poly2) {
   return FeatureUnion;
 }
 
-/**
- * Takes a set of features, calculates the bbox of all input features, and returns a bounding box.
- *
- * @name bbox
- * @param {FeatureCollection|Feature<any>} geojson input features
- * @returns {Array<number>} bbox extent in [minX, minY, maxX, maxY] order
- * @example
- * var line = turf.lineString([[-74, 40], [-78, 42], [-82, 35]]);
- * var bbox = turf.bbox(line);
- * var bboxPolygon = turf.bboxPolygon(bbox);
- *
- * //addToMap
- * var addToMap = [line, bboxPolygon]
- */
 function bbox$1(geojson) {
     var BBox = [Infinity, Infinity, -Infinity, -Infinity];
     coordEach(geojson, function (coord) {
@@ -35541,27 +30045,6 @@ function bbox$1(geojson) {
     return BBox;
 }
 
-/**
- * Takes a {@link Feature} or {@link FeatureCollection} and returns the absolute center point of all features.
- *
- * @name center
- * @param {GeoJSON} geojson GeoJSON to be centered
- * @param {Object} [properties={}] an Object that is used as the {@link Feature}'s properties
- * @returns {Feature<Point>} a Point feature at the absolute center point of all input features
- * @example
- * var features = turf.featureCollection([
- *   turf.point( [-97.522259, 35.4691]),
- *   turf.point( [-97.502754, 35.463455]),
- *   turf.point( [-97.508269, 35.463245])
- * ]);
- *
- * var center = turf.center(features);
- *
- * //addToMap
- * var addToMap = [features, center]
- * center.properties['marker-size'] = 'large';
- * center.properties['marker-color'] = '#000';
- */
 function center(geojson, properties) {
   var ext = bbox$1(geojson);
   var x = (ext[0] + ext[2]) / 2;
@@ -35569,71 +30052,20 @@ function center(geojson, properties) {
   return point([x, y], properties);
 }
 
-/**
- * Converts a WGS84 GeoJSON object into Mercator (EPSG:900913) projection
- *
- * @name toMercator
- * @param {GeoJSON|Position} geojson WGS84 GeoJSON object
- * @param {Object} [options] Optional parameters
- * @param {boolean} [options.mutate=false] allows GeoJSON input to be mutated (significant performance increase if true)
- * @returns {GeoJSON} true/false
- * @example
- * var pt = turf.point([-71,41]);
- * var converted = turf.toMercator(pt);
- *
- * //addToMap
- * var addToMap = [pt, converted];
- */
 function toMercator(geojson, options) {
     return convert(geojson, 'mercator', options);
 }
-
-/**
- * Converts a Mercator (EPSG:900913) GeoJSON object into WGS84 projection
- *
- * @name toWgs84
- * @param {GeoJSON|Position} geojson Mercator GeoJSON object
- * @param {Object} [options] Optional parameters
- * @param {boolean} [options.mutate=false] allows GeoJSON input to be mutated (significant performance increase if true)
- * @returns {GeoJSON} true/false
- * @example
- * var pt = turf.point([-7903683.846322424, 5012341.663847514]);
- * var converted = turf.toWgs84(pt);
- *
- * //addToMap
- * var addToMap = [pt, converted];
- */
 function toWgs84(geojson, options) {
     return convert(geojson, 'wgs84', options);
 }
-
-/**
- * Converts a GeoJSON coordinates to the defined `projection`
- *
- * @private
- * @param {GeoJSON} geojson GeoJSON Feature or Geometry
- * @param {string} projection defines the projection system to convert the coordinates to
- * @param {Object} [options] Optional parameters
- * @param {boolean} [options.mutate=false] allows GeoJSON input to be mutated (significant performance increase if true)
- * @returns {GeoJSON} true/false
- */
 function convert(geojson, projection, options) {
-    // Optional parameters
     options = options || {};
     if (!isObject$2(options)) throw new Error('options is invalid');
     var mutate = options.mutate;
-
-    // Validation
     if (!geojson) throw new Error('geojson is required');
-
-    // Handle Position
     if (Array.isArray(geojson) && isNumber(geojson[0])) geojson = projection === 'mercator' ? convertToMercator(geojson) : convertToWgs84(geojson);
-
-    // Handle GeoJSON
     else {
-            // Handle possible data mutation
             if (mutate !== true) geojson = clone(geojson);
-
             coordEach(geojson, function (coord) {
                 var newCoord = projection === 'mercator' ? convertToMercator(coord) : convertToWgs84(coord);
                 coord[0] = newCoord[0];
@@ -35642,83 +30074,38 @@ function convert(geojson, projection, options) {
         }
     return geojson;
 }
-
-/**
- * Convert lon/lat values to 900913 x/y.
- * (from https://github.com/mapbox/sphericalmercator)
- *
- * @private
- * @param {Array<number>} lonLat WGS84 point
- * @returns {Array<number>} Mercator [x, y] point
- */
 function convertToMercator(lonLat) {
     var D2R = Math.PI / 180,
-
-    // 900913 properties
     A = 6378137.0,
         MAXEXTENT = 20037508.342789244;
-
-    // compensate longitudes passing the 180th meridian
-    // from https://github.com/proj4js/proj4js/blob/master/lib/common/adjust_lon.js
     var adjusted = Math.abs(lonLat[0]) <= 180 ? lonLat[0] : lonLat[0] - sign(lonLat[0]) * 360;
     var xy = [A * adjusted * D2R, A * Math.log(Math.tan(Math.PI * 0.25 + 0.5 * lonLat[1] * D2R))];
-
-    // if xy value is beyond maxextent (e.g. poles), return maxextent
     if (xy[0] > MAXEXTENT) xy[0] = MAXEXTENT;
     if (xy[0] < -MAXEXTENT) xy[0] = -MAXEXTENT;
     if (xy[1] > MAXEXTENT) xy[1] = MAXEXTENT;
     if (xy[1] < -MAXEXTENT) xy[1] = -MAXEXTENT;
-
     return xy;
 }
-
-/**
- * Convert 900913 x/y values to lon/lat.
- * (from https://github.com/mapbox/sphericalmercator)
- *
- * @private
- * @param {Array<number>} xy Mercator [x, y] point
- * @returns {Array<number>} WGS84 [lon, lat] point
- */
 function convertToWgs84(xy) {
-    // 900913 properties.
     var R2D = 180 / Math.PI;
     var A = 6378137.0;
-
     return [xy[0] * R2D / A, (Math.PI * 0.5 - 2.0 * Math.atan(Math.exp(-xy[1] / A))) * R2D];
 }
-
-/**
- * Returns the sign of the input, or zero
- *
- * @private
- * @param {number} x input
- * @returns {number} -1|0|1 output
- */
 function sign(x) {
     return x < 0 ? -1 : x > 0 ? 1 : 0;
 }
 
-// Adds floating point numbers with twice the normal precision.
-// Reference: J. R. Shewchuk, Adaptive Precision Floating-Point Arithmetic and
-// Fast Robust Geometric Predicates, Discrete & Computational Geometry 18(3)
-// 305–363 (1997).
-// Code adapted from GeographicLib by Charles F. F. Karney,
-// http://geographiclib.sourceforge.net/
-
 var adder = function () {
   return new Adder();
 };
-
 function Adder() {
   this.reset();
 }
-
 Adder.prototype = {
   constructor: Adder,
   reset: function reset() {
-    this.s = // rounded value
-    this.t = 0; // exact error
+    this.s =
+    this.t = 0;
   },
   add: function add(y) {
     _add(temp, y, this.t);
@@ -35729,9 +30116,7 @@ Adder.prototype = {
     return this.s;
   }
 };
-
 var temp = new Adder();
-
 function _add(adder, a, b) {
   var x = adder.s = a + b,
       bv = x - a,
@@ -35745,10 +30130,8 @@ var pi = Math.PI;
 var halfPi = pi / 2;
 var quarterPi = pi / 4;
 var tau = pi * 2;
-
 var degrees = 180 / pi;
 var radians = pi / 180;
-
 var abs = Math.abs;
 var atan = Math.atan;
 var atan2 = Math.atan2;
@@ -35762,11 +30145,9 @@ var sin = Math.sin;
 
 var sqrt = Math.sqrt;
 var tan = Math.tan;
-
 function acos(x) {
   return x > 1 ? 0 : x < -1 ? pi : Math.acos(x);
 }
-
 function asin(x) {
   return x > 1 ? halfPi : x < -1 ? -halfPi : Math.asin(x);
 }
@@ -35778,7 +30159,6 @@ function streamGeometry(geometry, stream) {
     streamGeometryType[geometry.type](geometry, stream);
   }
 }
-
 var streamObjectType = {
   Feature: function Feature(object, stream) {
     streamGeometry(object.geometry, stream);
@@ -35792,7 +30172,6 @@ var streamObjectType = {
     }
   }
 };
-
 var streamGeometryType = {
   Sphere: function Sphere(object, stream) {
     stream.sphere();
@@ -35840,7 +30219,6 @@ var streamGeometryType = {
     }
   }
 };
-
 function streamLine(coordinates, stream, closed) {
   var i = -1,
       n = coordinates.length - closed,
@@ -35850,7 +30228,6 @@ function streamLine(coordinates, stream, closed) {
     coordinate = coordinates[i], stream.point(coordinate[0], coordinate[1], coordinate[2]);
   }stream.lineEnd();
 }
-
 function streamPolygon(coordinates, stream) {
   var i = -1,
       n = coordinates.length;
@@ -35859,7 +30236,6 @@ function streamPolygon(coordinates, stream) {
     streamLine(coordinates[i], stream, 1);
   }stream.polygonEnd();
 }
-
 var geoStream = function (object, stream) {
   if (object && streamObjectType.hasOwnProperty(object.type)) {
     streamObjectType[object.type](object, stream);
@@ -35869,38 +30245,29 @@ var geoStream = function (object, stream) {
 };
 
 var areaRingSum = adder();
-
 var areaSum = adder();
 
 function spherical(cartesian) {
   return [atan2(cartesian[1], cartesian[0]), asin(cartesian[2])];
 }
-
 function cartesian(spherical) {
   var lambda = spherical[0],
       phi = spherical[1],
       cosPhi = cos(phi);
   return [cosPhi * cos(lambda), cosPhi * sin(lambda), sin(phi)];
 }
-
 function cartesianDot(a, b) {
   return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 }
-
 function cartesianCross(a, b) {
   return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
 }
-
-// TODO return a
 function cartesianAddInPlace(a, b) {
   a[0] += b[0], a[1] += b[1], a[2] += b[2];
 }
-
 function cartesianScale(vector, k) {
   return [vector[0] * k, vector[1] * k, vector[2] * k];
 }
-
-// TODO return d
 function cartesianNormalizeInPlace(d) {
   var l = sqrt(d[0] * d[0] + d[1] * d[1] + d[2] * d[2]);
   d[0] /= l, d[1] /= l, d[2] /= l;
@@ -35909,46 +30276,37 @@ function cartesianNormalizeInPlace(d) {
 var deltaSum = adder();
 
 var compose = function (a, b) {
-
   function compose(x, y) {
     return x = a(x, y), b(x[0], x[1]);
   }
-
   if (a.invert && b.invert) compose.invert = function (x, y) {
     return x = b.invert(x, y), x && a.invert(x[0], x[1]);
   };
-
   return compose;
 };
 
 function rotationIdentity(lambda, phi) {
   return [lambda > pi ? lambda - tau : lambda < -pi ? lambda + tau : lambda, phi];
 }
-
 rotationIdentity.invert = rotationIdentity;
-
 function rotateRadians(deltaLambda, deltaPhi, deltaGamma) {
   return (deltaLambda %= tau) ? deltaPhi || deltaGamma ? compose(rotationLambda(deltaLambda), rotationPhiGamma(deltaPhi, deltaGamma)) : rotationLambda(deltaLambda) : deltaPhi || deltaGamma ? rotationPhiGamma(deltaPhi, deltaGamma) : rotationIdentity;
 }
-
 function forwardRotationLambda(deltaLambda) {
   return function (lambda, phi) {
     return lambda += deltaLambda, [lambda > pi ? lambda - tau : lambda < -pi ? lambda + tau : lambda, phi];
   };
 }
-
 function rotationLambda(deltaLambda) {
   var rotation = forwardRotationLambda(deltaLambda);
   rotation.invert = forwardRotationLambda(-deltaLambda);
   return rotation;
 }
-
 function rotationPhiGamma(deltaPhi, deltaGamma) {
   var cosDeltaPhi = cos(deltaPhi),
       sinDeltaPhi = sin(deltaPhi),
       cosDeltaGamma = cos(deltaGamma),
       sinDeltaGamma = sin(deltaGamma);
-
   function rotation(lambda, phi) {
     var cosPhi = cos(phi),
         x = cos(lambda) * cosPhi,
@@ -35957,7 +30315,6 @@ function rotationPhiGamma(deltaPhi, deltaGamma) {
         k = z * cosDeltaPhi + x * sinDeltaPhi;
     return [atan2(y * cosDeltaGamma - k * sinDeltaGamma, x * cosDeltaPhi - z * sinDeltaPhi), asin(k * cosDeltaGamma + y * sinDeltaGamma)];
   }
-
   rotation.invert = function (lambda, phi) {
     var cosPhi = cos(phi),
         x = cos(lambda) * cosPhi,
@@ -35966,27 +30323,21 @@ function rotationPhiGamma(deltaPhi, deltaGamma) {
         k = z * cosDeltaGamma - y * sinDeltaGamma;
     return [atan2(y * cosDeltaGamma + z * sinDeltaGamma, x * cosDeltaPhi + k * sinDeltaPhi), asin(k * cosDeltaPhi - x * sinDeltaPhi)];
   };
-
   return rotation;
 }
-
 var rotation = function (rotate) {
   rotate = rotateRadians(rotate[0] * radians, rotate[1] * radians, rotate.length > 2 ? rotate[2] * radians : 0);
-
   function forward(coordinates) {
     coordinates = rotate(coordinates[0] * radians, coordinates[1] * radians);
     return coordinates[0] *= degrees, coordinates[1] *= degrees, coordinates;
   }
-
   forward.invert = function (coordinates) {
     coordinates = rotate.invert(coordinates[0] * radians, coordinates[1] * radians);
     return coordinates[0] *= degrees, coordinates[1] *= degrees, coordinates;
   };
-
   return forward;
 };
 
-// Generates a circle centered at [0°, 0°], with a given radius and precision.
 function circleStream(stream, radius, delta, direction, t0, t1) {
   if (!delta) return;
   var cosRadius = cos(radius),
@@ -36005,8 +30356,6 @@ function circleStream(stream, radius, delta, direction, t0, t1) {
     stream.point(point[0], point[1]);
   }
 }
-
-// Returns the signed angle of a cartesian point relative to [cosRadius, 0, 0].
 function circleRadius(cosRadius, point) {
   point = cartesian(point), point[0] -= cosRadius;
   cartesianNormalizeInPlace(point);
@@ -36047,7 +30396,6 @@ var clipLine = function (a, b, x0, y0, x1, y1) {
       dx = bx - ax,
       dy = by - ay,
       r;
-
   r = x0 - ax;
   if (!dx && r > 0) return;
   r /= dx;
@@ -36058,7 +30406,6 @@ var clipLine = function (a, b, x0, y0, x1, y1) {
     if (r > t1) return;
     if (r > t0) t0 = r;
   }
-
   r = x1 - ax;
   if (!dx && r < 0) return;
   r /= dx;
@@ -36069,7 +30416,6 @@ var clipLine = function (a, b, x0, y0, x1, y1) {
     if (r < t0) return;
     if (r < t1) t1 = r;
   }
-
   r = y0 - ay;
   if (!dy && r > 0) return;
   r /= dy;
@@ -36080,7 +30426,6 @@ var clipLine = function (a, b, x0, y0, x1, y1) {
     if (r > t1) return;
     if (r > t0) t0 = r;
   }
-
   r = y1 - ay;
   if (!dy && r < 0) return;
   r /= dy;
@@ -36091,7 +30436,6 @@ var clipLine = function (a, b, x0, y0, x1, y1) {
     if (r < t0) return;
     if (r < t1) t1 = r;
   }
-
   if (t0 > 0) a[0] = ax + t0 * dx, a[1] = ay + t0 * dy;
   if (t1 < 1) b[0] = ax + t1 * dx, b[1] = ay + t1 * dy;
   return true;
@@ -36104,31 +30448,22 @@ var pointEqual = function (a, b) {
 function Intersection(point, points, other, entry) {
   this.x = point;
   this.z = points;
-  this.o = other; // another intersection
-  this.e = entry; // is an entry?
-  this.v = false; // visited
-  this.n = this.p = null; // next & previous
+  this.o = other;
+  this.e = entry;
+  this.v = false;
+  this.n = this.p = null;
 }
-
-// A generalized polygon clipping algorithm: given a polygon that has been cut
-// into its visible line segments, and rejoins the segments by interpolating
-// along the clip edge.
 var clipPolygon = function (segments, compareIntersection, startInside, interpolate, stream) {
   var subject = [],
       clip = [],
       i,
       n;
-
   segments.forEach(function (segment) {
     if ((n = segment.length - 1) <= 0) return;
     var n,
         p0 = segment[0],
         p1 = segment[n],
         x;
-
-    // If the first and last points of a segment are coincident, then treat as a
-    // closed ring. TODO if all rings are closed, then the winding order of the
-    // exterior ring should be checked.
     if (pointEqual(p0, p1)) {
       stream.lineStart();
       for (i = 0; i < n; ++i) {
@@ -36136,29 +30471,22 @@ var clipPolygon = function (segments, compareIntersection, startInside, interpol
       }stream.lineEnd();
       return;
     }
-
     subject.push(x = new Intersection(p0, segment, null, true));
     clip.push(x.o = new Intersection(p0, null, x, false));
     subject.push(x = new Intersection(p1, segment, null, false));
     clip.push(x.o = new Intersection(p1, null, x, true));
   });
-
   if (!subject.length) return;
-
   clip.sort(compareIntersection);
   link(subject);
   link(clip);
-
   for (i = 0, n = clip.length; i < n; ++i) {
     clip[i].e = startInside = !startInside;
   }
-
   var start = subject[0],
       points,
       point;
-
   while (1) {
-    // Find first unvisited intersection.
     var current = start,
         isSubject = true;
     while (current.v) {
@@ -36194,7 +30522,6 @@ var clipPolygon = function (segments, compareIntersection, startInside, interpol
     stream.lineEnd();
   }
 };
-
 function link(array) {
   if (!(n = array.length)) return;
   var n,
@@ -36237,7 +30564,6 @@ var bisector = function (compare) {
     }
   };
 };
-
 function ascendingComparator(f) {
   return function (d, x) {
     return ascending(f(d), x);
@@ -36253,11 +30579,9 @@ var merge$1 = function (arrays) {
       j = 0,
       merged,
       array;
-
   while (++i < n) {
     j += arrays[i].length;
   }merged = new Array(j);
-
   while (--n >= 0) {
     array = arrays[n];
     m = array.length;
@@ -36265,22 +30589,15 @@ var merge$1 = function (arrays) {
       merged[--j] = array[m];
     }
   }
-
   return merged;
 };
 
 var clipMax = 1e9;
 var clipMin = -clipMax;
-
-// TODO Use d3-polygon’s polygonContains here for the ring check?
-// TODO Eliminate duplicate buffering in clipBuffer and polygon.push?
-
 function clipExtent(x0, y0, x1, y1) {
-
   function visible(x, y) {
     return x0 <= x && x <= x1 && y0 <= y && y <= y1;
   }
-
   function interpolate(from, to, direction, stream) {
     var a = 0,
         a1 = 0;
@@ -36292,21 +30609,17 @@ function clipExtent(x0, y0, x1, y1) {
       stream.point(to[0], to[1]);
     }
   }
-
   function corner(p, direction) {
-    return abs(p[0] - x0) < epsilon ? direction > 0 ? 0 : 3 : abs(p[0] - x1) < epsilon ? direction > 0 ? 2 : 1 : abs(p[1] - y0) < epsilon ? direction > 0 ? 1 : 0 : direction > 0 ? 3 : 2; // abs(p[1] - y1) < epsilon
+    return abs(p[0] - x0) < epsilon ? direction > 0 ? 0 : 3 : abs(p[0] - x1) < epsilon ? direction > 0 ? 2 : 1 : abs(p[1] - y0) < epsilon ? direction > 0 ? 1 : 0 : direction > 0 ? 3 : 2;
   }
-
   function compareIntersection(a, b) {
     return comparePoint(a.x, b.x);
   }
-
   function comparePoint(a, b) {
     var ca = corner(a, 1),
         cb = corner(b, 1);
     return ca !== cb ? ca - cb : ca === 0 ? b[1] - a[1] : ca === 1 ? a[0] - b[0] : ca === 2 ? a[1] - b[1] : b[0] - a[0];
   }
-
   return function (stream) {
     var activeStream = stream,
         bufferStream = clipBuffer(),
@@ -36316,14 +30629,11 @@ function clipExtent(x0, y0, x1, y1) {
         x__,
         y__,
         v__,
-        // first point
     x_,
         y_,
         v_,
-        // previous point
     first,
         clean;
-
     var clipStream = {
       point: point,
       lineStart: lineStart,
@@ -36331,14 +30641,11 @@ function clipExtent(x0, y0, x1, y1) {
       polygonStart: polygonStart,
       polygonEnd: polygonEnd
     };
-
     function point(x, y) {
       if (visible(x, y)) activeStream.point(x, y);
     }
-
     function polygonInside() {
       var winding = 0;
-
       for (var i = 0, n = polygon.length; i < n; ++i) {
         for (var ring = polygon[i], j = 1, m = ring.length, point = ring[0], a0, a1, b0 = point[0], b1 = point[1]; j < m; ++j) {
           a0 = b0, a1 = b1, point = ring[j], b0 = point[0], b1 = point[1];
@@ -36349,15 +30656,11 @@ function clipExtent(x0, y0, x1, y1) {
           }
         }
       }
-
       return winding;
     }
-
-    // Buffer geometry within a polygon and then clip it en masse.
     function polygonStart() {
       activeStream = bufferStream, segments = [], polygon = [], clean = true;
     }
-
     function polygonEnd() {
       var startInside = polygonInside(),
           cleanInside = clean && startInside,
@@ -36376,7 +30679,6 @@ function clipExtent(x0, y0, x1, y1) {
       }
       activeStream = stream, segments = polygon = ring = null;
     }
-
     function lineStart() {
       clipStream.point = linePoint;
       if (polygon) polygon.push(ring = []);
@@ -36384,10 +30686,6 @@ function clipExtent(x0, y0, x1, y1) {
       v_ = false;
       x_ = y_ = NaN;
     }
-
-    // TODO rather than special-case polygons, simply handle them separately.
-    // Ideally, coincident intersection points should be jittered to avoid
-    // clipping issues.
     function lineEnd() {
       if (segments) {
         linePoint(x__, y__);
@@ -36397,7 +30695,6 @@ function clipExtent(x0, y0, x1, y1) {
       clipStream.point = point;
       if (v_) activeStream.lineEnd();
     }
-
     function linePoint(x, y) {
       var v = visible(x, y);
       if (polygon) ring.push([x, y]);
@@ -36429,22 +30726,18 @@ function clipExtent(x0, y0, x1, y1) {
       }
       x_ = x, y_ = y, v_ = v;
     }
-
     return clipStream;
   };
 }
 
 var sum$1 = adder();
-
 var polygonContains = function (polygon, point) {
   var lambda = point[0],
       phi = point[1],
       normal = [sin(lambda), -cos(lambda), 0],
       angle = 0,
       winding = 0;
-
   sum$1.reset();
-
   for (var i = 0, n = polygon.length; i < n; ++i) {
     if (!(m = (ring = polygon[i]).length)) continue;
     var ring,
@@ -36454,7 +30747,6 @@ var polygonContains = function (polygon, point) {
         phi0 = point0[1] / 2 + quarterPi,
         sinPhi0 = sin(phi0),
         cosPhi0 = cos(phi0);
-
     for (var j = 0; j < m; ++j, lambda0 = lambda1, sinPhi0 = sinPhi1, cosPhi0 = cosPhi1, point0 = point1) {
       var point1 = ring[j],
           lambda1 = point1[0],
@@ -36466,12 +30758,8 @@ var polygonContains = function (polygon, point) {
           absDelta = sign * delta,
           antimeridian = absDelta > pi,
           k = sinPhi0 * sinPhi1;
-
       sum$1.add(atan2(k * sign * sin(absDelta), cosPhi0 * cosPhi1 + k * cos(absDelta)));
       angle += antimeridian ? delta + sign * tau : delta;
-
-      // Are the longitudes either side of the point’s meridian (lambda),
-      // and are the latitudes smaller than the parallel (phi)?
       if (antimeridian ^ lambda0 >= lambda ^ lambda1 >= lambda) {
         var arc = cartesianCross(cartesian(point0), cartesian(point1));
         cartesianNormalizeInPlace(arc);
@@ -36484,18 +30772,6 @@ var polygonContains = function (polygon, point) {
       }
     }
   }
-
-  // First, determine whether the South pole is inside or outside:
-  //
-  // It is inside if:
-  // * the polygon winds around it in a clockwise direction.
-  // * the polygon does not (cumulatively) wind around it, but has a negative
-  //   (counter-clockwise) area.
-  //
-  // Second, count the (signed) number of times a segment crosses a lambda
-  // from the point to the South pole.  If it is zero, then the point is the
-  // same side as the South pole.
-
   return (angle < -epsilon || angle < epsilon && sum$1 < -epsilon) ^ winding & 1;
 };
 
@@ -36512,7 +30788,6 @@ var x0$2 = Infinity;
 var y0$2 = x0$2;
 var x1 = -x0$2;
 var y1 = x1;
-
 var boundsStream$1 = {
   point: boundsPoint$1,
   lineStart: noop,
@@ -36525,7 +30800,6 @@ var boundsStream$1 = {
     return bounds;
   }
 };
-
 function boundsPoint$1(x, y) {
   if (x < x0$2) x0$2 = x;
   if (x > x1) x1 = x;
@@ -36545,7 +30819,6 @@ var clip = function (pointVisible, clipLine, interpolate, start) {
         polygon,
         segments,
         ring;
-
     var clip = {
       point: point,
       lineStart: lineStart,
@@ -36583,42 +30856,34 @@ var clip = function (pointVisible, clipLine, interpolate, start) {
         sink.polygonEnd();
       }
     };
-
     function point(lambda, phi) {
       var point = rotate(lambda, phi);
       if (pointVisible(lambda = point[0], phi = point[1])) sink.point(lambda, phi);
     }
-
     function pointLine(lambda, phi) {
       var point = rotate(lambda, phi);
       line.point(point[0], point[1]);
     }
-
     function lineStart() {
       clip.point = pointLine;
       line.lineStart();
     }
-
     function lineEnd() {
       clip.point = point;
       line.lineEnd();
     }
-
     function pointRing(lambda, phi) {
       ring.push([lambda, phi]);
       var point = rotate(lambda, phi);
       ringSink.point(point[0], point[1]);
     }
-
     function ringStart() {
       ringSink.lineStart();
       ring = [];
     }
-
     function ringEnd() {
       pointRing(ring[0][0], ring[0][1]);
       ringSink.lineEnd();
-
       var clean = ringSink.clean(),
           ringSegments = ringBuffer.result(),
           i,
@@ -36626,14 +30891,10 @@ var clip = function (pointVisible, clipLine, interpolate, start) {
           m,
           segment,
           point;
-
       ring.pop();
       polygon.push(ring);
       ring = null;
-
       if (!n) return;
-
-      // No intersections.
       if (clean & 1) {
         segment = ringSegments[0];
         if ((m = segment.length - 1) > 0) {
@@ -36645,24 +30906,15 @@ var clip = function (pointVisible, clipLine, interpolate, start) {
         }
         return;
       }
-
-      // Rejoin connected segments.
-      // TODO reuse ringBuffer.rejoin()?
       if (n > 1 && clean & 2) ringSegments.push(ringSegments.pop().concat(ringSegments.shift()));
-
       segments.push(ringSegments.filter(validSegment));
     }
-
     return clip;
   };
 };
-
 function validSegment(segment) {
   return segment.length > 1;
 }
-
-// Intersections are sorted along the clip edge. For both antimeridian cutting
-// and circle clipping, the same comparison is used.
 function compareIntersection(a, b) {
   return ((a = a.x)[0] < 0 ? a[1] - halfPi - epsilon : halfPi - a[1]) - ((b = b.x)[0] < 0 ? b[1] - halfPi - epsilon : halfPi - b[1]);
 }
@@ -36670,16 +30922,11 @@ function compareIntersection(a, b) {
 var clipAntimeridian = clip(function () {
   return true;
 }, clipAntimeridianLine, clipAntimeridianInterpolate, [-pi, -halfPi]);
-
-// Takes a line and cuts into visible segments. Return values: 0 - there were
-// intersections or the line was empty; 1 - no intersections; 2 - there were
-// intersections, and the first and last segments should be rejoined.
 function clipAntimeridianLine(stream) {
   var lambda0 = NaN,
       phi0 = NaN,
       sign0 = NaN,
-      _clean; // no intersections
-
+      _clean;
   return {
     lineStart: function lineStart() {
       stream.lineStart();
@@ -36689,7 +30936,6 @@ function clipAntimeridianLine(stream) {
       var sign1 = lambda1 > 0 ? pi : -pi,
           delta = abs(lambda1 - lambda0);
       if (abs(delta - pi) < epsilon) {
-        // line crosses a pole
         stream.point(lambda0, phi0 = (phi0 + phi1) / 2 > 0 ? halfPi : -halfPi);
         stream.point(sign0, phi0);
         stream.lineEnd();
@@ -36698,8 +30944,7 @@ function clipAntimeridianLine(stream) {
         stream.point(lambda1, phi0);
         _clean = 0;
       } else if (sign0 !== sign1 && delta >= pi) {
-        // line crosses antimeridian
-        if (abs(lambda0 - sign0) < epsilon) lambda0 -= sign0 * epsilon; // handle degeneracies
+        if (abs(lambda0 - sign0) < epsilon) lambda0 -= sign0 * epsilon;
         if (abs(lambda1 - sign1) < epsilon) lambda1 -= sign1 * epsilon;
         phi0 = clipAntimeridianIntersect(lambda0, phi0, lambda1, phi1);
         stream.point(sign0, phi0);
@@ -36716,18 +30961,16 @@ function clipAntimeridianLine(stream) {
       lambda0 = phi0 = NaN;
     },
     clean: function clean() {
-      return 2 - _clean; // if intersections, rejoin first and last segments
+      return 2 - _clean;
     }
   };
 }
-
 function clipAntimeridianIntersect(lambda0, phi0, lambda1, phi1) {
   var cosPhi0,
       cosPhi1,
       sinLambda0Lambda1 = sin(lambda0 - lambda1);
   return abs(sinLambda0Lambda1) > epsilon ? atan((sin(phi0) * (cosPhi1 = cos(phi1)) * sin(lambda1) - sin(phi1) * (cosPhi0 = cos(phi0)) * sin(lambda0)) / (cosPhi0 * cosPhi1 * sinLambda0Lambda1)) : (phi0 + phi1) / 2;
 }
-
 function clipAntimeridianInterpolate(from, to, direction, stream) {
   var phi;
   if (from == null) {
@@ -36755,26 +30998,19 @@ function clipAntimeridianInterpolate(from, to, direction, stream) {
 var clipCircle = function (radius, delta) {
   var cr = cos(radius),
       smallRadius = cr > 0,
-      notHemisphere = abs(cr) > epsilon; // TODO optimise for this common case
-
+      notHemisphere = abs(cr) > epsilon;
   function interpolate(from, to, direction, stream) {
     circleStream(stream, radius, delta, direction, from, to);
   }
-
   function visible(lambda, phi) {
     return cos(lambda) * cos(phi) > cr;
   }
-
-  // Takes a line and cuts into visible segments. Return values used for polygon
-  // clipping: 0 - there were intersections or the line was empty; 1 - no
-  // intersections 2 - there were intersections, and the first and last segments
-  // should be rejoined.
   function clipLine(stream) {
-    var point0, // previous point
-    c0, // code for previous point
-    v0, // visibility of previous point
-    v00, // visibility of first point
-    _clean; // no intersections
+    var point0,
+    c0,
+    v0,
+    v00,
+    _clean;
     return {
       lineStart: function lineStart() {
         v00 = v0 = false;
@@ -36786,8 +31022,6 @@ var clipCircle = function (radius, delta) {
             v = visible(lambda, phi),
             c = smallRadius ? v ? 0 : code(lambda, phi) : v ? code(lambda + (lambda < 0 ? pi : -pi), phi) : 0;
         if (!point0 && (v00 = v0 = v)) stream.lineStart();
-        // Handle degeneracies.
-        // TODO ignore if not clipping polygons.
         if (v !== v0) {
           point2 = intersect(point0, point1);
           if (!point2 || pointEqual(point0, point2) || pointEqual(point1, point2)) {
@@ -36799,12 +31033,10 @@ var clipCircle = function (radius, delta) {
         if (v !== v0) {
           _clean = 0;
           if (v) {
-            // outside going in
             stream.lineStart();
             point2 = intersect(point1, point0);
             stream.point(point2[0], point2[1]);
           } else {
-            // inside going out
             point2 = intersect(point0, point1);
             stream.point(point2[0], point2[1]);
             stream.lineEnd();
@@ -36812,8 +31044,6 @@ var clipCircle = function (radius, delta) {
           point0 = point2;
         } else if (notHemisphere && point0 && smallRadius ^ v) {
           var t;
-          // If the codes for two points are different, or are both zero,
-          // and there this segment intersects with the small circle.
           if (!(c & c0) && (t = intersect(point1, point0, true))) {
             _clean = 0;
             if (smallRadius) {
@@ -36838,89 +31068,61 @@ var clipCircle = function (radius, delta) {
         if (v0) stream.lineEnd();
         point0 = null;
       },
-      // Rejoin first and last segments if there were intersections and the first
-      // and last points were visible.
       clean: function clean() {
         return _clean | (v00 && v0) << 1;
       }
     };
   }
-
-  // Intersects the great circle between a and b with the clip circle.
   function intersect(a, b, two) {
     var pa = cartesian(a),
         pb = cartesian(b);
-
-    // We have two planes, n1.p = d1 and n2.p = d2.
-    // Find intersection line p(t) = c1 n1 + c2 n2 + t (n1 ⨯ n2).
     var n1 = [1, 0, 0],
-        // normal
     n2 = cartesianCross(pa, pb),
         n2n2 = cartesianDot(n2, n2),
         n1n2 = n2[0],
-        // cartesianDot(n1, n2),
     determinant = n2n2 - n1n2 * n1n2;
-
-    // Two polar points.
     if (!determinant) return !two && a;
-
     var c1 = cr * n2n2 / determinant,
         c2 = -cr * n1n2 / determinant,
         n1xn2 = cartesianCross(n1, n2),
         A = cartesianScale(n1, c1),
         B = cartesianScale(n2, c2);
     cartesianAddInPlace(A, B);
-
-    // Solve |p(t)|^2 = 1.
     var u = n1xn2,
         w = cartesianDot(A, u),
         uu = cartesianDot(u, u),
         t2 = w * w - uu * (cartesianDot(A, A) - 1);
-
     if (t2 < 0) return;
-
     var t = sqrt(t2),
         q = cartesianScale(u, (-w - t) / uu);
     cartesianAddInPlace(q, A);
     q = spherical(q);
-
     if (!two) return q;
-
-    // Two intersection points.
     var lambda0 = a[0],
         lambda1 = b[0],
         phi0 = a[1],
         phi1 = b[1],
         z;
-
     if (lambda1 < lambda0) z = lambda0, lambda0 = lambda1, lambda1 = z;
-
     var delta = lambda1 - lambda0,
         polar = abs(delta - pi) < epsilon,
         meridian = polar || delta < epsilon;
-
     if (!polar && phi1 < phi0) z = phi0, phi0 = phi1, phi1 = z;
-
-    // Check that the first point is between a and b.
     if (meridian ? polar ? phi0 + phi1 > 0 ^ q[1] < (abs(q[0] - lambda0) < epsilon ? phi0 : phi1) : phi0 <= q[1] && q[1] <= phi1 : delta > pi ^ (lambda0 <= q[0] && q[0] <= lambda1)) {
       var q1 = cartesianScale(u, (-w + t) / uu);
       cartesianAddInPlace(q1, A);
       return [q, spherical(q1)];
     }
   }
-
-  // Generates a 4-bit vector representing the location of a point relative to
-  // the small circle's bounding box.
   function code(lambda, phi) {
     var r = smallRadius ? radius : pi - radius,
         code = 0;
-    if (lambda < -r) code |= 1; // left
-    else if (lambda > r) code |= 2; // right
-    if (phi < -r) code |= 4; // below
-    else if (phi > r) code |= 8; // above
+    if (lambda < -r) code |= 1;
+    else if (lambda > r) code |= 2;
+    if (phi < -r) code |= 4;
+    else if (phi > r) code |= 8;
     return code;
   }
-
   return clip(visible, clipLine, interpolate, smallRadius ? [0, -radius] : [-pi, radius - pi]);
 };
 
@@ -36933,9 +31135,7 @@ function transformer(methods) {
     return s;
   };
 }
-
 function TransformStream() {}
-
 TransformStream.prototype = {
   constructor: TransformStream,
   point: function point(x, y) {
@@ -36962,34 +31162,25 @@ function fitExtent(projection, extent, object) {
     var w = extent[1][0] - extent[0][0],
         h = extent[1][1] - extent[0][1],
         clip = projection.clipExtent && projection.clipExtent();
-
     projection.scale(150).translate([0, 0]);
-
     if (clip != null) projection.clipExtent(null);
-
     geoStream(object, projection.stream(boundsStream$1));
-
     var b = boundsStream$1.result(),
         k = Math.min(w / (b[1][0] - b[0][0]), h / (b[1][1] - b[0][1])),
         x = +extent[0][0] + (w - k * (b[1][0] + b[0][0])) / 2,
         y = +extent[0][1] + (h - k * (b[1][1] + b[0][1])) / 2;
-
     if (clip != null) projection.clipExtent(clip);
-
     return projection.scale(k * 150).translate([x, y]);
 }
-
 function fitSize(projection, size, object) {
     return fitExtent(projection, [[0, 0], size], object);
 }
 
 var maxDepth = 16;
-var cosMinDistance = cos(30 * radians); // cos(minimum angular distance)
-
+var cosMinDistance = cos(30 * radians);
 var resample = function (project, delta2) {
   return +delta2 ? resample$1(project, delta2) : resampleNone(project);
 };
-
 function resampleNone(project) {
   return transformer({
     point: function point(x, y) {
@@ -36998,9 +31189,7 @@ function resampleNone(project) {
     }
   });
 }
-
 function resample$1(project, delta2) {
-
   function resampleLineTo(x0, y0, lambda0, a0, b0, c0, x1, y1, lambda1, a1, b1, c1, depth, stream) {
     var dx = x1 - x0,
         dy = y1 - y0,
@@ -37018,10 +31207,9 @@ function resample$1(project, delta2) {
           dx2 = x2 - x0,
           dy2 = y2 - y0,
           dz = dy * dx2 - dx * dy2;
-      if (dz * dz / d2 > delta2 // perpendicular projected distance
-      || abs((dx * dx2 + dy * dy2) / d2 - 0.5) > 0.3 // midpoint close to an end
+      if (dz * dz / d2 > delta2
+      || abs((dx * dx2 + dy * dy2) / d2 - 0.5) > 0.3
       || a0 * a1 + b0 * b1 + c0 * c1 < cosMinDistance) {
-        // angular distance
         resampleLineTo(x0, y0, lambda0, a0, b0, c0, x2, y2, lambda2, a /= m, b /= m, c, depth, stream);
         stream.point(x2, y2);
         resampleLineTo(x2, y2, lambda2, a, b, c, x1, y1, lambda1, a1, b1, c1, depth, stream);
@@ -37029,9 +31217,8 @@ function resample$1(project, delta2) {
     }
   }
   return function (stream) {
-    var lambda00, x00, y00, a00, b00, c00, // first point
-    lambda0, x0, y0, a0, b0, c0; // previous point
-
+    var lambda00, x00, y00, a00, b00, c00,
+    lambda0, x0, y0, a0, b0, c0;
     var resampleStream = {
       point: point,
       lineStart: lineStart,
@@ -37043,47 +31230,39 @@ function resample$1(project, delta2) {
         stream.polygonEnd();resampleStream.lineStart = lineStart;
       }
     };
-
     function point(x, y) {
       x = project(x, y);
       stream.point(x[0], x[1]);
     }
-
     function lineStart() {
       x0 = NaN;
       resampleStream.point = linePoint;
       stream.lineStart();
     }
-
     function linePoint(lambda, phi) {
       var c = cartesian([lambda, phi]),
           p = project(lambda, phi);
       resampleLineTo(x0, y0, lambda0, a0, b0, c0, x0 = p[0], y0 = p[1], lambda0 = lambda, a0 = c[0], b0 = c[1], c0 = c[2], maxDepth, stream);
       stream.point(x0, y0);
     }
-
     function lineEnd() {
       resampleStream.point = point;
       stream.lineEnd();
     }
-
     function ringStart() {
       lineStart();
       resampleStream.point = ringPoint;
       resampleStream.lineEnd = ringEnd;
     }
-
     function ringPoint(lambda, phi) {
       linePoint(lambda00 = lambda, phi), x00 = x0, y00 = y0, a00 = a0, b00 = b0, c00 = c0;
       resampleStream.point = linePoint;
     }
-
     function ringEnd() {
       resampleLineTo(x0, y0, lambda0, a0, b0, c0, x00, y00, lambda00, a00, b00, c00, maxDepth, stream);
       resampleStream.lineEnd = lineEnd;
       lineEnd();
     }
-
     return resampleStream;
   };
 }
@@ -37093,100 +31272,77 @@ var transformRadians = transformer({
     this.stream.point(x * radians, y * radians);
   }
 });
-
 function projection(project) {
   return projectionMutator(function () {
     return project;
   })();
 }
-
 function projectionMutator(projectAt) {
   var project,
       k = 150,
-      // scale
   x = 480,
       y = 250,
-      // translate
   dx,
       dy,
       lambda = 0,
       phi = 0,
-      // center
   deltaLambda = 0,
       deltaPhi = 0,
       deltaGamma = 0,
       rotate,
       projectRotate,
-      // rotate
   theta = null,
       preclip = clipAntimeridian,
-      // clip angle
   x0 = null,
       y0,
       x1,
       y1,
       postclip = identity$4,
-      // clip extent
   delta2 = 0.5,
       projectResample = resample(projectTransform, delta2),
-      // precision
   cache,
       cacheStream;
-
   function projection(point) {
     point = projectRotate(point[0] * radians, point[1] * radians);
     return [point[0] * k + dx, dy - point[1] * k];
   }
-
   function invert(point) {
     point = projectRotate.invert((point[0] - dx) / k, (dy - point[1]) / k);
     return point && [point[0] * degrees, point[1] * degrees];
   }
-
   function projectTransform(x, y) {
     return x = project(x, y), [x[0] * k + dx, dy - x[1] * k];
   }
-
   projection.stream = function (stream) {
     return cache && cacheStream === stream ? cache : cache = transformRadians(preclip(rotate, projectResample(postclip(cacheStream = stream))));
   };
-
   projection.clipAngle = function (_) {
     return arguments.length ? (preclip = +_ ? clipCircle(theta = _ * radians, 6 * radians) : (theta = null, clipAntimeridian), reset()) : theta * degrees;
   };
-
   projection.clipExtent = function (_) {
     return arguments.length ? (postclip = _ == null ? (x0 = y0 = x1 = y1 = null, identity$4) : clipExtent(x0 = +_[0][0], y0 = +_[0][1], x1 = +_[1][0], y1 = +_[1][1]), reset()) : x0 == null ? null : [[x0, y0], [x1, y1]];
   };
-
   projection.scale = function (_) {
     return arguments.length ? (k = +_, recenter()) : k;
   };
-
   projection.translate = function (_) {
     return arguments.length ? (x = +_[0], y = +_[1], recenter()) : [x, y];
   };
-
   projection.center = function (_) {
     return arguments.length ? (lambda = _[0] % 360 * radians, phi = _[1] % 360 * radians, recenter()) : [lambda * degrees, phi * degrees];
   };
-
   projection.rotate = function (_) {
     return arguments.length ? (deltaLambda = _[0] % 360 * radians, deltaPhi = _[1] % 360 * radians, deltaGamma = _.length > 2 ? _[2] % 360 * radians : 0, recenter()) : [deltaLambda * degrees, deltaPhi * degrees, deltaGamma * degrees];
   };
-
   projection.precision = function (_) {
     return arguments.length ? (projectResample = resample(projectTransform, delta2 = _ * _), reset()) : sqrt(delta2);
   };
-
   projection.fitExtent = function (extent$$1, object) {
     return fitExtent(projection, extent$$1, object);
   };
-
   projection.fitSize = function (size, object) {
     return fitSize(projection, size, object);
   };
-
   function recenter() {
     projectRotate = compose(rotate = rotateRadians(deltaLambda, deltaPhi, deltaGamma), project);
     var center = project(lambda, phi);
@@ -37194,12 +31350,10 @@ function projectionMutator(projectAt) {
     dy = y + center[1] * k;
     return reset();
   }
-
   function reset() {
     cache = cacheStream = null;
     return projection;
   }
-
   return function () {
     project = projectAt.apply(this, arguments);
     projection.invert = project.invert && invert;
@@ -37210,11 +31364,9 @@ function projectionMutator(projectAt) {
 function mercatorRaw(lambda, phi) {
   return [lambda, log(tan((halfPi + phi) / 2))];
 }
-
 mercatorRaw.invert = function (x, y) {
   return [x, 2 * atan(exp(y)) - halfPi];
 };
-
 function mercatorProjection(project) {
   var m = projection(project),
       center = m.center,
@@ -37224,99 +31376,57 @@ function mercatorProjection(project) {
       x0 = null,
       y0,
       x1,
-      y1; // clip extent
-
+      y1;
   m.scale = function (_) {
     return arguments.length ? (scale(_), reclip()) : scale();
   };
-
   m.translate = function (_) {
     return arguments.length ? (translate(_), reclip()) : translate();
   };
-
   m.center = function (_) {
     return arguments.length ? (center(_), reclip()) : center();
   };
-
   m.clipExtent = function (_) {
     return arguments.length ? (_ == null ? x0 = y0 = x1 = y1 = null : (x0 = +_[0][0], y0 = +_[0][1], x1 = +_[1][0], y1 = +_[1][1]), reclip()) : x0 == null ? null : [[x0, y0], [x1, y1]];
   };
-
   function reclip() {
     var k = pi * scale(),
         t = m(rotation(m.rotate()).invert([0, 0]));
     return clipExtent(x0 == null ? [[t[0] - k, t[1] - k], [t[0] + k, t[1] + k]] : project === mercatorRaw ? [[Math.max(t[0] - k, x0), y0], [Math.min(t[0] + k, x1), y1]] : [[x0, Math.max(t[1] - k, y0)], [x1, Math.min(t[1] + k, y1)]]);
   }
-
   return reclip();
 }
 
 function transverseMercatorRaw(lambda, phi) {
   return [log(tan((halfPi + phi) / 2)), -lambda];
 }
-
 transverseMercatorRaw.invert = function (x, y) {
   return [-y, 2 * atan(exp(x)) - halfPi];
 };
-
 var geoTransverseMercator = function () {
   var m = mercatorProjection(transverseMercatorRaw),
       center = m.center,
       rotate = m.rotate;
-
   m.center = function (_) {
     return arguments.length ? center([-_[1], _[0]]) : (_ = center(), [_[1], -_[0]]);
   };
-
   m.rotate = function (_) {
     return arguments.length ? rotate([_[0], _[1], _.length > 2 ? _[2] + 90 : 90]) : (_ = rotate(), [_[0], _[1], _[2] - 90]);
   };
-
   return rotate([0, 0, 90]).scale(159.155);
 };
 
-/**
- * Calculates a buffer for input features for a given radius. Units supported are miles, kilometers, and degrees.
- *
- * When using a negative radius, the resulting geometry may be invalid if
- * it's too small compared to the radius magnitude. If the input is a
- * FeatureCollection, only valid members will be returned in the output
- * FeatureCollection - i.e., the output collection may have fewer members than
- * the input, or even be empty.
- *
- * @name buffer
- * @param {FeatureCollection|Geometry|Feature<any>} geojson input to be buffered
- * @param {number} radius distance to draw the buffer (negative values are allowed)
- * @param {Object} [options] Optional parameters
- * @param {string} [options.units="kilometers"] any of the options supported by turf units
- * @param {number} [options.steps=64] number of steps
- * @returns {FeatureCollection|Feature<Polygon|MultiPolygon>|undefined} buffered features
- * @example
- * var point = turf.point([-90.548630, 14.616599]);
- * var buffered = turf.buffer(point, 500, {units: 'miles'});
- *
- * //addToMap
- * var addToMap = [point, buffered]
- */
 function buffer$1(geojson, radius, options) {
-    // Optional params
     options = options || {};
     var units = options.units;
     var steps = options.steps || 64;
-
-    // validation
     if (!geojson) throw new Error('geojson is required');
     if ((typeof options === 'undefined' ? 'undefined' : _typeof(options)) !== 'object') throw new Error('options must be an object');
     if (typeof steps !== 'number') throw new Error('steps must be an number');
-
-    // Allow negative buffers ("erosion") or zero-sized buffers ("repair geometry")
     if (radius === undefined) throw new Error('radius is required');
     if (steps <= 0) throw new Error('steps must be greater than 0');
-
-    // default params
     steps = steps || 64;
     units = units || 'kilometers';
-
     var results = [];
     switch (geojson.type) {
         case 'GeometryCollection':
@@ -37338,22 +31448,9 @@ function buffer$1(geojson, radius, options) {
     }
     return bufferFeature(geojson, radius, units, steps);
 }
-
-/**
- * Buffer single Feature/Geometry
- *
- * @private
- * @param {Feature<any>} geojson input to be buffered
- * @param {number} radius distance to draw the buffer
- * @param {string} [units='kilometers'] any of the options supported by turf units
- * @param {number} [steps=64] number of steps
- * @returns {Feature<Polygon|MultiPolygon>} buffered feature
- */
 function bufferFeature(geojson, radius, units, steps) {
     var properties = geojson.properties || {};
     var geometry$$1 = geojson.type === 'Feature' ? geojson.geometry : geojson;
-
-    // Geometry Types faster than jsts
     if (geometry$$1.type === 'GeometryCollection') {
         var results = [];
         geomEach(geojson, function (geometry$$1) {
@@ -37362,12 +31459,9 @@ function bufferFeature(geojson, radius, units, steps) {
         });
         return featureCollection(results);
     }
-
-    // Project GeoJSON to Transverse Mercator projection (convert to Meters)
     var projected;
     var bbox = bbox$1(geojson);
     var needsTransverseMercator = bbox[1] > 50 && bbox[3] > 50;
-
     if (needsTransverseMercator) {
         projected = {
             type: geometry$$1.type,
@@ -37376,19 +31470,13 @@ function bufferFeature(geojson, radius, units, steps) {
     } else {
         projected = toMercator(geometry$$1);
     }
-
-    // JSTS buffer operation
     var reader = new GeoJSONReader();
     var geom = reader.read(projected);
     var distance = radiansToLength(lengthToRadians(radius, units), 'meters');
     var buffered = BufferOp.bufferOp(geom, distance);
     var writer = new GeoJSONWriter();
     buffered = writer.write(buffered);
-
-    // Detect if empty geometries
     if (coordsIsNaN(buffered.coordinates)) return undefined;
-
-    // Unproject coordinates (convert to Degrees)
     var result;
     if (needsTransverseMercator) {
         result = {
@@ -37398,59 +31486,24 @@ function bufferFeature(geojson, radius, units, steps) {
     } else {
         result = toWgs84(buffered);
     }
-
     return result.geometry ? result : feature(result, properties);
 }
-
-/**
- * Coordinates isNaN
- *
- * @private
- * @param {Array<any>} coords GeoJSON Coordinates
- * @returns {boolean} if NaN exists
- */
 function coordsIsNaN(coords) {
     if (Array.isArray(coords[0])) return coordsIsNaN(coords[0]);
     return isNaN(coords[0]);
 }
-
-/**
- * Project coordinates to projection
- *
- * @private
- * @param {Array<any>} coords to project
- * @param {GeoProjection} proj D3 Geo Projection
- * @returns {Array<any>} projected coordinates
- */
 function projectCoords(coords, proj) {
     if (_typeof(coords[0]) !== 'object') return proj(coords);
     return coords.map(function (coord) {
         return projectCoords(coord, proj);
     });
 }
-
-/**
- * Un-Project coordinates to projection
- *
- * @private
- * @param {Array<any>} coords to un-project
- * @param {GeoProjection} proj D3 Geo Projection
- * @returns {Array<any>} un-projected coordinates
- */
 function unprojectCoords(coords, proj) {
     if (_typeof(coords[0]) !== 'object') return proj.invert(coords);
     return coords.map(function (coord) {
         return unprojectCoords(coord, proj);
     });
 }
-
-/**
- * Define Transverse Mercator projection
- *
- * @private
- * @param {Geometry|Feature<any>} geojson Base projection on center of GeoJSON
- * @returns {GeoProjection} D3 Geo Transverse Mercator Projection
- */
 function defineProjection(geojson) {
     var coords = center(geojson).geometry.coordinates.reverse();
     var rotate = coords.map(function (coord) {
@@ -37459,18 +31512,9 @@ function defineProjection(geojson) {
     return geoTransverseMercator().center(coords).rotate(rotate).scale(earthRadius);
 }
 
-/**
- * Calculates a buffer for input features for a given radius. Units supported are miles, kilometers, and degrees.
- * @param  {google.maps.Polygon|google.maps.Polyline|google.maps.Marker|google.maps.LatLng|Array.<google.maps.LatLng>|Feature.<Polygon|Linestring|Point>} object input object
- * @param  {String} output  either 'geometry','object' (google.maps) or 'feature', case insensitive, defaults to 'feature'
- * @param  {Number} distance    [description]
- * @param  {String} units       'meters' or 'miles' etc
- * @return {Feature|Feature.<Geometry>}  A GeoJson Feature or its geometry, according to output parameter
- */
 function createbuffer(object, output, distance, units, comment, steps) {
     units = units || 'meters';
     output = (output || 'feature').toLowerCase();
-
     var Feature;
     if (object instanceof google.maps.Polyline || object instanceof google.maps.Polygon || object instanceof google.maps.Marker || object instanceof google.maps.LatLng) {
         var geometry = Wicket$1().fromObject(object).toJson();
@@ -37484,16 +31528,13 @@ function createbuffer(object, output, distance, units, comment, steps) {
     } else {
         Feature = polygonToFeaturePolygon(object);
     }
-
     var buffered = buffer$1(Feature, distance, {
         units: units,
         steps: steps
     });
-
     if (buffered.type === 'FeatureCollection') {
         buffered = buffered.features[0];
     }
-
     if (output === 'geometry') {
         return buffered.geometry;
     } else if (output === 'object') {
@@ -37503,60 +31544,22 @@ function createbuffer(object, output, distance, units, comment, steps) {
     }
 }
 
-// http://en.wikipedia.org/wiki/Even%E2%80%93odd_rule
-// modified from: https://github.com/substack/point-in-polygon/blob/master/index.js
-// which was modified from http://www.ecse.rpi.edu/Homepages/wrf/Research/Short_Notes/pnpoly.html
-
-/**
- * Takes a {@link Point} and a {@link Polygon} or {@link MultiPolygon} and determines if the point resides inside the polygon. The polygon can
- * be convex or concave. The function accounts for holes.
- *
- * @name booleanPointInPolygon
- * @param {Feature<Point>} point input point
- * @param {Feature<Polygon|MultiPolygon>} polygon input polygon or multipolygon
- * @param {Object} [options={}] Optional parameters
- * @param {boolean} [options.ignoreBoundary=false] True if polygon boundary should be ignored when determining if the point is inside the polygon otherwise false.
- * @returns {boolean} `true` if the Point is inside the Polygon; `false` if the Point is not inside the Polygon
- * @example
- * var pt = turf.point([-77, 44]);
- * var poly = turf.polygon([[
- *   [-81, 41],
- *   [-81, 47],
- *   [-72, 47],
- *   [-72, 41],
- *   [-81, 41]
- * ]]);
- *
- * turf.booleanPointInPolygon(pt, poly);
- * //= true
- */
 function booleanPointInPolygon(point, polygon, options) {
-    // Optional parameters
     options = options || {};
     if ((typeof options === 'undefined' ? 'undefined' : _typeof(options)) !== 'object') throw new Error('options is invalid');
     var ignoreBoundary = options.ignoreBoundary;
-
-    // validation
     if (!point) throw new Error('point is required');
     if (!polygon) throw new Error('polygon is required');
-
     var pt = getCoord(point);
     var polys = getCoords(polygon);
     var type = polygon.geometry ? polygon.geometry.type : polygon.type;
     var bbox = polygon.bbox;
-
-    // Quick elimination if point is not inside bbox
     if (bbox && inBBox(pt, bbox) === false) return false;
-
-    // normalize to multipolygon
     if (type === 'Polygon') polys = [polys];
-
     for (var i = 0, insidePoly = false; i < polys.length && !insidePoly; i++) {
-        // check if it is in the outer ring first
         if (inRing(pt, polys[i][0], ignoreBoundary)) {
             var inHole = false;
             var k = 1;
-            // check for the point in any of the holes
             while (k < polys[i].length && !inHole) {
                 if (inRing(pt, polys[i][k], !ignoreBoundary)) {
                     inHole = true;
@@ -37568,20 +31571,9 @@ function booleanPointInPolygon(point, polygon, options) {
     }
     return insidePoly;
 }
-
-/**
- * inRing
- *
- * @private
- * @param {Array<number>} pt [x,y]
- * @param {Array<Array<number>>} ring [[x,y], [x,y],..]
- * @param {boolean} ignoreBoundary ignoreBoundary
- * @returns {boolean} inRing
- */
 function inRing(pt, ring, ignoreBoundary) {
     var isInside = false;
     if (ring[0][0] === ring[ring.length - 1][0] && ring[0][1] === ring[ring.length - 1][1]) ring = ring.slice(0, ring.length - 1);
-
     for (var i = 0, j = ring.length - 1; i < ring.length; j = i++) {
         var xi = ring[i][0],
             yi = ring[i][1];
@@ -37594,29 +31586,13 @@ function inRing(pt, ring, ignoreBoundary) {
     }
     return isInside;
 }
-
-/**
- * inBBox
- *
- * @private
- * @param {Array<number>} pt point [x,y]
- * @param {Array<number>} bbox BBox [west, south, east, north]
- * @returns {boolean} true/false if point is inside BBox
- */
 function inBBox(pt, bbox) {
     return bbox[0] <= pt[0] && bbox[1] <= pt[1] && bbox[2] >= pt[0] && bbox[3] >= pt[1];
 }
 
-/**
- * Filters an array of points returning those who falls inside a given {@link Polygon}
- * @param {Array<google.maps.Marker>} sourceArray array of {@link google.maps.Marker}
- * @param {Polygon|Multipolygon} geojsonPolygon  the polygon thay may contain the points
- * @return {{pointsInside:Array<google.maps.Marker>, pointsOutside:Array<google.maps.Marker>}} an object with the points that fall inside and outside the polygon
- */
 function pointInPolygon(sourceArray, geojsonPolygon) {
 	var pointsInside = [];
 	var pointsOutside = [];
-
 	if (geojsonPolygon.type !== 'Feature') {
 		geojsonPolygon = {
 			"type": "Feature",
@@ -37626,9 +31602,7 @@ function pointInPolygon(sourceArray, geojsonPolygon) {
 	}
 	if (geojsonPolygon.geometry.type === 'Polygon' || geojsonPolygon.geometry.type === 'Multipolygon') {
 		forEach(sourceArray, function (item) {
-
 			var Point = markerToFeaturePoint(item);
-			//console.zlog('Point is', Point);
 			if (booleanPointInPolygon(Point, geojsonPolygon)) {
 				pointsInside.push(item);
 			} else {
@@ -37636,33 +31610,12 @@ function pointInPolygon(sourceArray, geojsonPolygon) {
 			}
 		});
 	}
-
 	return {
 		pointsInside: pointsInside,
 		pointsOutside: pointsOutside
 	};
 }
 
-/**
- * Takes a {@link LineString|linestring}, {@link MultiLineString|multi-linestring}, {@link MultiPolygon|multi-polygon}, or {@link Polygon|polygon} and returns {@link Point|points} at all self-intersections.
- *
- * @name kinks
- * @param {Feature<LineString|MultiLineString|MultiPolygon|Polygon>} featureIn input feature
- * @returns {FeatureCollection<Point>} self-intersections
- * @example
- * var poly = turf.polygon([[
- *   [-12.034835, 8.901183],
- *   [-12.060413, 8.899826],
- *   [-12.03638, 8.873199],
- *   [-12.059383, 8.871418],
- *   [-12.034835, 8.901183]
- * ]]);
- *
- * var kinks = turf.kinks(poly);
- *
- * //addToMap
- * var addToMap = [poly, kinks]
- */
 function kinks$1(featureIn) {
     var coordinates;
     var feature$$1;
@@ -37689,23 +31642,17 @@ function kinks$1(featureIn) {
     coordinates.forEach(function (line1) {
         coordinates.forEach(function (line2) {
             for (var i = 0; i < line1.length - 1; i++) {
-                // start iteration at i, intersections for k < i have already been checked in previous outer loop iterations
                 for (var k = i; k < line2.length - 1; k++) {
                     if (line1 === line2) {
-                        // segments are adjacent and always share a vertex, not a kink
                         if (Math.abs(i - k) === 1) {
                             continue;
                         }
-                        // first and last segment in a closed lineString or ring always share a vertex, not a kink
                         if (
-                        // segments are first and last segment of lineString
                         i === 0 && k === line1.length - 2 &&
-                        // lineString is closed
                         line1[i][0] === line1[line1.length - 1][0] && line1[i][1] === line1[line1.length - 1][1]) {
                             continue;
                         }
                     }
-
                     var intersection = lineIntersects(line1[i][0], line1[i][1], line1[i + 1][0], line1[i + 1][1], line2[k][0], line2[k][1], line2[k + 1][0], line2[k + 1][1]);
                     if (intersection) {
                         results.features.push(point([intersection[0], intersection[1]]));
@@ -37716,10 +31663,7 @@ function kinks$1(featureIn) {
     });
     return results;
 }
-
-// modified from http://jsfiddle.net/justin_c_rounds/Gd2S2/light/
 function lineIntersects(line1StartX, line1StartY, line1EndX, line1EndY, line2StartX, line2StartY, line2EndX, line2EndY) {
-    // if the lines intersect, the result contains the x and y of the intersection (treating the lines as infinite) and booleans for whether line segment 1 or line segment 2 contain the point
     var denominator,
         a,
         b,
@@ -37745,20 +31689,14 @@ function lineIntersects(line1StartX, line1StartY, line1EndX, line1EndY, line2Sta
     numerator2 = (line1EndX - line1StartX) * a - (line1EndY - line1StartY) * b;
     a = numerator1 / denominator;
     b = numerator2 / denominator;
-
-    // if we cast these lines infinitely in both directions, they intersect here:
     result.x = line1StartX + a * (line1EndX - line1StartX);
     result.y = line1StartY + a * (line1EndY - line1StartY);
-
-    // if line1 is a segment and line2 is infinite, they intersect if:
     if (a >= 0 && a <= 1) {
         result.onLine1 = true;
     }
-    // if line2 is a segment and line1 is infinite, they intersect if:
     if (b >= 0 && b <= 1) {
         result.onLine2 = true;
     }
-    // if line1 and line2 are segments, they intersect if both of the above are true
     if (result.onLine1 && result.onLine2) {
         return [result.x, result.y];
     } else {
@@ -37766,14 +31704,6 @@ function lineIntersects(line1StartX, line1StartY, line1EndX, line1EndY, line2Sta
     }
 }
 
-/**
- * Takes an array of points, google.maps.Polygon or Feature<Polygon> and returns {@link Point|points} at all self-intersections.
- *
- * @name kinks
- * @param  {google.maps.Polyline|google.maps.Polygon|Array.<google.maps.LatLng>|Feature<Polygon>} object array of points, google.maps.Polygon or Feature<Polygon>
- * @returns {FeatureCollection<Point>} self-intersections
- *
- */
 function kinks(object) {
   var Feature;
   if (object instanceof google.maps.Polyline || object instanceof google.maps.Polygon) {
@@ -37788,21 +31718,14 @@ function kinks(object) {
   } else {
     Feature = polygonToFeaturePolygon(object);
   }
-
   return kinks$1(Feature);
 }
 
 var quickselect = partialSort;
-
-// Floyd-Rivest selection algorithm:
-// Rearrange items so that all items in the [left, k] range are smaller than all items in (k, right];
-// The k-th element will have the (k - left + 1)th smallest value in [left, right]
-
 function partialSort(arr, k, left, right, compare) {
     left = left || 0;
     right = right || arr.length - 1;
     compare = compare || defaultCompare;
-
     while (right > left) {
         if (right - left > 600) {
             var n = right - left + 1;
@@ -37814,14 +31737,11 @@ function partialSort(arr, k, left, right, compare) {
             var newRight = Math.min(right, Math.floor(k + (n - m) * s / n + sd));
             partialSort(arr, k, newLeft, newRight, compare);
         }
-
         var t = arr[k];
         var i = left;
         var j = right;
-
         swap(arr, left, k);
         if (compare(arr[right], t) > 0) swap(arr, left, right);
-
         while (i < j) {
             swap(arr, i, j);
             i++;
@@ -37832,98 +31752,72 @@ function partialSort(arr, k, left, right, compare) {
                 j--;
             }
         }
-
         if (compare(arr[left], t) === 0) swap(arr, left, j);else {
             j++;
             swap(arr, j, right);
         }
-
         if (j <= k) left = j + 1;
         if (k <= j) right = j - 1;
     }
 }
-
 function swap(arr, i, j) {
     var tmp = arr[i];
     arr[i] = arr[j];
     arr[j] = tmp;
 }
-
 function defaultCompare(a, b) {
     return a < b ? -1 : a > b ? 1 : 0;
 }
 
 var rbush_1 = rbush;
-
 function rbush(maxEntries, format) {
     if (!(this instanceof rbush)) return new rbush(maxEntries, format);
-
-    // max entries in a node is 9 by default; min node fill is 40% for best performance
     this._maxEntries = Math.max(4, maxEntries || 9);
     this._minEntries = Math.max(2, Math.ceil(this._maxEntries * 0.4));
-
     if (format) {
         this._initFormat(format);
     }
-
     this.clear();
 }
-
 rbush.prototype = {
-
     all: function all() {
         return this._all(this.data, []);
     },
-
     search: function search(bbox) {
-
         var node = this.data,
             result = [],
             toBBox = this.toBBox;
-
         if (!intersects(bbox, node)) return result;
-
         var nodesToSearch = [],
             i,
             len,
             child,
             childBBox;
-
         while (node) {
             for (i = 0, len = node.children.length; i < len; i++) {
-
                 child = node.children[i];
                 childBBox = node.leaf ? toBBox(child) : child;
-
                 if (intersects(bbox, childBBox)) {
                     if (node.leaf) result.push(child);else if (contains$1(bbox, childBBox)) this._all(child, result);else nodesToSearch.push(child);
                 }
             }
             node = nodesToSearch.pop();
         }
-
         return result;
     },
-
     collides: function collides(bbox) {
-
         var node = this.data,
             toBBox = this.toBBox;
-
         if (!intersects(bbox, node)) return false;
-
         var nodesToSearch = [],
             i,
             len,
             child,
             childBBox;
-
         while (node) {
             for (i = 0, len = node.children.length; i < len; i++) {
-
                 child = node.children[i];
                 childBBox = node.leaf ? toBBox(child) : child;
-
                 if (intersects(bbox, childBBox)) {
                     if (node.leaf || contains$1(bbox, childBBox)) return true;
                     nodesToSearch.push(child);
@@ -37931,57 +31825,41 @@ rbush.prototype = {
             }
             node = nodesToSearch.pop();
         }
-
         return false;
     },
-
     load: function load(data) {
         if (!(data && data.length)) return this;
-
         if (data.length < this._minEntries) {
             for (var i = 0, len = data.length; i < len; i++) {
                 this.insert(data[i]);
             }
             return this;
         }
-
-        // recursively build the tree with the given data from stratch using OMT algorithm
         var node = this._build(data.slice(), 0, data.length - 1, 0);
-
         if (!this.data.children.length) {
-            // save as is if tree is empty
             this.data = node;
         } else if (this.data.height === node.height) {
-            // split root if trees have the same height
             this._splitRoot(this.data, node);
         } else {
             if (this.data.height < node.height) {
-                // swap trees if inserted one is bigger
                 var tmpNode = this.data;
                 this.data = node;
                 node = tmpNode;
             }
-
-            // insert the small tree into the large tree at appropriate level
             this._insert(node, this.data.height - node.height - 1, true);
         }
-
         return this;
     },
-
     insert: function insert(item) {
         if (item) this._insert(item, this.data.height - 1);
         return this;
     },
-
     clear: function clear() {
         this.data = createNode([]);
         return this;
     },
-
     remove: function remove(item, equalsFn) {
         if (!item) return this;
-
         var node = this.data,
             bbox = this.toBBox(item),
             path = [],
@@ -37990,301 +31868,203 @@ rbush.prototype = {
             parent,
             index,
             goingUp;
-
-        // depth-first iterative tree traversal
         while (node || path.length) {
-
             if (!node) {
-                // go up
                 node = path.pop();
                 parent = path[path.length - 1];
                 i = indexes.pop();
                 goingUp = true;
             }
-
             if (node.leaf) {
-                // check current node
                 index = findItem(item, node.children, equalsFn);
-
                 if (index !== -1) {
-                    // item found, remove the item and condense tree upwards
                     node.children.splice(index, 1);
                     path.push(node);
                     this._condense(path);
                     return this;
                 }
             }
-
             if (!goingUp && !node.leaf && contains$1(node, bbox)) {
-                // go down
                 path.push(node);
                 indexes.push(i);
                 i = 0;
                 parent = node;
                 node = node.children[0];
             } else if (parent) {
-                // go right
                 i++;
                 node = parent.children[i];
                 goingUp = false;
-            } else node = null; // nothing found
+            } else node = null;
         }
-
         return this;
     },
-
     toBBox: function toBBox(item) {
         return item;
     },
-
     compareMinX: compareNodeMinX,
     compareMinY: compareNodeMinY,
-
     toJSON: function toJSON() {
         return this.data;
     },
-
     fromJSON: function fromJSON(data) {
         this.data = data;
         return this;
     },
-
     _all: function _all(node, result) {
         var nodesToSearch = [];
         while (node) {
             if (node.leaf) result.push.apply(result, node.children);else nodesToSearch.push.apply(nodesToSearch, node.children);
-
             node = nodesToSearch.pop();
         }
         return result;
     },
-
     _build: function _build(items, left, right, height) {
-
         var N = right - left + 1,
             M = this._maxEntries,
             node;
-
         if (N <= M) {
-            // reached leaf level; return leaf
             node = createNode(items.slice(left, right + 1));
             calcBBox(node, this.toBBox);
             return node;
         }
-
         if (!height) {
-            // target height of the bulk-loaded tree
             height = Math.ceil(Math.log(N) / Math.log(M));
-
-            // target number of root entries to maximize storage utilization
             M = Math.ceil(N / Math.pow(M, height - 1));
         }
-
         node = createNode([]);
         node.leaf = false;
         node.height = height;
-
-        // split the items into M mostly square tiles
-
         var N2 = Math.ceil(N / M),
             N1 = N2 * Math.ceil(Math.sqrt(M)),
             i,
             j,
             right2,
             right3;
-
         multiSelect(items, left, right, N1, this.compareMinX);
-
         for (i = left; i <= right; i += N1) {
-
             right2 = Math.min(i + N1 - 1, right);
-
             multiSelect(items, i, right2, N2, this.compareMinY);
-
             for (j = i; j <= right2; j += N2) {
-
                 right3 = Math.min(j + N2 - 1, right2);
-
-                // pack each entry recursively
                 node.children.push(this._build(items, j, right3, height - 1));
             }
         }
-
         calcBBox(node, this.toBBox);
-
         return node;
     },
-
     _chooseSubtree: function _chooseSubtree(bbox, node, level, path) {
-
         var i, len, child, targetNode, area, enlargement, minArea, minEnlargement;
-
         while (true) {
             path.push(node);
-
             if (node.leaf || path.length - 1 === level) break;
-
             minArea = minEnlargement = Infinity;
-
             for (i = 0, len = node.children.length; i < len; i++) {
                 child = node.children[i];
                 area = bboxArea(child);
                 enlargement = enlargedArea(bbox, child) - area;
-
-                // choose entry with the least area enlargement
                 if (enlargement < minEnlargement) {
                     minEnlargement = enlargement;
                     minArea = area < minArea ? area : minArea;
                     targetNode = child;
                 } else if (enlargement === minEnlargement) {
-                    // otherwise choose one with the smallest area
                     if (area < minArea) {
                         minArea = area;
                         targetNode = child;
                     }
                 }
             }
-
             node = targetNode || node.children[0];
         }
-
         return node;
     },
-
     _insert: function _insert(item, level, isNode) {
-
         var toBBox = this.toBBox,
             bbox = isNode ? item : toBBox(item),
             insertPath = [];
-
-        // find the best node for accommodating the item, saving all nodes along the path too
         var node = this._chooseSubtree(bbox, this.data, level, insertPath);
-
-        // put the item into the node
         node.children.push(item);
         extend$1(node, bbox);
-
-        // split on node overflow; propagate upwards if necessary
         while (level >= 0) {
             if (insertPath[level].children.length > this._maxEntries) {
                 this._split(insertPath, level);
                 level--;
             } else break;
         }
-
-        // adjust bboxes along the insertion path
         this._adjustParentBBoxes(bbox, insertPath, level);
     },
-
-    // split overflowed node into two
     _split: function _split(insertPath, level) {
-
         var node = insertPath[level],
             M = node.children.length,
             m = this._minEntries;
-
         this._chooseSplitAxis(node, m, M);
-
         var splitIndex = this._chooseSplitIndex(node, m, M);
-
         var newNode = createNode(node.children.splice(splitIndex, node.children.length - splitIndex));
         newNode.height = node.height;
         newNode.leaf = node.leaf;
-
         calcBBox(node, this.toBBox);
         calcBBox(newNode, this.toBBox);
-
         if (level) insertPath[level - 1].children.push(newNode);else this._splitRoot(node, newNode);
     },
-
     _splitRoot: function _splitRoot(node, newNode) {
-        // split root node
         this.data = createNode([node, newNode]);
         this.data.height = node.height + 1;
         this.data.leaf = false;
         calcBBox(this.data, this.toBBox);
     },
-
     _chooseSplitIndex: function _chooseSplitIndex(node, m, M) {
-
         var i, bbox1, bbox2, overlap, area, minOverlap, minArea, index;
-
         minOverlap = minArea = Infinity;
-
         for (i = m; i <= M - m; i++) {
             bbox1 = distBBox(node, 0, i, this.toBBox);
             bbox2 = distBBox(node, i, M, this.toBBox);
-
             overlap = intersectionArea(bbox1, bbox2);
             area = bboxArea(bbox1) + bboxArea(bbox2);
-
-            // choose distribution with minimum overlap
             if (overlap < minOverlap) {
                 minOverlap = overlap;
                 index = i;
-
                 minArea = area < minArea ? area : minArea;
             } else if (overlap === minOverlap) {
-                // otherwise choose distribution with minimum area
                 if (area < minArea) {
                     minArea = area;
                     index = i;
                 }
             }
         }
-
         return index;
     },
-
-    // sorts node children by the best axis for split
     _chooseSplitAxis: function _chooseSplitAxis(node, m, M) {
-
         var compareMinX = node.leaf ? this.compareMinX : compareNodeMinX,
             compareMinY = node.leaf ? this.compareMinY : compareNodeMinY,
             xMargin = this._allDistMargin(node, m, M, compareMinX),
             yMargin = this._allDistMargin(node, m, M, compareMinY);
-
-        // if total distributions margin value is minimal for x, sort by minX,
-        // otherwise it's already sorted by minY
         if (xMargin < yMargin) node.children.sort(compareMinX);
     },
-
-    // total margin of all possible split distributions where each node is at least m full
     _allDistMargin: function _allDistMargin(node, m, M, compare) {
-
         node.children.sort(compare);
-
         var toBBox = this.toBBox,
             leftBBox = distBBox(node, 0, m, toBBox),
             rightBBox = distBBox(node, M - m, M, toBBox),
             margin = bboxMargin(leftBBox) + bboxMargin(rightBBox),
             i,
             child;
-
         for (i = m; i < M - m; i++) {
             child = node.children[i];
             extend$1(leftBBox, node.leaf ? toBBox(child) : child);
             margin += bboxMargin(leftBBox);
         }
-
         for (i = M - m - 1; i >= m; i--) {
             child = node.children[i];
             extend$1(rightBBox, node.leaf ? toBBox(child) : child);
             margin += bboxMargin(rightBBox);
         }
-
         return margin;
     },
-
     _adjustParentBBoxes: function _adjustParentBBoxes(bbox, path, level) {
-        // adjust bboxes along the given tree path
         for (var i = level; i >= 0; i--) {
             extend$1(path[i], bbox);
         }
     },
-
     _condense: function _condense(path) {
-        // go through the path, removing empty nodes and updating bboxes
         for (var i = path.length - 1, siblings; i >= 0; i--) {
             if (path[i].children.length === 0) {
                 if (i > 0) {
@@ -38294,53 +32074,35 @@ rbush.prototype = {
             } else calcBBox(path[i], this.toBBox);
         }
     },
-
     _initFormat: function _initFormat(format) {
-        // data format (minX, minY, maxX, maxY accessors)
-
-        // uses eval-type function compilation instead of just accepting a toBBox function
-        // because the algorithms are very sensitive to sorting functions performance,
-        // so they should be dead simple and without inner calls
-
         var compareArr = ['return a', ' - b', ';'];
-
         this.compareMinX = new Function('a', 'b', compareArr.join(format[0]));
         this.compareMinY = new Function('a', 'b', compareArr.join(format[1]));
-
         this.toBBox = new Function('a', 'return {minX: a' + format[0] + ', minY: a' + format[1] + ', maxX: a' + format[2] + ', maxY: a' + format[3] + '};');
     }
 };
-
 function findItem(item, items, equalsFn) {
     if (!equalsFn) return items.indexOf(item);
-
     for (var i = 0; i < items.length; i++) {
         if (equalsFn(item, items[i])) return i;
     }
     return -1;
 }
-
-// calculate node's bbox from bboxes of its children
 function calcBBox(node, toBBox) {
     distBBox(node, 0, node.children.length, toBBox, node);
 }
-
-// min bounding rectangle of node children from k to p-1
 function distBBox(node, k, p, toBBox, destNode) {
     if (!destNode) destNode = createNode(null);
     destNode.minX = Infinity;
     destNode.minY = Infinity;
     destNode.maxX = -Infinity;
     destNode.maxY = -Infinity;
-
     for (var i = k, child; i < p; i++) {
         child = node.children[i];
         extend$1(destNode, node.leaf ? toBBox(child) : child);
     }
-
     return destNode;
 }
-
 function extend$1(a, b) {
     a.minX = Math.min(a.minX, b.minX);
     a.minY = Math.min(a.minY, b.minY);
@@ -38348,42 +32110,34 @@ function extend$1(a, b) {
     a.maxY = Math.max(a.maxY, b.maxY);
     return a;
 }
-
 function compareNodeMinX(a, b) {
     return a.minX - b.minX;
 }
 function compareNodeMinY(a, b) {
     return a.minY - b.minY;
 }
-
 function bboxArea(a) {
     return (a.maxX - a.minX) * (a.maxY - a.minY);
 }
 function bboxMargin(a) {
     return a.maxX - a.minX + (a.maxY - a.minY);
 }
-
 function enlargedArea(a, b) {
     return (Math.max(b.maxX, a.maxX) - Math.min(b.minX, a.minX)) * (Math.max(b.maxY, a.maxY) - Math.min(b.minY, a.minY));
 }
-
 function intersectionArea(a, b) {
     var minX = Math.max(a.minX, b.minX),
         minY = Math.max(a.minY, b.minY),
         maxX = Math.min(a.maxX, b.maxX),
         maxY = Math.min(a.maxY, b.maxY);
-
     return Math.max(0, maxX - minX) * Math.max(0, maxY - minY);
 }
-
 function contains$1(a, b) {
     return a.minX <= b.minX && a.minY <= b.minY && b.maxX <= a.maxX && b.maxY <= a.maxY;
 }
-
 function intersects(a, b) {
     return b.minX <= a.maxX && b.minY <= a.maxY && b.maxX >= a.minX && b.maxY >= a.minY;
 }
-
 function createNode(children) {
     return {
         children: children,
@@ -38395,37 +32149,25 @@ function createNode(children) {
         maxY: -Infinity
     };
 }
-
-// sort an array so that items come in groups of n unsorted items, with groups sorted between each other;
-// combines selection algorithm with binary divide & conquer approach
-
 function multiSelect(arr, left, right, n, compare) {
     var stack = [left, right],
         mid;
-
     while (stack.length) {
         right = stack.pop();
         left = stack.pop();
-
         if (right - left <= n) continue;
-
         mid = left + Math.ceil((right - left) / n / 2) * n;
         quickselect(arr, mid, left, right, compare);
-
         stack.push(left, mid, mid, right);
     }
 }
 
-// Find self-intersections in geojson polygon (possibly with interior rings)
 var isects = function (feature, filterFn, useSpatialIndex) {
     if (feature.geometry.type !== 'Polygon') throw new Error('The input feature must be a Polygon');
     if (useSpatialIndex === undefined) useSpatialIndex = 1;
-
     var coord = feature.geometry.coordinates;
-
     var output = [];
     var seen = {};
-
     if (useSpatialIndex) {
         var allEdgesAsRbushTreeItems = [];
         for (var ring0 = 0; ring0 < coord.length; ring0++) {
@@ -38436,7 +32178,6 @@ var isects = function (feature, filterFn, useSpatialIndex) {
         var tree = rbush_1();
         tree.load(allEdgesAsRbushTreeItems);
     }
-
     for (var ringA = 0; ringA < coord.length; ringA++) {
         for (var edgeA = 0; edgeA < coord[ringA].length - 1; edgeA++) {
             if (useSpatialIndex) {
@@ -38449,14 +32190,12 @@ var isects = function (feature, filterFn, useSpatialIndex) {
             } else {
                 for (var ring1 = 0; ring1 < coord.length; ring1++) {
                     for (var edge1 = 0; edge1 < coord[ring1].length - 1; edge1++) {
-                        // TODO: speedup possible if only interested in unique: start last two loops at ringA and edgeA+1
                         ifIsectAddToOutput(ringA, edgeA, ring1, edge1);
                     }
                 }
             }
         }
     }
-
     if (!filterFn) output = {
         type: 'Feature',
         geometry: {
@@ -38465,17 +32204,13 @@ var isects = function (feature, filterFn, useSpatialIndex) {
         }
     };
     return output;
-
-    // Function to check if two edges intersect and add the intersection to the output
     function ifIsectAddToOutput(ring0, edge0, ring1, edge1) {
         var start0 = coord[ring0][edge0];
         var end0 = coord[ring0][edge0 + 1];
         var start1 = coord[ring1][edge1];
         var end1 = coord[ring1][edge1 + 1];
-
         var isect = intersect(start0, end0, start1, end1);
-
-        if (isect === null) return; // discard parallels and coincidence
+        if (isect === null) return;
         var frac0;
         var frac1;
         if (end0[0] !== start0[0]) {
@@ -38488,24 +32223,19 @@ var isects = function (feature, filterFn, useSpatialIndex) {
         } else {
             frac1 = (isect[1] - start1[1]) / (end1[1] - start1[1]);
         }
-        if (frac0 >= 1 || frac0 <= 0 || frac1 >= 1 || frac1 <= 0) return; // require segment intersection
-
+        if (frac0 >= 1 || frac0 <= 0 || frac1 >= 1 || frac1 <= 0) return;
         var key = isect;
         var unique = !seen[key];
         if (unique) {
             seen[key] = true;
         }
-
         if (filterFn) {
             output.push(filterFn(isect, ring0, edge0, start0, end0, frac0, ring1, edge1, start1, end1, frac1, unique));
         } else {
             output.push(isect);
         }
     }
-
-    // Function to return a rbush tree item given an ring and edge number
     function rbushTreeItem(ring, edge) {
-
         var start = coord[ring][edge];
         var end = coord[ring][edge + 1];
         var minX;
@@ -38536,8 +32266,6 @@ var isects = function (feature, filterFn, useSpatialIndex) {
         };
     }
 };
-
-// Function to compute where two lines (not segments) intersect. From https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection
 function intersect(start0, end0, start1, end1) {
     if (equalArrays$3(start0, start1) || equalArrays$3(start0, end1) || equalArrays$3(end0, start1) || equalArrays$3(end1, start1)) return null;
     var x0 = start0[0],
@@ -38554,61 +32282,25 @@ function intersect(start0, end0, start1, end1) {
     var y4 = ((x0 * y1 - y0 * x1) * (y2 - y3) - (y0 - y1) * (x2 * y3 - y2 * x3)) / denom;
     return [x4, y4];
 }
-
-// Function to compare Arrays of numbers. From http://stackoverflow.com/questions/7837456/how-to-compare-arrays-in-javascript
 function equalArrays$3(array1, array2) {
-    // if the other array is a falsy value, return
     if (!array1 || !array2) return false;
-
-    // compare lengths - can save a lot of time
     if (array1.length !== array2.length) return false;
-
     for (var i = 0, l = array1.length; i < l; i++) {
-        // Check if we have nested arrays
         if (array1[i] instanceof Array && array2[i] instanceof Array) {
-            // recurse into the nested arrays
             if (!equalArrays$3(array1[i], array2[i])) return false;
         } else if (array1[i] !== array2[i]) {
-            // Warning - two different object instances will never be equal: {x:20} !== {x:20}
             return false;
         }
     }
     return true;
 }
 
-/**
- * Takes one or more features and returns their area in square meters.
- *
- * @name area
- * @param {GeoJSON} geojson input GeoJSON feature(s)
- * @returns {number} area in square meters
- * @example
- * var polygon = turf.polygon([[[125, -15], [113, -22], [154, -27], [144, -15], [125, -15]]]);
- *
- * var area = turf.area(polygon);
- *
- * //addToMap
- * var addToMap = [polygon]
- * polygon.properties.area = area
- */
 function area$1(geojson) {
     return geomReduce(geojson, function (value, geom) {
         return value + calculateArea(geom);
     }, 0);
 }
-
 var RADIUS = 6378137;
-// var FLATTENING_DENOM = 298.257223563;
-// var FLATTENING = 1 / FLATTENING_DENOM;
-// var POLAR_RADIUS = RADIUS * (1 - FLATTENING);
-
-/**
- * Calculate Area
- *
- * @private
- * @param {GeoJSON} geojson GeoJSON
- * @returns {number} area
- */
 function calculateArea(geojson) {
     var area = 0,
         i;
@@ -38632,7 +32324,6 @@ function calculateArea(geojson) {
             return area;
     }
 }
-
 function polygonArea(coords) {
     var area = 0;
     if (coords && coords.length > 0) {
@@ -38643,19 +32334,6 @@ function polygonArea(coords) {
     }
     return area;
 }
-
-/**
- * @private
- * Calculate the approximate area of the polygon were it projected onto the earth.
- * Note that this area will be positive if ring is oriented clockwise, otherwise it will be negative.
- *
- * Reference:
- * Robert. G. Chamberlain and William H. Duquette, "Some Algorithms for Polygons on a Sphere", JPL Publication 07-03, Jet Propulsion
- * Laboratory, Pasadena, CA, June 2007 http://trs-new.jpl.nasa.gov/dspace/handle/2014/40409
- *
- * @param {Array<Array<number>>} coords Ring Coordinates
- * @returns {number} The approximate signed geodesic area of the polygon in square meters.
- */
 function ringArea(coords) {
     var p1;
     var p2;
@@ -38666,21 +32344,17 @@ function ringArea(coords) {
     var i;
     var area = 0;
     var coordsLength = coords.length;
-
     if (coordsLength > 2) {
         for (i = 0; i < coordsLength; i++) {
             if (i === coordsLength - 2) {
-                // i = N-2
                 lowerIndex = coordsLength - 2;
                 middleIndex = coordsLength - 1;
                 upperIndex = 0;
             } else if (i === coordsLength - 1) {
-                // i = N-1
                 lowerIndex = coordsLength - 1;
                 middleIndex = 0;
                 upperIndex = 1;
             } else {
-                // i = 0 to N-3
                 lowerIndex = i;
                 middleIndex = i + 1;
                 upperIndex = i + 2;
@@ -38690,64 +32364,33 @@ function ringArea(coords) {
             p3 = coords[upperIndex];
             area += (rad(p3[0]) - rad(p1[0])) * Math.sin(rad(p2[1]));
         }
-
         area = area * RADIUS * RADIUS / 2;
     }
-
     return area;
 }
-
 function rad(_) {
     return _ * Math.PI / 180;
 }
 
-/**
- * Takes a complex (i.e. self-intersecting) geojson polygon, and breaks it down into its composite simple, non-self-intersecting one-ring polygons.
- *
- * @module simplepolygon
- * @param {Feature} feature Input polygon. This polygon may be unconform the {@link https://en.wikipedia.org/wiki/Simple_Features|Simple Features standard} in the sense that it's inner and outer rings may cross-intersect or self-intersect, that the outer ring must not contain the optional inner rings and that the winding number must not be positive for the outer and negative for the inner rings.
- * @return {FeatureCollection} Feature collection containing the simple, non-self-intersecting one-ring polygon features that the complex polygon is composed of. These simple polygons have properties such as their parent polygon, winding number and net winding number.
- *
- * @example
- * var poly = {
- *   "type": "Feature",
- *   "geometry": {
- *     "type": "Polygon",
- *     "coordinates": [[[0,0],[2,0],[0,2],[2,2],[0,0]]]
- *   }
- * };
- *
- * var result = simplepolygon(poly);
- *
- * // =result
- * // which will be a featureCollection of two polygons, one with coordinates [[[0,0],[2,0],[1,1],[0,0]]], parent -1, winding 1 and net winding 1, and one with coordinates [[[1,1],[0,2],[2,2],[1,1]]], parent -1, winding -1 and net winding -1
- */
 var simplepolygon = function (feature$$1) {
-    // Check input
     if (feature$$1.type != 'Feature') throw new Error('The input must a geojson object of type Feature');
     if (feature$$1.geometry === undefined || feature$$1.geometry == null) throw new Error('The input must a geojson object with a non-empty geometry');
     if (feature$$1.geometry.type != 'Polygon') throw new Error('The input must be a geojson Polygon');
-
-    // Process input
     var numRings = feature$$1.geometry.coordinates.length;
     var vertices = [];
     for (var i = 0; i < numRings; i++) {
         var ring = feature$$1.geometry.coordinates[i];
         if (!equalArrays$2(ring[0], ring[ring.length - 1])) {
-            ring.push(ring[0]); // Close input ring if it is not
+            ring.push(ring[0]);
         }
         vertices.push.apply(vertices, ring.slice(0, ring.length - 1));
     }
     if (!isUnique(vertices)) throw new Error('The input polygon may not have duplicate vertices (except for the first and last vertex of each ring)');
-    var numvertices = vertices.length; // number of input ring vertices, with the last closing vertices not counted
-
-    // Compute self-intersections
+    var numvertices = vertices.length;
     var selfIsectsData = isects(feature$$1, function filterFn(isect, ring0, edge0, start0, end0, frac0, ring1, edge1, start1, end1, frac1, unique) {
         return [isect, ring0, edge0, start0, end0, frac0, ring1, edge1, start1, end1, frac1, unique];
     });
     var numSelfIsect = selfIsectsData.length;
-
-    // If no self-intersections are found, the input rings are the output rings. Hence, we must only compute their winding numbers, net winding numbers and (since ohers rings could lie outside the first ring) parents.
     if (numSelfIsect == 0) {
         var outputFeatureArray = [];
         for (var i = 0; i < numRings; i++) {
@@ -38759,35 +32402,22 @@ var simplepolygon = function (feature$$1) {
         var output = featureCollection(outputFeatureArray);
         determineParents();
         setNetWinding();
-
         return output;
     }
-
-    // If self-intersections are found, we will compute the output rings with the help of two intermediate variables
-    // First, we build the pseudo vertex list and intersection list
-    // The Pseudo vertex list is an array with for each ring an array with for each edge an array containing the pseudo-vertices (as made by their constructor) that have this ring and edge as ringAndEdgeIn, sorted for each edge by their fractional distance on this edge. It's length hence equals numRings.
     var pseudoVtxListByRingAndEdge = [];
-    // The intersection list is an array containing intersections (as made by their constructor). First all numvertices ring-vertex-intersections, then all self-intersections (intra- and inter-ring). The order of the latter is not important but is permanent once given.
     var isectList = [];
-    // Adding ring-pseudo-vertices to pseudoVtxListByRingAndEdge and ring-vertex-intersections to isectList
     for (var i = 0; i < numRings; i++) {
         pseudoVtxListByRingAndEdge.push([]);
         for (var j = 0; j < feature$$1.geometry.coordinates[i].length - 1; j++) {
-            // Each edge will feature one ring-pseudo-vertex in its array, on the last position. i.e. edge j features the ring-pseudo-vertex of the ring vertex j+1, which has ringAndEdgeIn = [i,j], on the last position.
             pseudoVtxListByRingAndEdge[i].push([new PseudoVtx(feature$$1.geometry.coordinates[i][(j + 1).modulo(feature$$1.geometry.coordinates[i].length - 1)], 1, [i, j], [i, (j + 1).modulo(feature$$1.geometry.coordinates[i].length - 1)], undefined)]);
-            // The first numvertices elements in isectList correspond to the ring-vertex-intersections
             isectList.push(new Isect(feature$$1.geometry.coordinates[i][j], [i, (j - 1).modulo(feature$$1.geometry.coordinates[i].length - 1)], [i, j], undefined, undefined, false, true));
         }
     }
-    // Adding intersection-pseudo-vertices to pseudoVtxListByRingAndEdge and self-intersections to isectList
     for (var i = 0; i < numSelfIsect; i++) {
-        // Adding intersection-pseudo-vertices made using selfIsectsData to pseudoVtxListByRingAndEdge's array corresponding to the incomming ring and edge
         pseudoVtxListByRingAndEdge[selfIsectsData[i][1]][selfIsectsData[i][2]].push(new PseudoVtx(selfIsectsData[i][0], selfIsectsData[i][5], [selfIsectsData[i][1], selfIsectsData[i][2]], [selfIsectsData[i][6], selfIsectsData[i][7]], undefined));
-        // selfIsectsData contains double mentions of each intersection, but we only want to add them once to isectList
         if (selfIsectsData[i][11]) isectList.push(new Isect(selfIsectsData[i][0], [selfIsectsData[i][1], selfIsectsData[i][2]], [selfIsectsData[i][6], selfIsectsData[i][7]], undefined, undefined, true, true));
     }
     var numIsect = isectList.length;
-    // Sort edge arrays of pseudoVtxListByRingAndEdge by the fractional distance 'param'
     for (var i = 0; i < pseudoVtxListByRingAndEdge.length; i++) {
         for (var j = 0; j < pseudoVtxListByRingAndEdge[i].length; j++) {
             pseudoVtxListByRingAndEdge[i][j].sort(function (a, b) {
@@ -38795,8 +32425,6 @@ var simplepolygon = function (feature$$1) {
             });
         }
     }
-
-    // Make a spatial index of intersections, in preperation for the following two steps
     var allIsectsAsIsectRbushTreeItem = [];
     for (var i = 0; i < numIsect; i++) {
         allIsectsAsIsectRbushTreeItem.push({
@@ -38805,20 +32433,15 @@ var simplepolygon = function (feature$$1) {
             maxX: isectList[i].coord[0],
             maxY: isectList[i].coord[1],
             index: i
-        }); // could pass isect: isectList[i], but not necessary
+        });
     }
     var isectRbushTree = rbush_1();
     isectRbushTree.load(allIsectsAsIsectRbushTreeItem);
-
-    // Now we will teach each intersection in isectList which is the next intersection along both it's [ring, edge]'s, in two steps.
-    // First, we find the next intersection for each pseudo-vertex in pseudoVtxListByRingAndEdge:
-    // For each pseudovertex in pseudoVtxListByRingAndEdge (3 loops) look at the next pseudovertex on that edge and find the corresponding intersection by comparing coordinates
     for (var i = 0; i < pseudoVtxListByRingAndEdge.length; i++) {
         for (var j = 0; j < pseudoVtxListByRingAndEdge[i].length; j++) {
             for (var k = 0; k < pseudoVtxListByRingAndEdge[i][j].length; k++) {
                 var coordToFind;
                 if (k == pseudoVtxListByRingAndEdge[i][j].length - 1) {
-                    // If it's the last pseudoVertex on that edge, then the next pseudoVertex is the first one on the next edge of that ring.
                     coordToFind = pseudoVtxListByRingAndEdge[i][(j + 1).modulo(feature$$1.geometry.coordinates[i].length - 1)][0].coord;
                 } else {
                     coordToFind = pseudoVtxListByRingAndEdge[i][j][k + 1].coord;
@@ -38828,13 +32451,11 @@ var simplepolygon = function (feature$$1) {
                     minY: coordToFind[1],
                     maxX: coordToFind[0],
                     maxY: coordToFind[1]
-                })[0]; // We can take [0] of the result, because there is only one isect correponding to a pseudo-vertex
+                })[0];
                 pseudoVtxListByRingAndEdge[i][j][k].nxtIsectAlongEdgeIn = IsectRbushTreeItemFound.index;
             }
         }
     }
-
-    // Second, we port this knowledge of the next intersection over to the intersections in isectList, by finding the intersection corresponding to each pseudo-vertex and copying the pseudo-vertex' knownledge of the next-intersection over to the intersection
     for (var i = 0; i < pseudoVtxListByRingAndEdge.length; i++) {
         for (var j = 0; j < pseudoVtxListByRingAndEdge[i].length; j++) {
             for (var k = 0; k < pseudoVtxListByRingAndEdge[i][j].length; k++) {
@@ -38844,13 +32465,11 @@ var simplepolygon = function (feature$$1) {
                     minY: coordToFind[1],
                     maxX: coordToFind[0],
                     maxY: coordToFind[1]
-                })[0]; // We can take [0] of the result, because there is only one isect correponding to a pseudo-vertex
+                })[0];
                 var l = IsectRbushTreeItemFound.index;
                 if (l < numvertices) {
-                    // Special treatment at ring-vertices: we correct the misnaming that happened in the previous block, since ringAndEdgeOut = ringAndEdge2 for ring vertices.
                     isectList[l].nxtIsectAlongRingAndEdge2 = pseudoVtxListByRingAndEdge[i][j][k].nxtIsectAlongEdgeIn;
                 } else {
-                    // Port the knowledge of the next intersection from the pseudo-vertices to the intersections, depending on how the edges are labeled in the pseudo-vertex and intersection.
                     if (equalArrays$2(isectList[l].ringAndEdge1, pseudoVtxListByRingAndEdge[i][j][k].ringAndEdgeIn)) {
                         isectList[l].nxtIsectAlongRingAndEdge1 = pseudoVtxListByRingAndEdge[i][j][k].nxtIsectAlongEdgeIn;
                     } else {
@@ -38860,12 +32479,7 @@ var simplepolygon = function (feature$$1) {
             }
         }
     }
-    // This explains why, eventhough when we will walk away from an intersection, we will walk way from the corresponding pseudo-vertex along edgeOut, pseudo-vertices have the property 'nxtIsectAlongEdgeIn' in stead of some propery 'nxtPseudoVtxAlongEdgeOut'. This is because this property (which is easy to find out) is used in the above for nxtIsectAlongRingAndEdge1 and nxtIsectAlongRingAndEdge2!
-
-    // Before we start walking over the intersections to build the output rings, we prepare a queue that stores information on intersections we still have to deal with, and put at least one intersection in it.
-    // This queue will contain information on intersections where we can start walking from once the current walk is finished, and its parent output ring (the smallest output ring it lies within, -1 if no parent or parent unknown yet) and its winding number (which we can already determine).
     var queue = [];
-    // For each output ring, add the ring-vertex-intersection with the smalles x-value (i.e. the left-most) as a start intersection. By choosing such an extremal intersections, we are sure to start at an intersection that is a convex vertex of its output ring. By adding them all to the queue, we are sure that no rings will be forgotten. If due to ring-intersections such an intersection will be encountered while walking, it will be removed from the queue.
     var i = 0;
     for (var j = 0; j < numRings; j++) {
         var leftIsect = i;
@@ -38875,8 +32489,6 @@ var simplepolygon = function (feature$$1) {
             }
             i++;
         }
-        // Compute winding at this left-most ring-vertex-intersection. We thus this by using our knowledge that this extremal vertex must be a convex vertex.
-        // We first find the intersection before and after it, and then use them to determine the winding number of the corresponding output ring, since we know that an extremal vertex of a simple, non-self-intersecting ring is always convex, so the only reason it would not be is because the winding number we use to compute it is wrong
         var isectAfterLeftIsect = isectList[leftIsect].nxtIsectAlongRingAndEdge2;
         for (var k = 0; k < isectList.length; k++) {
             if (isectList[k].nxtIsectAlongRingAndEdge1 == leftIsect || isectList[k].nxtIsectAlongRingAndEdge2 == leftIsect) {
@@ -38885,32 +32497,23 @@ var simplepolygon = function (feature$$1) {
             }
         }
         var windingAtIsect = isConvex([isectList[isectBeforeLeftIsect].coord, isectList[leftIsect].coord, isectList[isectAfterLeftIsect].coord], true) ? 1 : -1;
-
         queue.push({
             isect: leftIsect,
             parent: -1,
             winding: windingAtIsect
         });
     }
-    // Sort the queue by the same criterion used to find the leftIsect: the left-most leftIsect must be last in the queue, such that it will be popped first, such that we will work from out to in regarding input rings. This assumtion is used when predicting the winding number and parent of a new queue member.
     queue.sort(function (a, b) {
         return isectList[a.isect].coord > isectList[b.isect].coord ? -1 : 1;
     });
-
-    // Initialise output
     var outputFeatureArray = [];
-
-    // While the queue is not empty, take the last object (i.e. its intersection) out and start making an output ring by walking in the direction that has not been walked away over yet.
     while (queue.length > 0) {
-        // Get the last object out of the queue
         var popped = queue.pop();
         var startIsect = popped.isect;
         var currentOutputRingParent = popped.parent;
         var currentOutputRingWinding = popped.winding;
-        // Make new output ring and add vertex from starting intersection
         var currentOutputRing = outputFeatureArray.length;
         var currentOutputRingCoords = [isectList[startIsect].coord];
-        // Set up the variables used while walking over intersections: 'currentIsect', 'nxtIsect' and 'walkingRingAndEdge'
         var currentIsect = startIsect;
         if (isectList[startIsect].ringAndEdge1Walkable) {
             var walkingRingAndEdge = isectList[startIsect].ringAndEdge1;
@@ -38919,10 +32522,8 @@ var simplepolygon = function (feature$$1) {
             var walkingRingAndEdge = isectList[startIsect].ringAndEdge2;
             var nxtIsect = isectList[startIsect].nxtIsectAlongRingAndEdge2;
         }
-        // While we have not arrived back at the same intersection, keep walking
         while (!equalArrays$2(isectList[startIsect].coord, isectList[nxtIsect].coord)) {
             currentOutputRingCoords.push(isectList[nxtIsect].coord);
-            // If the next intersection is queued, we can remove it, because we will go there now.
             var nxtIsectInQueue = undefined;
             for (var i = 0; i < queue.length; i++) {
                 if (queue[i].isect == nxtIsect) {
@@ -38933,11 +32534,6 @@ var simplepolygon = function (feature$$1) {
             if (nxtIsectInQueue != undefined) {
                 queue.splice(nxtIsectInQueue, 1);
             }
-            // Arriving at this new intersection, we know which will be our next walking ring and edge (if we came from 1 we will walk away from 2 and vice versa),
-            // So we can set it as our new walking ring and intersection and remember that we (will) have walked over it
-            // If we have never walked away from this new intersection along the other ring and edge then we will soon do, add the intersection (and the parent wand winding number) to the queue
-            // (We can predict the winding number and parent as follows: if the edge is convex, the other output ring started from there will have the alternate winding and lie outside of the current one, and thus have the same parent ring as the current ring. Otherwise, it will have the same winding number and lie inside of the current ring. We are, however, only sure of this of an output ring started from there does not enclose the current ring. This is why the initial queue's intersections must be sorted such that outer ones come out first.)
-            // We then update the other two walking variables.
             if (equalArrays$2(walkingRingAndEdge, isectList[nxtIsect].ringAndEdge1)) {
                 walkingRingAndEdge = isectList[nxtIsect].ringAndEdge2;
                 isectList[nxtIsect].ringAndEdge2Walkable = false;
@@ -38976,9 +32572,7 @@ var simplepolygon = function (feature$$1) {
                 nxtIsect = isectList[nxtIsect].nxtIsectAlongRingAndEdge1;
             }
         }
-        // Close output ring
         currentOutputRingCoords.push(isectList[nxtIsect].coord);
-        // Push output ring to output
         outputFeatureArray.push(polygon([currentOutputRingCoords], {
             index: currentOutputRing,
             parent: currentOutputRingParent,
@@ -38986,14 +32580,9 @@ var simplepolygon = function (feature$$1) {
             netWinding: undefined
         }));
     }
-
     var output = featureCollection(outputFeatureArray);
-
     determineParents();
-
     setNetWinding();
-
-    // These functions are also used if no intersections are found
     function determineParents() {
         var featuresWithoutParent = [];
         for (var i = 0; i < output.features.length; i++) {
@@ -39017,7 +32606,6 @@ var simplepolygon = function (feature$$1) {
             }
         }
     }
-
     function setNetWinding() {
         for (var i = 0; i < output.features.length; i++) {
             if (output.features[i].properties.parent == -1) {
@@ -39027,7 +32615,6 @@ var simplepolygon = function (feature$$1) {
             }
         }
     }
-
     function setNetWindingOfChildren(parent, ParentNetWinding) {
         for (var i = 0; i < output.features.length; i++) {
             if (output.features[i].properties.parent == parent) {
@@ -39037,44 +32624,31 @@ var simplepolygon = function (feature$$1) {
             }
         }
     }
-
     return output;
 };
-
-// Constructor for (ring- or intersection-) pseudo-vertices.
 var PseudoVtx = function PseudoVtx(coord, param, ringAndEdgeIn, ringAndEdgeOut, nxtIsectAlongEdgeIn) {
-    this.coord = coord; // [x,y] of this pseudo-vertex
-    this.param = param; // fractional distance of this intersection on incomming edge
-    this.ringAndEdgeIn = ringAndEdgeIn; // [ring index, edge index] of incomming edge
-    this.ringAndEdgeOut = ringAndEdgeOut; // [ring index, edge index] of outgoing edge
-    this.nxtIsectAlongEdgeIn = nxtIsectAlongEdgeIn; // The next intersection when following the incomming edge (so not when following ringAndEdgeOut!)
+    this.coord = coord;
+    this.param = param;
+    this.ringAndEdgeIn = ringAndEdgeIn;
+    this.ringAndEdgeOut = ringAndEdgeOut;
+    this.nxtIsectAlongEdgeIn = nxtIsectAlongEdgeIn;
 };
-
-// Constructor for an intersection. There are two intersection-pseudo-vertices per self-intersection and one ring-pseudo-vertex per ring-vertex-intersection. Their labels 1 and 2 are not assigned a particular meaning but are permanent once given.
 var Isect = function Isect(coord, ringAndEdge1, ringAndEdge2, nxtIsectAlongRingAndEdge1, nxtIsectAlongRingAndEdge2, ringAndEdge1Walkable, ringAndEdge2Walkable) {
-    this.coord = coord; // [x,y] of this intersection
-    this.ringAndEdge1 = ringAndEdge1; // first edge of this intersection
-    this.ringAndEdge2 = ringAndEdge2; // second edge of this intersection
-    this.nxtIsectAlongRingAndEdge1 = nxtIsectAlongRingAndEdge1; // the next intersection when following ringAndEdge1
-    this.nxtIsectAlongRingAndEdge2 = nxtIsectAlongRingAndEdge2; // the next intersection when following ringAndEdge2
-    this.ringAndEdge1Walkable = ringAndEdge1Walkable; // May we (still) walk away from this intersection over ringAndEdge1?
-    this.ringAndEdge2Walkable = ringAndEdge2Walkable; // May we (still) walk away from this intersection over ringAndEdge2?
+    this.coord = coord;
+    this.ringAndEdge1 = ringAndEdge1;
+    this.ringAndEdge2 = ringAndEdge2;
+    this.nxtIsectAlongRingAndEdge1 = nxtIsectAlongRingAndEdge1;
+    this.nxtIsectAlongRingAndEdge2 = nxtIsectAlongRingAndEdge2;
+    this.ringAndEdge1Walkable = ringAndEdge1Walkable;
+    this.ringAndEdge2Walkable = ringAndEdge2Walkable;
 };
-
-// Function to determine if three consecutive points of a simple, non-self-intersecting ring make up a convex vertex, assuming the ring is right- or lefthanded
 function isConvex(pts, righthanded) {
-    // 'pts' is an [x,y] pair
-    // 'righthanded' is a boolean
     if (typeof righthanded === 'undefined') righthanded = true;
     if (pts.length != 3) throw new Error('This function requires an array of three points [x,y]');
     var d = (pts[1][0] - pts[0][0]) * (pts[2][1] - pts[0][1]) - (pts[1][1] - pts[0][1]) * (pts[2][0] - pts[0][0]);
     return d >= 0 == righthanded;
 }
-
-// Function to compute winding of simple, non-self-intersecting ring
 function windingOfRing(ring) {
-    // 'ring' is an array of [x,y] pairs with the last equal to the first
-    // Compute the winding number based on the vertex with the smallest x-value, it precessor and successor. An extremal vertex of a simple, non-self-intersecting ring is always convex, so the only reason it is not is because the winding number we use to compute it is wrong
     var leftVtx = 0;
     for (var i = 0; i < ring.length - 1; i++) {
         if (ring[i][0] < ring[leftVtx][0]) leftVtx = i;
@@ -39086,34 +32660,21 @@ function windingOfRing(ring) {
     }
     return winding;
 }
-
-// Function to compare Arrays of numbers. From http://stackoverflow.com/questions/7837456/how-to-compare-arrays-in-javascript
 function equalArrays$2(array1, array2) {
-    // if the other array is a falsy value, return
     if (!array1 || !array2) return false;
-
-    // compare lengths - can save a lot of time
     if (array1.length != array2.length) return false;
-
     for (var i = 0, l = array1.length; i < l; i++) {
-        // Check if we have nested arrays
         if (array1[i] instanceof Array && array2[i] instanceof Array) {
-            // recurse into the nested arrays
             if (!equalArrays$2(array1[i], array2[i])) return false;
         } else if (array1[i] != array2[i]) {
-            // Warning - two different object instances will never be equal: {x:20} != {x:20}
             return false;
         }
     }
     return true;
 }
-
-// Fix Javascript modulo for negative number. From http://stackoverflow.com/questions/4467539/javascript-modulo-not-behaving
 Number.prototype.modulo = function (n) {
     return (this % n + n) % n;
 };
-
-// Function to check if array is unique (i.e. all unique elements, i.e. no duplicate elements)
 function isUnique(array) {
     var u = {};
     var isUnique = 1;
@@ -39127,21 +32688,6 @@ function isUnique(array) {
     return isUnique;
 }
 
-/**
- * Takes a kinked polygon and returns a feature collection of polygons that have no kinks.
- * Uses [simplepolygon](https://github.com/mclaeysb/simplepolygon) internally.
- *
- * @name unkinkPolygon
- * @param {FeatureCollection|Feature<Polygon|MultiPolygon>} geojson GeoJSON Polygon or MultiPolygon
- * @returns {FeatureCollection<Polygon>} Unkinked polygons
- * @example
- * var poly = turf.polygon([[[0, 0], [2, 0], [0, 2], [2, 2], [0, 0]]]);
- *
- * var result = turf.unkinkPolygon(poly);
- *
- * //addToMap
- * var addToMap = [poly, result]
- */
 function unkinkPolygon(geojson) {
     var features = [];
     flattenEach(geojson, function (feature$$1) {
@@ -39153,25 +32699,11 @@ function unkinkPolygon(geojson) {
     return featureCollection(features);
 }
 
-/**
- * Takes a kinked polygon and returns a feature collection of polygons that have no kinks. 
- * @param  {google.maps.Polygon|Array.<google.maps.LatLng>|Feature<Polygon>} object array of points, a google.maps.Polygon or Feature<Polygon>
- * @return {FeatureCollection<Polygon>}  Unkinked polygons
- */
 function unkink(object) {
-
   var polygonFeature = polygonToFeaturePolygon(object);
   return unkinkPolygon(polygonFeature);
 }
 
-/**
- * The base implementation of `_.filter` without support for iteratee shorthands.
- *
- * @private
- * @param {Array|Object} collection The collection to iterate over.
- * @param {Function} predicate The function invoked per iteration.
- * @returns {Array} Returns the new filtered array.
- */
 function baseFilter(collection, predicate) {
   var result = [];
   baseEach(collection, function (value, index, collection) {
@@ -39182,66 +32714,17 @@ function baseFilter(collection, predicate) {
   return result;
 }
 
-/**
- * Iterates over elements of `collection`, returning an array of all elements
- * `predicate` returns truthy for. The predicate is invoked with three
- * arguments: (value, index|key, collection).
- *
- * **Note:** Unlike `_.remove`, this method returns a new array.
- *
- * @static
- * @memberOf _
- * @since 0.1.0
- * @category Collection
- * @param {Array|Object} collection The collection to iterate over.
- * @param {Function} [predicate=_.identity] The function invoked per iteration.
- * @returns {Array} Returns the new filtered array.
- * @see _.reject
- * @example
- *
- * var users = [
- *   { 'user': 'barney', 'age': 36, 'active': true },
- *   { 'user': 'fred',   'age': 40, 'active': false }
- * ];
- *
- * _.filter(users, function(o) { return !o.active; });
- * // => objects for ['fred']
- *
- * // The `_.matches` iteratee shorthand.
- * _.filter(users, { 'age': 36, 'active': true });
- * // => objects for ['barney']
- *
- * // The `_.matchesProperty` iteratee shorthand.
- * _.filter(users, ['active', false]);
- * // => objects for ['fred']
- *
- * // The `_.property` iteratee shorthand.
- * _.filter(users, 'active');
- * // => objects for ['barney']
- */
 function filter(collection, predicate) {
   var func = isArray(collection) ? arrayFilter : baseFilter;
   return func(collection, baseIteratee(predicate, 3));
 }
 
-/**
- * The base implementation of methods like `_.max` and `_.min` which accepts a
- * `comparator` to determine the extremum value.
- *
- * @private
- * @param {Array} array The array to iterate over.
- * @param {Function} iteratee The iteratee invoked per iteration.
- * @param {Function} comparator The comparator used to compare values.
- * @returns {*} Returns the extremum value.
- */
 function baseExtremum(array, iteratee, comparator) {
   var index = -1,
       length = array.length;
-
   while (++index < length) {
     var value = array[index],
         current = iteratee(value);
-
     if (current != null && (computed === undefined ? current === current && !isSymbol(current) : comparator(current, computed))) {
       var computed = current,
           result = value;
@@ -39250,72 +32733,18 @@ function baseExtremum(array, iteratee, comparator) {
   return result;
 }
 
-/**
- * The base implementation of `_.gt` which doesn't coerce arguments.
- *
- * @private
- * @param {*} value The value to compare.
- * @param {*} other The other value to compare.
- * @returns {boolean} Returns `true` if `value` is greater than `other`,
- *  else `false`.
- */
 function baseGt(value, other) {
   return value > other;
 }
 
-/**
- * Computes the maximum value of `array`. If `array` is empty or falsey,
- * `undefined` is returned.
- *
- * @static
- * @since 0.1.0
- * @memberOf _
- * @category Math
- * @param {Array} array The array to iterate over.
- * @returns {*} Returns the maximum value.
- * @example
- *
- * _.max([4, 2, 8, 6]);
- * // => 8
- *
- * _.max([]);
- * // => undefined
- */
 function max$1(array) {
   return array && array.length ? baseExtremum(array, identity, baseGt) : undefined;
 }
 
-/**
- * The base implementation of `_.lt` which doesn't coerce arguments.
- *
- * @private
- * @param {*} value The value to compare.
- * @param {*} other The other value to compare.
- * @returns {boolean} Returns `true` if `value` is less than `other`,
- *  else `false`.
- */
 function baseLt(value, other) {
   return value < other;
 }
 
-/**
- * Computes the minimum value of `array`. If `array` is empty or falsey,
- * `undefined` is returned.
- *
- * @static
- * @since 0.1.0
- * @memberOf _
- * @category Math
- * @param {Array} array The array to iterate over.
- * @returns {*} Returns the minimum value.
- * @example
- *
- * _.min([4, 2, 8, 6]);
- * // => 2
- *
- * _.min([]);
- * // => undefined
- */
 function min$1(array) {
   return array && array.length ? baseExtremum(array, identity, baseLt) : undefined;
 }
@@ -39323,9 +32752,7 @@ function min$1(array) {
 function quickselect$3(arr, k, left, right, compare) {
     quickselectStep(arr, k, left || 0, right || arr.length - 1, compare || defaultCompare$1);
 }
-
 function quickselectStep(arr, k, left, right, compare) {
-
     while (right > left) {
         if (right - left > 600) {
             var n = right - left + 1;
@@ -39337,14 +32764,11 @@ function quickselectStep(arr, k, left, right, compare) {
             var newRight = Math.min(right, Math.floor(k + (n - m) * s / n + sd));
             quickselectStep(arr, k, newLeft, newRight, compare);
         }
-
         var t = arr[k];
         var i = left;
         var j = right;
-
         swap$1(arr, left, k);
         if (compare(arr[right], t) > 0) swap$1(arr, left, right);
-
         while (i < j) {
             swap$1(arr, i, j);
             i++;
@@ -39355,96 +32779,71 @@ function quickselectStep(arr, k, left, right, compare) {
                 j--;
             }
         }
-
         if (compare(arr[left], t) === 0) swap$1(arr, left, j);else {
             j++;
             swap$1(arr, j, right);
         }
-
         if (j <= k) left = j + 1;
         if (k <= j) right = j - 1;
     }
 }
-
 function swap$1(arr, i, j) {
     var tmp = arr[i];
     arr[i] = arr[j];
     arr[j] = tmp;
 }
-
 function defaultCompare$1(a, b) {
     return a < b ? -1 : a > b ? 1 : 0;
 }
 
 function rbush$3(maxEntries, format) {
     if (!(this instanceof rbush$3)) return new rbush$3(maxEntries, format);
-
-    // max entries in a node is 9 by default; min node fill is 40% for best performance
     this._maxEntries = Math.max(4, maxEntries || 9);
     this._minEntries = Math.max(2, Math.ceil(this._maxEntries * 0.4));
-
     if (format) {
         this._initFormat(format);
     }
-
     this.clear();
 }
-
 rbush$3.prototype = {
-
     all: function all() {
         return this._all(this.data, []);
     },
-
     search: function search(bbox) {
-
         var node = this.data,
             result = [],
             toBBox = this.toBBox;
-
         if (!intersects$2(bbox, node)) return result;
-
         var nodesToSearch = [],
             i,
             len,
             child,
             childBBox;
-
         while (node) {
             for (i = 0, len = node.children.length; i < len; i++) {
-
                 child = node.children[i];
                 childBBox = node.leaf ? toBBox(child) : child;
-
                 if (intersects$2(bbox, childBBox)) {
                     if (node.leaf) result.push(child);else if (contains$2(bbox, childBBox)) this._all(child, result);else nodesToSearch.push(child);
                 }
             }
             node = nodesToSearch.pop();
         }
-
         return result;
     },
-
     collides: function collides(bbox) {
-
         var node = this.data,
             toBBox = this.toBBox;
-
         if (!intersects$2(bbox, node)) return false;
-
         var nodesToSearch = [],
             i,
             len,
             child,
             childBBox;
-
         while (node) {
             for (i = 0, len = node.children.length; i < len; i++) {
-
                 child = node.children[i];
                 childBBox = node.leaf ? toBBox(child) : child;
-
                 if (intersects$2(bbox, childBBox)) {
                     if (node.leaf || contains$2(bbox, childBBox)) return true;
                     nodesToSearch.push(child);
@@ -39452,57 +32851,41 @@ rbush$3.prototype = {
             }
             node = nodesToSearch.pop();
         }
-
         return false;
     },
-
     load: function load(data) {
         if (!(data && data.length)) return this;
-
         if (data.length < this._minEntries) {
             for (var i = 0, len = data.length; i < len; i++) {
                 this.insert(data[i]);
             }
             return this;
         }
-
-        // recursively build the tree with the given data from scratch using OMT algorithm
         var node = this._build(data.slice(), 0, data.length - 1, 0);
-
         if (!this.data.children.length) {
-            // save as is if tree is empty
             this.data = node;
         } else if (this.data.height === node.height) {
-            // split root if trees have the same height
             this._splitRoot(this.data, node);
         } else {
             if (this.data.height < node.height) {
-                // swap trees if inserted one is bigger
                 var tmpNode = this.data;
                 this.data = node;
                 node = tmpNode;
             }
-
-            // insert the small tree into the large tree at appropriate level
             this._insert(node, this.data.height - node.height - 1, true);
         }
-
         return this;
     },
-
     insert: function insert(item) {
         if (item) this._insert(item, this.data.height - 1);
         return this;
     },
-
     clear: function clear() {
         this.data = createNode$1([]);
         return this;
     },
-
     remove: function remove(item, equalsFn) {
         if (!item) return this;
-
         var node = this.data,
             bbox = this.toBBox(item),
             path = [],
@@ -39511,301 +32894,203 @@ rbush$3.prototype = {
             parent,
             index,
             goingUp;
-
-        // depth-first iterative tree traversal
         while (node || path.length) {
-
             if (!node) {
-                // go up
                 node = path.pop();
                 parent = path[path.length - 1];
                 i = indexes.pop();
                 goingUp = true;
             }
-
             if (node.leaf) {
-                // check current node
                 index = findItem$1(item, node.children, equalsFn);
-
                 if (index !== -1) {
-                    // item found, remove the item and condense tree upwards
                     node.children.splice(index, 1);
                     path.push(node);
                     this._condense(path);
                     return this;
                 }
             }
-
             if (!goingUp && !node.leaf && contains$2(node, bbox)) {
-                // go down
                 path.push(node);
                 indexes.push(i);
                 i = 0;
                 parent = node;
                 node = node.children[0];
             } else if (parent) {
-                // go right
                 i++;
                 node = parent.children[i];
                 goingUp = false;
-            } else node = null; // nothing found
+            } else node = null;
         }
-
         return this;
     },
-
     toBBox: function toBBox(item) {
         return item;
     },
-
     compareMinX: compareNodeMinX$1,
     compareMinY: compareNodeMinY$1,
-
     toJSON: function toJSON() {
         return this.data;
     },
-
     fromJSON: function fromJSON(data) {
         this.data = data;
         return this;
     },
-
     _all: function _all(node, result) {
         var nodesToSearch = [];
         while (node) {
             if (node.leaf) result.push.apply(result, node.children);else nodesToSearch.push.apply(nodesToSearch, node.children);
-
             node = nodesToSearch.pop();
         }
         return result;
     },
-
     _build: function _build(items, left, right, height) {
-
         var N = right - left + 1,
             M = this._maxEntries,
             node;
-
         if (N <= M) {
-            // reached leaf level; return leaf
             node = createNode$1(items.slice(left, right + 1));
             calcBBox$1(node, this.toBBox);
             return node;
         }
-
         if (!height) {
-            // target height of the bulk-loaded tree
             height = Math.ceil(Math.log(N) / Math.log(M));
-
-            // target number of root entries to maximize storage utilization
             M = Math.ceil(N / Math.pow(M, height - 1));
         }
-
         node = createNode$1([]);
         node.leaf = false;
         node.height = height;
-
-        // split the items into M mostly square tiles
-
         var N2 = Math.ceil(N / M),
             N1 = N2 * Math.ceil(Math.sqrt(M)),
             i,
             j,
             right2,
             right3;
-
         multiSelect$1(items, left, right, N1, this.compareMinX);
-
         for (i = left; i <= right; i += N1) {
-
             right2 = Math.min(i + N1 - 1, right);
-
             multiSelect$1(items, i, right2, N2, this.compareMinY);
-
             for (j = i; j <= right2; j += N2) {
-
                 right3 = Math.min(j + N2 - 1, right2);
-
-                // pack each entry recursively
                 node.children.push(this._build(items, j, right3, height - 1));
             }
         }
-
         calcBBox$1(node, this.toBBox);
-
         return node;
     },
-
     _chooseSubtree: function _chooseSubtree(bbox, node, level, path) {
-
         var i, len, child, targetNode, area, enlargement, minArea, minEnlargement;
-
         while (true) {
             path.push(node);
-
             if (node.leaf || path.length - 1 === level) break;
-
             minArea = minEnlargement = Infinity;
-
             for (i = 0, len = node.children.length; i < len; i++) {
                 child = node.children[i];
                 area = bboxArea$1(child);
                 enlargement = enlargedArea$1(bbox, child) - area;
-
-                // choose entry with the least area enlargement
                 if (enlargement < minEnlargement) {
                     minEnlargement = enlargement;
                     minArea = area < minArea ? area : minArea;
                     targetNode = child;
                 } else if (enlargement === minEnlargement) {
-                    // otherwise choose one with the smallest area
                     if (area < minArea) {
                         minArea = area;
                         targetNode = child;
                     }
                 }
             }
-
             node = targetNode || node.children[0];
         }
-
         return node;
     },
-
     _insert: function _insert(item, level, isNode) {
-
         var toBBox = this.toBBox,
             bbox = isNode ? item : toBBox(item),
             insertPath = [];
-
-        // find the best node for accommodating the item, saving all nodes along the path too
         var node = this._chooseSubtree(bbox, this.data, level, insertPath);
-
-        // put the item into the node
         node.children.push(item);
         extend$2(node, bbox);
-
-        // split on node overflow; propagate upwards if necessary
         while (level >= 0) {
             if (insertPath[level].children.length > this._maxEntries) {
                 this._split(insertPath, level);
                 level--;
             } else break;
         }
-
-        // adjust bboxes along the insertion path
         this._adjustParentBBoxes(bbox, insertPath, level);
     },
-
-    // split overflowed node into two
     _split: function _split(insertPath, level) {
-
         var node = insertPath[level],
             M = node.children.length,
             m = this._minEntries;
-
         this._chooseSplitAxis(node, m, M);
-
         var splitIndex = this._chooseSplitIndex(node, m, M);
-
         var newNode = createNode$1(node.children.splice(splitIndex, node.children.length - splitIndex));
         newNode.height = node.height;
         newNode.leaf = node.leaf;
-
         calcBBox$1(node, this.toBBox);
         calcBBox$1(newNode, this.toBBox);
-
         if (level) insertPath[level - 1].children.push(newNode);else this._splitRoot(node, newNode);
     },
-
     _splitRoot: function _splitRoot(node, newNode) {
-        // split root node
         this.data = createNode$1([node, newNode]);
         this.data.height = node.height + 1;
         this.data.leaf = false;
         calcBBox$1(this.data, this.toBBox);
     },
-
     _chooseSplitIndex: function _chooseSplitIndex(node, m, M) {
-
         var i, bbox1, bbox2, overlap, area, minOverlap, minArea, index;
-
         minOverlap = minArea = Infinity;
-
         for (i = m; i <= M - m; i++) {
             bbox1 = distBBox$1(node, 0, i, this.toBBox);
             bbox2 = distBBox$1(node, i, M, this.toBBox);
-
             overlap = intersectionArea$1(bbox1, bbox2);
             area = bboxArea$1(bbox1) + bboxArea$1(bbox2);
-
-            // choose distribution with minimum overlap
             if (overlap < minOverlap) {
                 minOverlap = overlap;
                 index = i;
-
                 minArea = area < minArea ? area : minArea;
             } else if (overlap === minOverlap) {
-                // otherwise choose distribution with minimum area
                 if (area < minArea) {
                     minArea = area;
                     index = i;
                 }
             }
         }
-
         return index;
     },
-
-    // sorts node children by the best axis for split
     _chooseSplitAxis: function _chooseSplitAxis(node, m, M) {
-
         var compareMinX = node.leaf ? this.compareMinX : compareNodeMinX$1,
             compareMinY = node.leaf ? this.compareMinY : compareNodeMinY$1,
             xMargin = this._allDistMargin(node, m, M, compareMinX),
             yMargin = this._allDistMargin(node, m, M, compareMinY);
-
-        // if total distributions margin value is minimal for x, sort by minX,
-        // otherwise it's already sorted by minY
         if (xMargin < yMargin) node.children.sort(compareMinX);
     },
-
-    // total margin of all possible split distributions where each node is at least m full
     _allDistMargin: function _allDistMargin(node, m, M, compare) {
-
         node.children.sort(compare);
-
         var toBBox = this.toBBox,
             leftBBox = distBBox$1(node, 0, m, toBBox),
             rightBBox = distBBox$1(node, M - m, M, toBBox),
             margin = bboxMargin$1(leftBBox) + bboxMargin$1(rightBBox),
             i,
             child;
-
         for (i = m; i < M - m; i++) {
             child = node.children[i];
             extend$2(leftBBox, node.leaf ? toBBox(child) : child);
             margin += bboxMargin$1(leftBBox);
         }
-
         for (i = M - m - 1; i >= m; i--) {
             child = node.children[i];
             extend$2(rightBBox, node.leaf ? toBBox(child) : child);
             margin += bboxMargin$1(rightBBox);
         }
-
         return margin;
     },
-
     _adjustParentBBoxes: function _adjustParentBBoxes(bbox, path, level) {
-        // adjust bboxes along the given tree path
         for (var i = level; i >= 0; i--) {
             extend$2(path[i], bbox);
         }
     },
-
     _condense: function _condense(path) {
-        // go through the path, removing empty nodes and updating bboxes
         for (var i = path.length - 1, siblings; i >= 0; i--) {
             if (path[i].children.length === 0) {
                 if (i > 0) {
@@ -39815,53 +33100,35 @@ rbush$3.prototype = {
             } else calcBBox$1(path[i], this.toBBox);
         }
     },
-
     _initFormat: function _initFormat(format) {
-        // data format (minX, minY, maxX, maxY accessors)
-
-        // uses eval-type function compilation instead of just accepting a toBBox function
-        // because the algorithms are very sensitive to sorting functions performance,
-        // so they should be dead simple and without inner calls
-
         var compareArr = ['return a', ' - b', ';'];
-
         this.compareMinX = new Function('a', 'b', compareArr.join(format[0]));
         this.compareMinY = new Function('a', 'b', compareArr.join(format[1]));
-
         this.toBBox = new Function('a', 'return {minX: a' + format[0] + ', minY: a' + format[1] + ', maxX: a' + format[2] + ', maxY: a' + format[3] + '};');
     }
 };
-
 function findItem$1(item, items, equalsFn) {
     if (!equalsFn) return items.indexOf(item);
-
     for (var i = 0; i < items.length; i++) {
         if (equalsFn(item, items[i])) return i;
     }
     return -1;
 }
-
-// calculate node's bbox from bboxes of its children
 function calcBBox$1(node, toBBox) {
     distBBox$1(node, 0, node.children.length, toBBox, node);
 }
-
-// min bounding rectangle of node children from k to p-1
 function distBBox$1(node, k, p, toBBox, destNode) {
     if (!destNode) destNode = createNode$1(null);
     destNode.minX = Infinity;
     destNode.minY = Infinity;
     destNode.maxX = -Infinity;
     destNode.maxY = -Infinity;
-
     for (var i = k, child; i < p; i++) {
         child = node.children[i];
         extend$2(destNode, node.leaf ? toBBox(child) : child);
     }
-
     return destNode;
 }
-
 function extend$2(a, b) {
     a.minX = Math.min(a.minX, b.minX);
     a.minY = Math.min(a.minY, b.minY);
@@ -39869,42 +33136,34 @@ function extend$2(a, b) {
     a.maxY = Math.max(a.maxY, b.maxY);
     return a;
 }
-
 function compareNodeMinX$1(a, b) {
     return a.minX - b.minX;
 }
 function compareNodeMinY$1(a, b) {
     return a.minY - b.minY;
 }
-
 function bboxArea$1(a) {
     return (a.maxX - a.minX) * (a.maxY - a.minY);
 }
 function bboxMargin$1(a) {
     return a.maxX - a.minX + (a.maxY - a.minY);
 }
-
 function enlargedArea$1(a, b) {
     return (Math.max(b.maxX, a.maxX) - Math.min(b.minX, a.minX)) * (Math.max(b.maxY, a.maxY) - Math.min(b.minY, a.minY));
 }
-
 function intersectionArea$1(a, b) {
     var minX = Math.max(a.minX, b.minX),
         minY = Math.max(a.minY, b.minY),
         maxX = Math.min(a.maxX, b.maxX),
         maxY = Math.min(a.maxY, b.maxY);
-
     return Math.max(0, maxX - minX) * Math.max(0, maxY - minY);
 }
-
 function contains$2(a, b) {
     return a.minX <= b.minX && a.minY <= b.minY && b.maxX <= a.maxX && b.maxY <= a.maxY;
 }
-
 function intersects$2(a, b) {
     return b.minX <= a.maxX && b.minY <= a.maxY && b.maxX >= a.minX && b.maxY >= a.minY;
 }
-
 function createNode$1(children) {
     return {
         children: children,
@@ -39916,56 +33175,21 @@ function createNode$1(children) {
         maxY: -Infinity
     };
 }
-
-// sort an array so that items come in groups of n unsorted items, with groups sorted between each other;
-// combines selection algorithm with binary divide & conquer approach
-
 function multiSelect$1(arr, left, right, n, compare) {
     var stack = [left, right],
         mid;
-
     while (stack.length) {
         right = stack.pop();
         left = stack.pop();
-
         if (right - left <= n) continue;
-
         mid = left + Math.ceil((right - left) / n / 2) * n;
         quickselect$3(arr, mid, left, right, compare);
-
         stack.push(left, mid, mid, right);
     }
 }
 
-/**
- * GeoJSON implementation of [RBush](https://github.com/mourner/rbush#rbush) spatial index.
- *
- * @name rbush
- * @param {number} [maxEntries=9] defines the maximum number of entries in a tree node. 9 (used by default) is a
- * reasonable choice for most applications. Higher value means faster insertion and slower search, and vice versa.
- * @returns {RBush} GeoJSON RBush
- * @example
- * import geojsonRbush from 'geojson-rbush';
- * var tree = geojsonRbush();
- */
 function geojsonRbush(maxEntries) {
     var tree = rbush$3(maxEntries);
-    /**
-     * [insert](https://github.com/mourner/rbush#data-format)
-     *
-     * @param {Feature<any>} feature insert single GeoJSON Feature
-     * @returns {RBush} GeoJSON RBush
-     * @example
-     * var polygon = {
-     *   "type": "Feature",
-     *   "properties": {},
-     *   "geometry": {
-     *     "type": "Polygon",
-     *     "coordinates": [[[-78, 41], [-67, 41], [-67, 48], [-78, 48], [-78, 41]]]
-     *   }
-     * }
-     * tree.insert(polygon)
-     */
     tree.insert = function (feature) {
         if (Array.isArray(feature)) {
             var bbox = feature;
@@ -39976,39 +33200,8 @@ function geojsonRbush(maxEntries) {
         }
         return rbush$3.prototype.insert.call(this, feature);
     };
-
-    /**
-     * [load](https://github.com/mourner/rbush#bulk-inserting-data)
-     *
-     * @param {BBox[]|FeatureCollection<any>} features load entire GeoJSON FeatureCollection
-     * @returns {RBush} GeoJSON RBush
-     * @example
-     * var polygons = {
-     *   "type": "FeatureCollection",
-     *   "features": [
-     *     {
-     *       "type": "Feature",
-     *       "properties": {},
-     *       "geometry": {
-     *         "type": "Polygon",
-     *         "coordinates": [[[-78, 41], [-67, 41], [-67, 48], [-78, 48], [-78, 41]]]
-     *       }
-     *     },
-     *     {
-     *       "type": "Feature",
-     *       "properties": {},
-     *       "geometry": {
-     *         "type": "Polygon",
-     *         "coordinates": [[[-93, 32], [-83, 32], [-83, 39], [-93, 39], [-93, 32]]]
-     *       }
-     *     }
-     *   ]
-     * }
-     * tree.load(polygons)
-     */
     tree.load = function (features) {
         var load = [];
-        // Load an Array of BBox
         if (Array.isArray(features)) {
             features.forEach(function (bbox) {
                 var feature = bboxPolygon(bbox);
@@ -40016,7 +33209,6 @@ function geojsonRbush(maxEntries) {
                 load.push(feature);
             });
         } else {
-            // Load FeatureCollection
             featureEach(features, function (feature) {
                 feature.bbox = feature.bbox ? feature.bbox : turfBBox(feature);
                 load.push(feature);
@@ -40024,23 +33216,6 @@ function geojsonRbush(maxEntries) {
         }
         return rbush$3.prototype.load.call(this, load);
     };
-
-    /**
-     * [remove](https://github.com/mourner/rbush#removing-data)
-     *
-     * @param {BBox|Feature<any>} feature remove single GeoJSON Feature
-     * @returns {RBush} GeoJSON RBush
-     * @example
-     * var polygon = {
-     *   "type": "Feature",
-     *   "properties": {},
-     *   "geometry": {
-     *     "type": "Polygon",
-     *     "coordinates": [[[-78, 41], [-67, 41], [-67, 48], [-78, 48], [-78, 41]]]
-     *   }
-     * }
-     * tree.remove(polygon)
-     */
     tree.remove = function (feature) {
         if (Array.isArray(feature)) {
             var bbox = feature;
@@ -40049,34 +33224,9 @@ function geojsonRbush(maxEntries) {
         }
         return rbush$3.prototype.remove.call(this, feature);
     };
-
-    /**
-     * [clear](https://github.com/mourner/rbush#removing-data)
-     *
-     * @returns {RBush} GeoJSON Rbush
-     * @example
-     * tree.clear()
-     */
     tree.clear = function () {
         return rbush$3.prototype.clear.call(this);
     };
-
-    /**
-     * [search](https://github.com/mourner/rbush#search)
-     *
-     * @param {BBox|FeatureCollection|Feature<any>} geojson search with GeoJSON
-     * @returns {FeatureCollection<any>} all features that intersects with the given GeoJSON.
-     * @example
-     * var polygon = {
-     *   "type": "Feature",
-     *   "properties": {},
-     *   "geometry": {
-     *     "type": "Polygon",
-     *     "coordinates": [[[-78, 41], [-67, 41], [-67, 48], [-78, 48], [-78, 41]]]
-     *   }
-     * }
-     * tree.search(polygon)
-     */
     tree.search = function (geojson) {
         var features = rbush$3.prototype.search.call(this, this.toBBox(geojson));
         return {
@@ -40084,35 +33234,9 @@ function geojsonRbush(maxEntries) {
             features: features
         };
     };
-
-    /**
-     * [collides](https://github.com/mourner/rbush#collisions)
-     *
-     * @param {BBox|FeatureCollection|Feature<any>} geojson collides with GeoJSON
-     * @returns {boolean} true if there are any items intersecting the given GeoJSON, otherwise false.
-     * @example
-     * var polygon = {
-     *   "type": "Feature",
-     *   "properties": {},
-     *   "geometry": {
-     *     "type": "Polygon",
-     *     "coordinates": [[[-78, 41], [-67, 41], [-67, 48], [-78, 48], [-78, 41]]]
-     *   }
-     * }
-     * tree.collides(polygon)
-     */
     tree.collides = function (geojson) {
         return rbush$3.prototype.collides.call(this, this.toBBox(geojson));
     };
-
-    /**
-     * [all](https://github.com/mourner/rbush#search)
-     *
-     * @returns {FeatureCollection<any>} all the features in RBush
-     * @example
-     * tree.all()
-     * //=FeatureCollection
-     */
     tree.all = function () {
         var features = rbush$3.prototype.all.call(this);
         return {
@@ -40120,61 +33244,15 @@ function geojsonRbush(maxEntries) {
             features: features
         };
     };
-
-    /**
-     * [toJSON](https://github.com/mourner/rbush#export-and-import)
-     *
-     * @returns {any} export data as JSON object
-     * @example
-     * var exported = tree.toJSON()
-     * //=JSON object
-     */
     tree.toJSON = function () {
         return rbush$3.prototype.toJSON.call(this);
     };
-
-    /**
-     * [fromJSON](https://github.com/mourner/rbush#export-and-import)
-     *
-     * @param {any} json import previously exported data
-     * @returns {RBush} GeoJSON RBush
-     * @example
-     * var exported = {
-     *   "children": [
-     *     {
-     *       "type": "Feature",
-     *       "geometry": {
-     *         "type": "Point",
-     *         "coordinates": [110, 50]
-     *       },
-     *       "properties": {},
-     *       "bbox": [110, 50, 110, 50]
-     *     }
-     *   ],
-     *   "height": 1,
-     *   "leaf": true,
-     *   "minX": 110,
-     *   "minY": 50,
-     *   "maxX": 110,
-     *   "maxY": 50
-     * }
-     * tree.fromJSON(exported)
-     */
     tree.fromJSON = function (json) {
         return rbush$3.prototype.fromJSON.call(this, json);
     };
-
-    /**
-     * Converts GeoJSON to {minX, minY, maxX, maxY} schema
-     *
-     * @private
-     * @param {BBox|FeatureCollectio|Feature<any>} geojson feature(s) to retrieve BBox from
-     * @returns {Object} converted to {minX, minY, maxX, maxY}
-     */
     tree.toBBox = function (geojson) {
         var bbox;
         if (geojson.bbox) bbox = geojson.bbox;else if (Array.isArray(geojson) && geojson.length === 4) bbox = geojson;else bbox = turfBBox(geojson);
-
         return {
             minX: bbox[0],
             minY: bbox[1],
@@ -40184,29 +33262,12 @@ function geojsonRbush(maxEntries) {
     };
     return tree;
 }
-
-/**
- * Takes a bbox and returns an equivalent {@link Polygon|polygon}.
- *
- * @private
- * @name bboxPolygon
- * @param {Array<number>} bbox extent in [minX, minY, maxX, maxY] order
- * @returns {Feature<Polygon>} a Polygon representation of the bounding box
- * @example
- * var bbox = [0, 0, 10, 10];
- *
- * var poly = turf.bboxPolygon(bbox);
- *
- * //addToMap
- * var addToMap = [poly]
- */
 function bboxPolygon(bbox) {
     var lowLeft = [bbox[0], bbox[1]];
     var topLeft = [bbox[0], bbox[3]];
     var topRight = [bbox[2], bbox[3]];
     var lowRight = [bbox[2], bbox[1]];
     var coordinates = [[lowLeft, lowRight, topRight, topLeft, lowLeft]];
-
     return {
         type: 'Feature',
         bbox: bbox,
@@ -40217,22 +33278,6 @@ function bboxPolygon(bbox) {
         }
     };
 }
-
-/**
- * Takes a set of features, calculates the bbox of all input features, and returns a bounding box.
- *
- * @private
- * @name bbox
- * @param {FeatureCollection|Feature<any>} geojson input features
- * @returns {Array<number>} bbox extent in [minX, minY, maxX, maxY] order
- * @example
- * var line = turf.lineString([[-74, 40], [-78, 42], [-82, 35]]);
- * var bbox = turf.bbox(line);
- * var bboxPolygon = turf.bboxPolygon(bbox);
- *
- * //addToMap
- * var addToMap = [line, bboxPolygon]
- */
 function turfBBox(geojson) {
     var bbox = [Infinity, Infinity, -Infinity, -Infinity];
     coordEach(geojson, function (coord) {
@@ -40244,37 +33289,14 @@ function turfBBox(geojson) {
     return bbox;
 }
 
-/**
- * Creates a {@link FeatureCollection} of 2-vertex {@link LineString} segments from a {@link LineString|(Multi)LineString} or {@link Polygon|(Multi)Polygon}.
- *
- * @name lineSegment
- * @param {Geometry|FeatureCollection|Feature<LineString|MultiLineString|MultiPolygon|Polygon>} geojson GeoJSON Polygon or LineString
- * @returns {FeatureCollection<LineString>} 2-vertex line segments
- * @example
- * var polygon = turf.polygon([[[-50, 5], [-40, -10], [-50, -10], [-40, 5], [-50, 5]]]);
- * var segments = turf.lineSegment(polygon);
- *
- * //addToMap
- * var addToMap = [polygon, segments]
- */
 function lineSegment(geojson) {
     if (!geojson) throw new Error('geojson is required');
-
     var results = [];
     flattenEach(geojson, function (feature$$1) {
         lineSegmentFeature(feature$$1, results);
     });
     return featureCollection(results);
 }
-
-/**
- * Line Segment
- *
- * @private
- * @param {Feature<LineString|Polygon>} geojson Line or polygon feature
- * @param {Array} results push to results
- * @returns {void}
- */
 function lineSegmentFeature(geojson, results) {
     var coords = [];
     var geometry$$1 = geojson.geometry;
@@ -40293,15 +33315,6 @@ function lineSegmentFeature(geojson, results) {
         });
     });
 }
-
-/**
- * Create Segments from LineString coordinates
- *
- * @private
- * @param {LineString} coords LineString coordinates
- * @param {*} properties GeoJSON properties
- * @returns {Array<Feature<LineString>>} line segments
- */
 function createSegments(coords, properties) {
     var segments = [];
     coords.reduce(function (previousCoords, currentCoords) {
@@ -40312,15 +33325,6 @@ function createSegments(coords, properties) {
     });
     return segments;
 }
-
-/**
- * Create BBox between two coordinates (faster than @turf/bbox)
- *
- * @private
- * @param {Array<number>} coords1 Point coordinate
- * @param {Array<number>} coords2 Point coordinate
- * @returns {BBox} [west, south, east, north]
- */
 function bbox$3(coords1, coords2) {
     var x1 = coords1[0];
     var y1 = coords1[1];
@@ -40333,27 +33337,9 @@ function bbox$3(coords1, coords2) {
     return [west, south, east, north];
 }
 
-/**
- * Takes any LineString or Polygon GeoJSON and returns the intersecting point(s).
- *
- * @name lineIntersect
- * @param {Geometry|FeatureCollection|Feature<LineString|MultiLineString|Polygon|MultiPolygon>} line1 any LineString or Polygon
- * @param {Geometry|FeatureCollection|Feature<LineString|MultiLineString|Polygon|MultiPolygon>} line2 any LineString or Polygon
- * @returns {FeatureCollection<Point>} point(s) that intersect both
- * @example
- * var line1 = turf.lineString([[126, -11], [129, -21]]);
- * var line2 = turf.lineString([[123, -18], [131, -14]]);
- * var intersects = turf.lineIntersect(line1, line2);
- *
- * //addToMap
- * var addToMap = [line1, line2, intersects]
- */
 function lineIntersect(line1, line2) {
     var unique = {};
     var results = [];
-
-    // First, normalize geometries to features
-    // Then, handle simple 2-vertex segments
     if (line1.type === 'LineString') line1 = feature(line1);
     if (line2.type === 'LineString') line2 = feature(line2);
     if (line1.type === 'Feature' && line2.type === 'Feature' && line1.geometry.type === 'LineString' && line2.geometry.type === 'LineString' && line1.geometry.coordinates.length === 2 && line2.geometry.coordinates.length === 2) {
@@ -40361,15 +33347,12 @@ function lineIntersect(line1, line2) {
         if (intersect) results.push(intersect);
         return featureCollection(results);
     }
-
-    // Handles complex GeoJSON Geometries
     var tree = geojsonRbush();
     tree.load(lineSegment(line2));
     featureEach(lineSegment(line1), function (segment) {
         featureEach(tree.search(segment), function (match) {
             var intersect = intersects$1(segment, match);
             if (intersect) {
-                // prevent duplicate points https://github.com/Turfjs/turf/issues/688
                 var key = getCoords(intersect).join(',');
                 if (!unique[key]) {
                     unique[key] = true;
@@ -40380,15 +33363,6 @@ function lineIntersect(line1, line2) {
     });
     return featureCollection(results);
 }
-
-/**
- * Find a point that intersects LineStrings with two coordinates each
- *
- * @private
- * @param {Feature<LineString>} line1 GeoJSON LineString (Must only contain 2 coordinates)
- * @param {Feature<LineString>} line2 GeoJSON LineString (Must only contain 2 coordinates)
- * @returns {Feature<Point>} intersecting GeoJSON Point
- */
 function intersects$1(line1, line2) {
     var coords1 = getCoords(line1);
     var coords2 = getCoords(line2);
@@ -40409,17 +33383,14 @@ function intersects$1(line1, line2) {
     var denom = (y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1);
     var numeA = (x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3);
     var numeB = (x2 - x1) * (y1 - y3) - (y2 - y1) * (x1 - x3);
-
     if (denom === 0) {
         if (numeA === 0 && numeB === 0) {
             return null;
         }
         return null;
     }
-
     var uA = numeA / denom;
     var uB = numeB / denom;
-
     if (uA >= 0 && uA <= 1 && uB >= 0 && uB <= 1) {
         var x = x1 + uA * (x2 - x1);
         var y = y1 + uA * (y2 - y1);
@@ -40428,61 +33399,25 @@ function intersects$1(line1, line2) {
     return null;
 }
 
-/**
- * Takes a {@link Point} and a {@link LineString} and calculates the closest Point on the (Multi)LineString.
- *
- * @name nearestPointOnLine
- * @param {Geometry|Feature<LineString|MultiLineString>} lines lines to snap to
- * @param {Geometry|Feature<Point>|number[]} pt point to snap from
- * @param {Object} [options={}] Optional parameters
- * @param {string} [options.units='kilometers'] can be degrees, radians, miles, or kilometers
- * @returns {Feature<Point>} closest point on the `line` to `point`. The properties object will contain three values: `index`: closest point was found on nth line part, `dist`: distance between pt and the closest point, `location`: distance along the line between start and the closest point.
- * @example
- * var line = turf.lineString([
- *     [-77.031669, 38.878605],
- *     [-77.029609, 38.881946],
- *     [-77.020339, 38.884084],
- *     [-77.025661, 38.885821],
- *     [-77.021884, 38.889563],
- *     [-77.019824, 38.892368]
- * ]);
- * var pt = turf.point([-77.037076, 38.884017]);
- *
- * var snapped = turf.nearestPointOnLine(line, pt, {units: 'miles'});
- *
- * //addToMap
- * var addToMap = [line, pt, snapped];
- * snapped.properties['marker-color'] = '#00f';
- */
 function nearestPointOnLine(lines, pt, options) {
-    // Optional parameters
     options = options || {};
     if (!isObject$2(options)) throw new Error('options is invalid');
-
-    // validation
     var type = lines.geometry ? lines.geometry.type : lines.type;
     if (type !== 'LineString' && type !== 'MultiLineString') {
         throw new Error('lines must be LineString or MultiLineString');
     }
-
     var closestPt = point([Infinity, Infinity], {
         dist: Infinity
     });
-
     var length = 0.0;
     flattenEach(lines, function (line) {
         var coords = getCoords(line);
-
         for (var i = 0; i < coords.length - 1; i++) {
-            //start
             var start = point(coords[i]);
             start.properties.dist = distance(pt, start, options);
-            //stop
             var stop = point(coords[i + 1]);
             stop.properties.dist = distance(pt, stop, options);
-            // sectionLength
             var sectionLength = distance(start, stop, options);
-            //perpendicular
             var heightDistance = Math.max(start.properties.dist, stop.properties.dist);
             var direction = bearing(start, stop);
             var perpendicularPt1 = destination(pt, heightDistance, direction + 90, options);
@@ -40494,7 +33429,6 @@ function nearestPointOnLine(lines, pt, options) {
                 intersectPt.properties.dist = distance(pt, intersectPt, options);
                 intersectPt.properties.location = length + distance(start, intersectPt, options);
             }
-
             if (start.properties.dist < closestPt.properties.dist) {
                 closestPt = start;
                 closestPt.properties.index = i;
@@ -40509,43 +33443,12 @@ function nearestPointOnLine(lines, pt, options) {
                 closestPt = intersectPt;
                 closestPt.properties.index = i;
             }
-            // update length
             length += sectionLength;
         }
     });
-
     return closestPt;
 }
 
-/**
- * Takes a {@link LineString|line}, a start {@link Point}, and a stop point
- * and returns a subsection of the line in-between those points.
- * The start & stop points don't need to fall exactly on the line.
- *
- * This can be useful for extracting only the part of a route between waypoints.
- *
- * @name lineSlice
- * @param {Feature<Point>} startPt starting point
- * @param {Feature<Point>} stopPt stopping point
- * @param {Feature<LineString>|LineString} line line to slice
- * @returns {Feature<LineString>} sliced line
- * @example
- * var line = turf.lineString([
- *     [-77.031669, 38.878605],
- *     [-77.029609, 38.881946],
- *     [-77.020339, 38.884084],
- *     [-77.025661, 38.885821],
- *     [-77.021884, 38.889563],
- *     [-77.019824, 38.892368]
- * ]);
- * var start = turf.point([-77.029609, 38.881946]);
- * var stop = turf.point([-77.021884, 38.889563]);
- *
- * var sliced = turf.lineSlice(start, stop, line);
- *
- * //addToMap
- * var addToMap = [start, stop, line]
- */
 function lineSlice(startPt, stopPt, line) {
     var coords;
     if (line.type === 'Feature') {
@@ -40555,7 +33458,6 @@ function lineSlice(startPt, stopPt, line) {
     } else {
         throw new Error('input must be a LineString Feature or Geometry');
     }
-
     var startVertex = nearestPointOnLine(line, startPt);
     var stopVertex = nearestPointOnLine(line, stopPt);
     var ends;
@@ -40572,65 +33474,19 @@ function lineSlice(startPt, stopPt, line) {
     return lineString(clipCoords, line.properties);
 }
 
-/**
- * Performs a deep comparison between two values to determine if they are
- * equivalent.
- *
- * **Note:** This method supports comparing arrays, array buffers, booleans,
- * date objects, error objects, maps, numbers, `Object` objects, regexes,
- * sets, strings, symbols, and typed arrays. `Object` objects are compared
- * by their own, not inherited, enumerable properties. Functions and DOM
- * nodes are compared by strict equality, i.e. `===`.
- *
- * @static
- * @memberOf _
- * @since 0.1.0
- * @category Lang
- * @param {*} value The value to compare.
- * @param {*} other The other value to compare.
- * @returns {boolean} Returns `true` if the values are equivalent, else `false`.
- * @example
- *
- * var object = { 'a': 1 };
- * var other = { 'a': 1 };
- *
- * _.isEqual(object, other);
- * // => true
- *
- * object === other;
- * // => false
- */
 function isEqual(value, other) {
   return baseIsEqual(value, other);
 }
 
-/**
- * Takes two coordinates and returns the distance between them, in degrees
- * @param  {Array<number>} coord1 An array indicating a coordinate [lng, lat]
- * @param  {Array<number>} coord2 An array indicating a coordinate [lng, lat]
- * @return {number}        the distance between the points, in degrees 
- */
 function diffCoords(coord1, coord2) {
 	var vector = [Math.abs(coord1[0] - coord2[0]), Math.abs(coord1[1] - coord2[1])];
 	return Math.sqrt(Math.pow(vector[0], 2) + Math.pow(vector[1], 2));
 }
-
-/**
- * Determina si dos lineas se intersectan
- * @param  {Array.<number>} line1Start [description]
- * @param  {Array.<number>} line1End   [description]
- * @param  {Array.<number>} line2Start [description]
- * @param  {Array.<number>} line2End   [description]
- * @param {boolean} useOldMethod if true, use old method instead of turf_line_intersect 
- * @return {Array}             [description]
- */
 function lineIntersects$1(line1Start, line1End, line2Start, line2End, useOldMethod) {
-
 	if (!useOldMethod) {
 		var line1 = lineString([line1Start, line1End]),
 		    line2 = lineString([line2Start, line2End]),
 		    intersectionFC = lineIntersect(line1, line2);
-
 		if (intersectionFC.features.length) {
 			var intersection = intersectionFC.features[0].geometry.coordinates;
 			intersection[0] = Math.round(intersection[0] * 100000000) / 100000000;
@@ -40648,8 +33504,6 @@ function lineIntersects$1(line1Start, line1End, line2Start, line2End, useOldMeth
 	    line2StartY = line2Start[1],
 	    line2EndX = line2End[0],
 	    line2EndY = line2End[1];
-	// if the lines intersect, the result contains the x and y of the intersection
-	// (treating the lines as infinite) and booleans for whether line segment 1 or line segment 2 contain the point
 	var denominator,
 	    a,
 	    b,
@@ -40675,40 +33529,24 @@ function lineIntersects$1(line1Start, line1End, line2Start, line2End, useOldMeth
 	numerator2 = (line1EndX - line1StartX) * a - (line1EndY - line1StartY) * b;
 	a = numerator1 / denominator;
 	b = numerator2 / denominator;
-
-	// if we cast these lines infinitely in both directions, they intersect here:
 	result.x = line1StartX + a * (line1EndX - line1StartX);
 	result.y = line1StartY + a * (line1EndY - line1StartY);
-
-	// if line1 is a segment and line2 is infinite, they intersect if:
 	if (a >= 0 && a <= 1) {
 		result.onLine1 = true;
 	}
-	// if line2 is a segment and line1 is infinite, they intersect if:
 	if (b >= 0 && b <= 1) {
 		result.onLine2 = true;
 	}
-	// if line1 and line2 are segments, they intersect if both of the above are true
 	if (result.onLine1 && result.onLine2) {
 		result.x = Math.round(result.x * 100000000) / 100000000;
 		result.y = Math.round(result.y * 100000000) / 100000000;
-
 		return [result.x, result.y];
 	} else {
 		return false;
 	}
 }
-
-/**
- * Takes two rings and finds their instersection points. If the rings are the same, the second ring is iterated skipping points already checked in the first one
- * @param  {Array.Array<number>} ring1 Array of coordinates [lng, lat]
- * @param  {Array.Array<number>} ring1 Array of coordinates [lng, lat]
- * @param {boolean} useOldMethod if true, use old method instead of turf_line_intersect 
- * @return {Object}       an object containing
- */
 function traverseRings(ring1, ring2, useOldMethod) {
 	var intersections = featureCollection([]);
-
 	var samering = false;
 	if (isEqual(ring1, ring2)) {
 		samering = true;
@@ -40716,25 +33554,16 @@ function traverseRings(ring1, ring2, useOldMethod) {
 	for (var i = 0; i < ring1.length - 1; i++) {
 		var startK = samering ? i : 0;
 		for (var k = startK; k < ring2.length - 1; k++) {
-			// don't check adjacent sides of a given ring, since of course they intersect in a vertex.
 			if (ring1 === ring2 && (Math.abs(i - k) === 1 || Math.abs(i - k) === ring1.length - 2)) {
 				continue;
 			}
-
 			var intersection = lineIntersects$1(ring1[i], ring1[i + 1], ring2[k], ring2[k + 1], useOldMethod);
 			if (!intersection) {
 				continue;
 			}
-
-			// si son lineas consecutivas no quiero detectar el límite entre ambas
 			if ((diffCoords(intersection, ring1[0]) < 0.000005 || diffCoords(intersection, ring1[ring1.length - 1]) < 0.000005) && (diffCoords(intersection, ring2[0]) < 0.000005 || diffCoords(intersection, ring2[ring2.length - 1]) < 0.000005)) {
 				continue;
 			}
-
-			//debug('intersection at',
-			// intersection,
-			//diffCoords(intersection, ring2[0]),
-			//diffCoords(intersection, ring1[ring1.length - 1]));
 			var FeatureIntersection = point([intersection[0], intersection[1]]);
 			FeatureIntersection.properties = {
 				position1: i,
@@ -40745,83 +33574,41 @@ function traverseRings(ring1, ring2, useOldMethod) {
 	}
 	return intersections;
 }
-
-/**
- * Finds the {@link Point|points} where two {@link LineString|linestrings} intersect each other
- * @param  {Array.<google.maps.LatLng>} arrayLatLng1 array de posiciones {@link google.maps.LatLng}
- * @param  {Array.<google.maps.LatLng>} arrayLatLng2 array de posiciones {@link google.maps.LatLng}
- * @param {boolean} useOldMethod if true,use old method instead of turf_line_intersect 
- * @return {Array}        an array with [line1 trimmed at intersection,line2 trimmed at intersection,intersection ] 
- */
 function trimPaths(arrayLatLng1, arrayLatLng2, useOldMethod) {
-
-	var ring1 = toCoords(arrayLatLng1); // googleGeom1.geometry.coordinates;
-	var ring2 = toCoords(arrayLatLng2); // googleGeom2.geometry.coordinates;
-
-
+	var ring1 = toCoords(arrayLatLng1);
+	var ring2 = toCoords(arrayLatLng2);
 	var intersections = traverseRings(ring1, ring2, useOldMethod);
-
 	if (intersections.features.length > 0) {
-
 		var line1 = lineString(ring1);
 		var line2 = lineString(ring2);
 		var line1Start = point(ring1[0]);
 		var line2End = point(ring2.slice(-1)[0]);
 		var sliced1, sliced2;
-
-		// The first segment of the first ring with a kink
 		var first_segment_with_kinks = min$1(intersections.features, function (kink) {
 			return kink.properties.position1;
 		});
-		//console.log('first_segment_with_kinks', JSON.stringify(first_segment_with_kinks));
-
-		// All the intersections which belong to the first segment with a kink of the first ring
 		var kinks_in_first_segment = filter(intersections.features, function (kink) {
 			return kink.properties.position1 === first_segment_with_kinks.properties.position1;
 		});
-
-		// Among the kinks in the first segment, which one happens further along the ring2
 		var chosenIntersection = max$1(kinks_in_first_segment, function (kink) {
 			return kink.properties.position2;
 		});
-
 		var intersectLatLng = toLatLngs([chosenIntersection.geometry.coordinates])[0];
-
-		// if the first intersection happens in the first segment of line1
-		// then we don't slice it
 		if (chosenIntersection.properties.position1 === 0) {
 			sliced1 = line1;
 		} else {
 			sliced1 = lineSlice(line1Start, chosenIntersection, line1);
 		}
-
-		// if the first intersection happens after the last segment of line2
-		// then we don't slice it
 		if (chosenIntersection.properties.position2 >= ring2.length - 1) {
 			sliced2 = line2;
 		} else {
 			sliced2 = lineSlice(chosenIntersection, line2End, line2);
 		}
-
 		return [toLatLngs(sliced1.geometry.coordinates), toLatLngs(sliced2.geometry.coordinates), intersectLatLng];
 	}
 	return [];
 }
 
-/**
- * This module acts as a bridge between google.maps and Turf, 
- * By converting google maps overlays such as
- * {@link google.maps.Polygon}
- * {@link google.maps.Polyline}
- * {@link google.maps.Point}
- *
- * to their proper geojson representation.
- *
- * This in turn allows to perform Turf operations that google.maps doesn't natively support
- * 
- * @name turfHelper
- * @module turfHelper
- */
 var ig_turfhelper = {
     along: along,
     arrayToFeaturePoints: arrayToFeaturePoints,
