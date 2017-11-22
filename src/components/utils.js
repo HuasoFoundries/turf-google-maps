@@ -35,7 +35,7 @@ var debug = console.debug.bind(console, '%c turfHelper' + ':', "color:#00CC00;fo
 
 
 /**
- * Transforma un array de gmaps.LatLng en un Feature.Polygon
+ * Transforms an array of {@link google.maps.LatLng} into a {@link Feature.<Polygon>}
  * @param  {Array.<google.maps.LatLng>} LatLngArray [description]
  * @return {Feature.<Polygon>}             [description]
  */
@@ -96,7 +96,7 @@ function markerToFeaturePoint(marker) {
 
 
 /**
- * [polylineToFeatureLinestring description]
+ * Converts a {@link google.maps.Polyline} into a  {@link Feature.<LineString>} 
  * @param  {Array.<google.maps.LatLng>|google.maps.Polyline} objeto array of positions or a google.maps.Polyline
  * @return {Feature.<LineString>}          [description]
  */
@@ -113,7 +113,7 @@ function polylineToFeatureLinestring(objeto) {
 
 
 /**
- * Receives an object and returns a GeoJson Feature of type Polygon
+ * Receives an object and returns a {@link Feature.<Polygon>}
  * @param  {google.maps.Polygon|Array.<google.maps.LatLng>|Feature.Polygon|Geometry} object object to transform into a Feature.Polygon
  * @return {Feature.Polygon}        [description]
  */
@@ -154,7 +154,7 @@ function polygonToFeaturePolygon(object) {
 
 
 /**
- * Transforma un array de gmaps.LatLng en un featurecollection geoJson
+ * Converts an array of google.maps.LatLng into a FeatureCollection
  * donde cada Feature es un punto del array de entrada
  * @param  {Array<google.maps.LatLng>|google.maps.MVCArray} latLngArray array de posiciones {@link google.maps.LatLng}
  * @return {FeatureCollection}             geojson FeatureCollection
@@ -183,7 +183,7 @@ function arrayToFeaturePoints(latLngArray) {
 
 
 /**
- * Convierte un gmaps.Polygon en un FeatureCollection de puntos
+ * Converts a google.maps.Polygon into a FeatureCollection of points
  * @param  {google.maps.Polygon} polygon [description]
  * @return {FeatureCollection.<Point>}         [description]
  */
@@ -214,7 +214,6 @@ function polygonToFeaturePolygonCollection(polygon) {
 export {
     debug,
     warn,
-    centroid,
     arrayToFeaturePolygon,
     polygonToFeaturePolygonCollection,
     arrayToFeaturePoints,

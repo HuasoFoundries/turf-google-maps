@@ -6,7 +6,7 @@ import {
 } from './utils.js';
 
 /**
- * Superpone dos Feature.<Polygon>
+ * Overlaps two Feature.<Polygon>
  * @param  {google.maps.Polygon|Array.<google.maps.LatLng>|Feature.Polygon} poly1 object to transform into a Feature.Polygon
  * @param  {google.maps.Polygon|Array.<google.maps.LatLng>|Feature.Polygon} poly1 object to transform into a Feature.Polygon
  * @return {Feature.<Polygon>|Feature.<MultiPolygon>}  result of the union. If inputs are disjoint, returns a Feature.Multipolygon

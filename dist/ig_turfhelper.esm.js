@@ -33482,70 +33482,20 @@ function diffCoords(coord1, coord2) {
 	var vector = [Math.abs(coord1[0] - coord2[0]), Math.abs(coord1[1] - coord2[1])];
 	return Math.sqrt(Math.pow(vector[0], 2) + Math.pow(vector[1], 2));
 }
-function lineIntersects$1(line1Start, line1End, line2Start, line2End, useOldMethod) {
-	if (!useOldMethod) {
-		var line1 = lineString([line1Start, line1End]),
-		    line2 = lineString([line2Start, line2End]),
-		    intersectionFC = lineIntersect(line1, line2);
-		if (intersectionFC.features.length) {
-			var intersection = intersectionFC.features[0].geometry.coordinates;
-			intersection[0] = Math.round(intersection[0] * 100000000) / 100000000;
-			intersection[1] = Math.round(intersection[1] * 100000000) / 100000000;
-			return intersection;
-		} else {
-			return false;
-		}
-	}
-	var line1StartX = line1Start[0],
-	    line1StartY = line1Start[1],
-	    line1EndX = line1End[0],
-	    line1EndY = line1End[1],
-	    line2StartX = line2Start[0],
-	    line2StartY = line2Start[1],
-	    line2EndX = line2End[0],
-	    line2EndY = line2End[1];
-	var denominator,
-	    a,
-	    b,
-	    numerator1,
-	    numerator2,
-	    result = {
-		x: null,
-		y: null,
-		onLine1: false,
-		onLine2: false
-	};
-	denominator = (line2EndY - line2StartY) * (line1EndX - line1StartX) - (line2EndX - line2StartX) * (line1EndY - line1StartY);
-	if (denominator === 0) {
-		if (result.x !== null && result.y !== null) {
-			return result;
-		} else {
-			return false;
-		}
-	}
-	a = line1StartY - line2StartY;
-	b = line1StartX - line2StartX;
-	numerator1 = (line2EndX - line2StartX) * a - (line2EndY - line2StartY) * b;
-	numerator2 = (line1EndX - line1StartX) * a - (line1EndY - line1StartY) * b;
-	a = numerator1 / denominator;
-	b = numerator2 / denominator;
-	result.x = line1StartX + a * (line1EndX - line1StartX);
-	result.y = line1StartY + a * (line1EndY - line1StartY);
-	if (a >= 0 && a <= 1) {
-		result.onLine1 = true;
-	}
-	if (b >= 0 && b <= 1) {
-		result.onLine2 = true;
-	}
-	if (result.onLine1 && result.onLine2) {
-		result.x = Math.round(result.x * 100000000) / 100000000;
-		result.y = Math.round(result.y * 100000000) / 100000000;
-		return [result.x, result.y];
+function findLineIntersection(line1Start, line1End, line2Start, line2End) {
+	var line1 = lineString([line1Start, line1End]),
+	    line2 = lineString([line2Start, line2End]),
+	    intersectionFC = lineIntersect(line1, line2);
+	if (intersectionFC.features.length) {
+		var intersection = intersectionFC.features[0].geometry.coordinates;
+		intersection[0] = Math.round(intersection[0] * 100000000) / 100000000;
+		intersection[1] = Math.round(intersection[1] * 100000000) / 100000000;
+		return intersection;
 	} else {
 		return false;
 	}
 }
-function traverseRings(ring1, ring2, useOldMethod) {
+function traverseRings(ring1, ring2) {
 	var intersections = featureCollection([]);
 	var samering = false;
 	if (isEqual(ring1, ring2)) {
@@ -33557,7 +33507,7 @@ function traverseRings(ring1, ring2, useOldMethod) {
 			if (ring1 === ring2 && (Math.abs(i - k) === 1 || Math.abs(i - k) === ring1.length - 2)) {
 				continue;
 			}
-			var intersection = lineIntersects$1(ring1[i], ring1[i + 1], ring2[k], ring2[k + 1], useOldMethod);
+			var intersection = findLineIntersection(ring1[i], ring1[i + 1], ring2[k], ring2[k + 1]);
 			if (!intersection) {
 				continue;
 			}
@@ -33574,10 +33524,10 @@ function traverseRings(ring1, ring2, useOldMethod) {
 	}
 	return intersections;
 }
-function trimPaths(arrayLatLng1, arrayLatLng2, useOldMethod) {
+function trimPaths(arrayLatLng1, arrayLatLng2) {
 	var ring1 = toCoords(arrayLatLng1);
 	var ring2 = toCoords(arrayLatLng2);
-	var intersections = traverseRings(ring1, ring2, useOldMethod);
+	var intersections = traverseRings(ring1, ring2);
 	if (intersections.features.length > 0) {
 		var line1 = lineString(ring1);
 		var line2 = lineString(ring2);

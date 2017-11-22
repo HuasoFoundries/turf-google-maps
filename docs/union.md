@@ -2,7 +2,7 @@
 
 ## union
 
-Superpone dos Feature.<Polygon>
+Overlaps two Feature.<Polygon>
 
 **Parameters**
 
