@@ -25,7 +25,7 @@ module.exports = function (config) {
 			'test/vendor/bluebird.js',
 			'test/vendor/gmaps.js',
 			'test/vendor/jquery.js',
-			'dist/ig_turfhelper.js',
+			process.env.MINIFY ? 'dist/ig_turfhelper.min.js' : 'dist/ig_turfhelper.js',
 			'test/ig_turfhelper/setup/*.js',
 			'test/ig_turfhelper/test_*.js',
 			'https://maps.googleapis.com/maps/api/js?callback=__google_maps_callback__&v=3.exp&libraries=visualization,places,drawing,geometry&key=AIzaSyCsQ6i68i9hQ90ic34cSdnROS_WcMCVksM'

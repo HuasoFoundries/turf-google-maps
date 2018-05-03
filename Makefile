@@ -11,7 +11,7 @@ GREEN=\u001B[32m
 
 
 default: build
-.PHONY: test build build_unminified build_minified build_utils docs build_to_test
+.PHONY: test build build_unminified build_minified build_utils docs
 
 
 version:
@@ -31,6 +31,7 @@ update_eslint:
 
 test:
 	$$(npm bin)/karma start
+	MINIFY=true $$(npm bin)/karma start
 
 docs:
 	./generate_docs.js
@@ -39,7 +40,7 @@ build_unminified:
 	$$(npm bin)/rollup -c
 
 build_minified:
-	$$(npm bin)/jspm build dist/ig_turfhelper.js dist/ig_turfhelper.min.js  --global-name turfHelper  -m
+	MINIFY=true  $$(npm bin)/rollup -c
 
 
 build_utils:

@@ -24,8 +24,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-var beginsWith;
-var endsWith;
+var beginsWith, endsWith;
 var Wkt = function Wkt(obj) {
     if (obj instanceof Wkt) return obj;
     if (!(this instanceof Wkt)) return new Wkt(obj);
@@ -1038,42 +1037,42 @@ var root = freeGlobal || freeSelf || Function('return this')();
 
 var _Symbol = root.Symbol;
 
-var objectProto$1 = Object.prototype;
-var hasOwnProperty$1 = objectProto$1.hasOwnProperty;
-var nativeObjectToString = objectProto$1.toString;
-var symToStringTag$1 = _Symbol ? _Symbol.toStringTag : undefined;
+var objectProto = Object.prototype;
+var hasOwnProperty = objectProto.hasOwnProperty;
+var nativeObjectToString = objectProto.toString;
+var symToStringTag = _Symbol ? _Symbol.toStringTag : undefined;
 function getRawTag(value) {
-  var isOwn = hasOwnProperty$1.call(value, symToStringTag$1),
-      tag = value[symToStringTag$1];
+  var isOwn = hasOwnProperty.call(value, symToStringTag),
+      tag = value[symToStringTag];
   try {
-    value[symToStringTag$1] = undefined;
+    value[symToStringTag] = undefined;
     var unmasked = true;
   } catch (e) {}
   var result = nativeObjectToString.call(value);
   if (unmasked) {
     if (isOwn) {
-      value[symToStringTag$1] = tag;
+      value[symToStringTag] = tag;
     } else {
-      delete value[symToStringTag$1];
+      delete value[symToStringTag];
     }
   }
   return result;
 }
 
-var objectProto$2 = Object.prototype;
-var nativeObjectToString$1 = objectProto$2.toString;
+var objectProto$1 = Object.prototype;
+var nativeObjectToString$1 = objectProto$1.toString;
 function objectToString(value) {
   return nativeObjectToString$1.call(value);
 }
 
-var nullTag = '[object Null]';
-var undefinedTag = '[object Undefined]';
-var symToStringTag = _Symbol ? _Symbol.toStringTag : undefined;
+var nullTag = '[object Null]',
+    undefinedTag = '[object Undefined]';
+var symToStringTag$1 = _Symbol ? _Symbol.toStringTag : undefined;
 function baseGetTag(value) {
   if (value == null) {
     return value === undefined ? undefinedTag : nullTag;
   }
-  return symToStringTag && symToStringTag in Object(value) ? getRawTag(value) : objectToString(value);
+  return symToStringTag$1 && symToStringTag$1 in Object(value) ? getRawTag(value) : objectToString(value);
 }
 
 function isObject(value) {
@@ -1081,10 +1080,10 @@ function isObject(value) {
   return value != null && (type == 'object' || type == 'function');
 }
 
-var asyncTag = '[object AsyncFunction]';
-var funcTag = '[object Function]';
-var genTag = '[object GeneratorFunction]';
-var proxyTag = '[object Proxy]';
+var asyncTag = '[object AsyncFunction]',
+    funcTag = '[object Function]',
+    genTag = '[object GeneratorFunction]',
+    proxyTag = '[object Proxy]';
 function isFunction(value) {
   if (!isObject(value)) {
     return false;
@@ -1103,12 +1102,12 @@ function isMasked(func) {
   return !!maskSrcKey && maskSrcKey in func;
 }
 
-var funcProto$1 = Function.prototype;
-var funcToString$1 = funcProto$1.toString;
+var funcProto = Function.prototype;
+var funcToString = funcProto.toString;
 function toSource(func) {
   if (func != null) {
     try {
-      return funcToString$1.call(func);
+      return funcToString.call(func);
     } catch (e) {}
     try {
       return func + '';
@@ -1119,11 +1118,11 @@ function toSource(func) {
 
 var reRegExpChar = /[\\^$.*+?()[\]{}|]/g;
 var reIsHostCtor = /^\[object .+?Constructor\]$/;
-var funcProto = Function.prototype;
-var objectProto = Object.prototype;
-var funcToString = funcProto.toString;
-var hasOwnProperty = objectProto.hasOwnProperty;
-var reIsNative = RegExp('^' + funcToString.call(hasOwnProperty).replace(reRegExpChar, '\\$&').replace(/hasOwnProperty|(function).*?(?=\\\()| for .+?(?=\\\])/g, '$1.*?') + '$');
+var funcProto$1 = Function.prototype,
+    objectProto$2 = Object.prototype;
+var funcToString$1 = funcProto$1.toString;
+var hasOwnProperty$1 = objectProto$2.hasOwnProperty;
+var reIsNative = RegExp('^' + funcToString$1.call(hasOwnProperty$1).replace(reRegExpChar, '\\$&').replace(/hasOwnProperty|(function).*?(?=\\\()| for .+?(?=\\\])/g, '$1.*?') + '$');
 function baseIsNative(value) {
   if (!isObject(value) || isMasked(value)) {
     return false;
@@ -1317,10 +1316,10 @@ function cacheHas(cache, key) {
   return cache.has(key);
 }
 
-var COMPARE_PARTIAL_FLAG$2 = 1;
-var COMPARE_UNORDERED_FLAG$1 = 2;
+var COMPARE_PARTIAL_FLAG = 1,
+    COMPARE_UNORDERED_FLAG = 2;
 function equalArrays(array, other, bitmask, customizer, equalFunc, stack) {
-  var isPartial = bitmask & COMPARE_PARTIAL_FLAG$2,
+  var isPartial = bitmask & COMPARE_PARTIAL_FLAG,
       arrLength = array.length,
       othLength = other.length;
   if (arrLength != othLength && !(isPartial && othLength > arrLength)) {
@@ -1332,7 +1331,7 @@ function equalArrays(array, other, bitmask, customizer, equalFunc, stack) {
   }
   var index = -1,
       result = true,
-      seen = bitmask & COMPARE_UNORDERED_FLAG$1 ? new SetCache() : undefined;
+      seen = bitmask & COMPARE_UNORDERED_FLAG ? new SetCache() : undefined;
   stack.set(array, other);
   stack.set(other, array);
   while (++index < arrLength) {
@@ -1387,21 +1386,21 @@ function setToArray(set) {
   return result;
 }
 
-var COMPARE_PARTIAL_FLAG$3 = 1;
-var COMPARE_UNORDERED_FLAG$2 = 2;
-var boolTag = '[object Boolean]';
-var dateTag = '[object Date]';
-var errorTag = '[object Error]';
-var mapTag = '[object Map]';
-var numberTag = '[object Number]';
-var regexpTag = '[object RegExp]';
-var setTag = '[object Set]';
-var stringTag = '[object String]';
-var symbolTag = '[object Symbol]';
-var arrayBufferTag = '[object ArrayBuffer]';
-var dataViewTag = '[object DataView]';
-var symbolProto = _Symbol ? _Symbol.prototype : undefined;
-var symbolValueOf = symbolProto ? symbolProto.valueOf : undefined;
+var COMPARE_PARTIAL_FLAG$1 = 1,
+    COMPARE_UNORDERED_FLAG$1 = 2;
+var boolTag = '[object Boolean]',
+    dateTag = '[object Date]',
+    errorTag = '[object Error]',
+    mapTag = '[object Map]',
+    numberTag = '[object Number]',
+    regexpTag = '[object RegExp]',
+    setTag = '[object Set]',
+    stringTag = '[object String]',
+    symbolTag = '[object Symbol]';
+var arrayBufferTag = '[object ArrayBuffer]',
+    dataViewTag = '[object DataView]';
+var symbolProto = _Symbol ? _Symbol.prototype : undefined,
+    symbolValueOf = symbolProto ? symbolProto.valueOf : undefined;
 function equalByTag(object, other, tag, bitmask, customizer, equalFunc, stack) {
   switch (tag) {
     case dataViewTag:
@@ -1427,7 +1426,7 @@ function equalByTag(object, other, tag, bitmask, customizer, equalFunc, stack) {
     case mapTag:
       var convert = mapToArray;
     case setTag:
-      var isPartial = bitmask & COMPARE_PARTIAL_FLAG$3;
+      var isPartial = bitmask & COMPARE_PARTIAL_FLAG$1;
       convert || (convert = setToArray);
       if (object.size != other.size && !isPartial) {
         return false;
@@ -1436,7 +1435,7 @@ function equalByTag(object, other, tag, bitmask, customizer, equalFunc, stack) {
       if (stacked) {
         return stacked == other;
       }
-      bitmask |= COMPARE_UNORDERED_FLAG$2;
+      bitmask |= COMPARE_UNORDERED_FLAG$1;
       stack.set(object, other);
       var result = equalArrays(convert(object), convert(other), bitmask, customizer, equalFunc, stack);
       stack['delete'](object);
@@ -1484,8 +1483,8 @@ function stubArray() {
   return [];
 }
 
-var objectProto$7 = Object.prototype;
-var propertyIsEnumerable = objectProto$7.propertyIsEnumerable;
+var objectProto$5 = Object.prototype;
+var propertyIsEnumerable = objectProto$5.propertyIsEnumerable;
 var nativeGetSymbols = Object.getOwnPropertySymbols;
 var getSymbols = !nativeGetSymbols ? stubArray : function (object) {
   if (object == null) {
@@ -1510,18 +1509,18 @@ function isObjectLike(value) {
   return value != null && (typeof value === 'undefined' ? 'undefined' : _typeof(value)) == 'object';
 }
 
-var argsTag$1 = '[object Arguments]';
+var argsTag = '[object Arguments]';
 function baseIsArguments(value) {
-  return isObjectLike(value) && baseGetTag(value) == argsTag$1;
+  return isObjectLike(value) && baseGetTag(value) == argsTag;
 }
 
-var objectProto$9 = Object.prototype;
-var hasOwnProperty$7 = objectProto$9.hasOwnProperty;
-var propertyIsEnumerable$1 = objectProto$9.propertyIsEnumerable;
+var objectProto$6 = Object.prototype;
+var hasOwnProperty$4 = objectProto$6.hasOwnProperty;
+var propertyIsEnumerable$1 = objectProto$6.propertyIsEnumerable;
 var isArguments = baseIsArguments(function () {
   return arguments;
 }()) ? baseIsArguments : function (value) {
-  return isObjectLike(value) && hasOwnProperty$7.call(value, 'callee') && !propertyIsEnumerable$1.call(value, 'callee');
+  return isObjectLike(value) && hasOwnProperty$4.call(value, 'callee') && !propertyIsEnumerable$1.call(value, 'callee');
 };
 
 function stubFalse() {
@@ -1547,33 +1546,33 @@ function isLength(value) {
   return typeof value == 'number' && value > -1 && value % 1 == 0 && value <= MAX_SAFE_INTEGER$1;
 }
 
-var argsTag$2 = '[object Arguments]';
-var arrayTag$1 = '[object Array]';
-var boolTag$1 = '[object Boolean]';
-var dateTag$1 = '[object Date]';
-var errorTag$1 = '[object Error]';
-var funcTag$1 = '[object Function]';
-var mapTag$1 = '[object Map]';
-var numberTag$1 = '[object Number]';
-var objectTag$1 = '[object Object]';
-var regexpTag$1 = '[object RegExp]';
-var setTag$1 = '[object Set]';
-var stringTag$1 = '[object String]';
-var weakMapTag = '[object WeakMap]';
-var arrayBufferTag$1 = '[object ArrayBuffer]';
-var dataViewTag$1 = '[object DataView]';
-var float32Tag = '[object Float32Array]';
-var float64Tag = '[object Float64Array]';
-var int8Tag = '[object Int8Array]';
-var int16Tag = '[object Int16Array]';
-var int32Tag = '[object Int32Array]';
-var uint8Tag = '[object Uint8Array]';
-var uint8ClampedTag = '[object Uint8ClampedArray]';
-var uint16Tag = '[object Uint16Array]';
-var uint32Tag = '[object Uint32Array]';
+var argsTag$1 = '[object Arguments]',
+    arrayTag = '[object Array]',
+    boolTag$1 = '[object Boolean]',
+    dateTag$1 = '[object Date]',
+    errorTag$1 = '[object Error]',
+    funcTag$1 = '[object Function]',
+    mapTag$1 = '[object Map]',
+    numberTag$1 = '[object Number]',
+    objectTag = '[object Object]',
+    regexpTag$1 = '[object RegExp]',
+    setTag$1 = '[object Set]',
+    stringTag$1 = '[object String]',
+    weakMapTag = '[object WeakMap]';
+var arrayBufferTag$1 = '[object ArrayBuffer]',
+    dataViewTag$1 = '[object DataView]',
+    float32Tag = '[object Float32Array]',
+    float64Tag = '[object Float64Array]',
+    int8Tag = '[object Int8Array]',
+    int16Tag = '[object Int16Array]',
+    int32Tag = '[object Int32Array]',
+    uint8Tag = '[object Uint8Array]',
+    uint8ClampedTag = '[object Uint8ClampedArray]',
+    uint16Tag = '[object Uint16Array]',
+    uint32Tag = '[object Uint32Array]';
 var typedArrayTags = {};
 typedArrayTags[float32Tag] = typedArrayTags[float64Tag] = typedArrayTags[int8Tag] = typedArrayTags[int16Tag] = typedArrayTags[int32Tag] = typedArrayTags[uint8Tag] = typedArrayTags[uint8ClampedTag] = typedArrayTags[uint16Tag] = typedArrayTags[uint32Tag] = true;
-typedArrayTags[argsTag$2] = typedArrayTags[arrayTag$1] = typedArrayTags[arrayBufferTag$1] = typedArrayTags[boolTag$1] = typedArrayTags[dataViewTag$1] = typedArrayTags[dateTag$1] = typedArrayTags[errorTag$1] = typedArrayTags[funcTag$1] = typedArrayTags[mapTag$1] = typedArrayTags[numberTag$1] = typedArrayTags[objectTag$1] = typedArrayTags[regexpTag$1] = typedArrayTags[setTag$1] = typedArrayTags[stringTag$1] = typedArrayTags[weakMapTag] = false;
+typedArrayTags[argsTag$1] = typedArrayTags[arrayTag] = typedArrayTags[arrayBufferTag$1] = typedArrayTags[boolTag$1] = typedArrayTags[dataViewTag$1] = typedArrayTags[dateTag$1] = typedArrayTags[errorTag$1] = typedArrayTags[funcTag$1] = typedArrayTags[mapTag$1] = typedArrayTags[numberTag$1] = typedArrayTags[objectTag] = typedArrayTags[regexpTag$1] = typedArrayTags[setTag$1] = typedArrayTags[stringTag$1] = typedArrayTags[weakMapTag] = false;
 function baseIsTypedArray(value) {
     return isObjectLike(value) && isLength(value.length) && !!typedArrayTags[baseGetTag(value)];
 }
@@ -1597,8 +1596,8 @@ var nodeUtil = function () {
 var nodeIsTypedArray = nodeUtil && nodeUtil.isTypedArray;
 var isTypedArray = nodeIsTypedArray ? baseUnary(nodeIsTypedArray) : baseIsTypedArray;
 
-var objectProto$8 = Object.prototype;
-var hasOwnProperty$6 = objectProto$8.hasOwnProperty;
+var objectProto$7 = Object.prototype;
+var hasOwnProperty$5 = objectProto$7.hasOwnProperty;
 function arrayLikeKeys(value, inherited) {
   var isArr = isArray(value),
       isArg = !isArr && isArguments(value),
@@ -1608,7 +1607,7 @@ function arrayLikeKeys(value, inherited) {
       result = skipIndexes ? baseTimes(value.length, String) : [],
       length = result.length;
   for (var key in value) {
-    if ((inherited || hasOwnProperty$6.call(value, key)) && !(skipIndexes && (
+    if ((inherited || hasOwnProperty$5.call(value, key)) && !(skipIndexes && (
     key == 'length' ||
     isBuff && (key == 'offset' || key == 'parent') ||
     isType && (key == 'buffer' || key == 'byteLength' || key == 'byteOffset') ||
@@ -1619,10 +1618,10 @@ function arrayLikeKeys(value, inherited) {
   return result;
 }
 
-var objectProto$11 = Object.prototype;
+var objectProto$8 = Object.prototype;
 function isPrototype(value) {
   var Ctor = value && value.constructor,
-      proto = typeof Ctor == 'function' && Ctor.prototype || objectProto$11;
+      proto = typeof Ctor == 'function' && Ctor.prototype || objectProto$8;
   return value === proto;
 }
 
@@ -1634,15 +1633,15 @@ function overArg(func, transform) {
 
 var nativeKeys = overArg(Object.keys, Object);
 
-var objectProto$10 = Object.prototype;
-var hasOwnProperty$8 = objectProto$10.hasOwnProperty;
+var objectProto$9 = Object.prototype;
+var hasOwnProperty$6 = objectProto$9.hasOwnProperty;
 function baseKeys(object) {
   if (!isPrototype(object)) {
     return nativeKeys(object);
   }
   var result = [];
   for (var key in Object(object)) {
-    if (hasOwnProperty$8.call(object, key) && key != 'constructor') {
+    if (hasOwnProperty$6.call(object, key) && key != 'constructor') {
       result.push(key);
     }
   }
@@ -1661,11 +1660,11 @@ function getAllKeys(object) {
   return baseGetAllKeys(object, keys, getSymbols);
 }
 
-var COMPARE_PARTIAL_FLAG$4 = 1;
-var objectProto$6 = Object.prototype;
-var hasOwnProperty$5 = objectProto$6.hasOwnProperty;
+var COMPARE_PARTIAL_FLAG$2 = 1;
+var objectProto$10 = Object.prototype;
+var hasOwnProperty$7 = objectProto$10.hasOwnProperty;
 function equalObjects(object, other, bitmask, customizer, equalFunc, stack) {
-  var isPartial = bitmask & COMPARE_PARTIAL_FLAG$4,
+  var isPartial = bitmask & COMPARE_PARTIAL_FLAG$2,
       objProps = getAllKeys(object),
       objLength = objProps.length,
       othProps = getAllKeys(other),
@@ -1676,7 +1675,7 @@ function equalObjects(object, other, bitmask, customizer, equalFunc, stack) {
   var index = objLength;
   while (index--) {
     var key = objProps[index];
-    if (!(isPartial ? key in other : hasOwnProperty$5.call(other, key))) {
+    if (!(isPartial ? key in other : hasOwnProperty$7.call(other, key))) {
       return false;
     }
   }
@@ -1721,22 +1720,22 @@ var Set = getNative(root, 'Set');
 
 var WeakMap = getNative(root, 'WeakMap');
 
-var mapTag$2 = '[object Map]';
-var objectTag$2 = '[object Object]';
-var promiseTag = '[object Promise]';
-var setTag$2 = '[object Set]';
-var weakMapTag$1 = '[object WeakMap]';
+var mapTag$2 = '[object Map]',
+    objectTag$1 = '[object Object]',
+    promiseTag = '[object Promise]',
+    setTag$2 = '[object Set]',
+    weakMapTag$1 = '[object WeakMap]';
 var dataViewTag$2 = '[object DataView]';
-var dataViewCtorString = toSource(DataView);
-var mapCtorString = toSource(Map$1);
-var promiseCtorString = toSource(Promise$1);
-var setCtorString = toSource(Set);
-var weakMapCtorString = toSource(WeakMap);
+var dataViewCtorString = toSource(DataView),
+    mapCtorString = toSource(Map$1),
+    promiseCtorString = toSource(Promise$1),
+    setCtorString = toSource(Set),
+    weakMapCtorString = toSource(WeakMap);
 var getTag = baseGetTag;
 if (DataView && getTag(new DataView(new ArrayBuffer(1))) != dataViewTag$2 || Map$1 && getTag(new Map$1()) != mapTag$2 || Promise$1 && getTag(Promise$1.resolve()) != promiseTag || Set && getTag(new Set()) != setTag$2 || WeakMap && getTag(new WeakMap()) != weakMapTag$1) {
     getTag = function getTag(value) {
         var result = baseGetTag(value),
-            Ctor = result == objectTag$2 ? value.constructor : undefined,
+            Ctor = result == objectTag$1 ? value.constructor : undefined,
             ctorString = Ctor ? toSource(Ctor) : '';
         if (ctorString) {
             switch (ctorString) {
@@ -1757,21 +1756,21 @@ if (DataView && getTag(new DataView(new ArrayBuffer(1))) != dataViewTag$2 || Map
 }
 var getTag$1 = getTag;
 
-var COMPARE_PARTIAL_FLAG$1 = 1;
-var argsTag = '[object Arguments]';
-var arrayTag = '[object Array]';
-var objectTag = '[object Object]';
-var objectProto$5 = Object.prototype;
-var hasOwnProperty$4 = objectProto$5.hasOwnProperty;
+var COMPARE_PARTIAL_FLAG$3 = 1;
+var argsTag$2 = '[object Arguments]',
+    arrayTag$1 = '[object Array]',
+    objectTag$2 = '[object Object]';
+var objectProto$11 = Object.prototype;
+var hasOwnProperty$8 = objectProto$11.hasOwnProperty;
 function baseIsEqualDeep(object, other, bitmask, customizer, equalFunc, stack) {
   var objIsArr = isArray(object),
       othIsArr = isArray(other),
-      objTag = objIsArr ? arrayTag : getTag$1(object),
-      othTag = othIsArr ? arrayTag : getTag$1(other);
-  objTag = objTag == argsTag ? objectTag : objTag;
-  othTag = othTag == argsTag ? objectTag : othTag;
-  var objIsObj = objTag == objectTag,
-      othIsObj = othTag == objectTag,
+      objTag = objIsArr ? arrayTag$1 : getTag$1(object),
+      othTag = othIsArr ? arrayTag$1 : getTag$1(other);
+  objTag = objTag == argsTag$2 ? objectTag$2 : objTag;
+  othTag = othTag == argsTag$2 ? objectTag$2 : othTag;
+  var objIsObj = objTag == objectTag$2,
+      othIsObj = othTag == objectTag$2,
       isSameTag = objTag == othTag;
   if (isSameTag && isBuffer(object)) {
     if (!isBuffer(other)) {
@@ -1784,9 +1783,9 @@ function baseIsEqualDeep(object, other, bitmask, customizer, equalFunc, stack) {
     stack || (stack = new Stack());
     return objIsArr || isTypedArray(object) ? equalArrays(object, other, bitmask, customizer, equalFunc, stack) : equalByTag(object, other, objTag, bitmask, customizer, equalFunc, stack);
   }
-  if (!(bitmask & COMPARE_PARTIAL_FLAG$1)) {
-    var objIsWrapped = objIsObj && hasOwnProperty$4.call(object, '__wrapped__'),
-        othIsWrapped = othIsObj && hasOwnProperty$4.call(other, '__wrapped__');
+  if (!(bitmask & COMPARE_PARTIAL_FLAG$3)) {
+    var objIsWrapped = objIsObj && hasOwnProperty$8.call(object, '__wrapped__'),
+        othIsWrapped = othIsObj && hasOwnProperty$8.call(other, '__wrapped__');
     if (objIsWrapped || othIsWrapped) {
       var objUnwrapped = objIsWrapped ? object.value() : object,
           othUnwrapped = othIsWrapped ? other.value() : other;
@@ -1811,8 +1810,8 @@ function baseIsEqual(value, other, bitmask, customizer, stack) {
   return baseIsEqualDeep(value, other, bitmask, customizer, baseIsEqual, stack);
 }
 
-var COMPARE_PARTIAL_FLAG = 1;
-var COMPARE_UNORDERED_FLAG = 2;
+var COMPARE_PARTIAL_FLAG$4 = 1,
+    COMPARE_UNORDERED_FLAG$2 = 2;
 function baseIsMatch(object, source, matchData, customizer) {
   var index = matchData.length,
       length = index,
@@ -1841,7 +1840,7 @@ function baseIsMatch(object, source, matchData, customizer) {
       if (customizer) {
         var result = customizer(objValue, srcValue, key, object, source, stack);
       }
-      if (!(result === undefined ? baseIsEqual(srcValue, objValue, COMPARE_PARTIAL_FLAG | COMPARE_UNORDERED_FLAG, customizer, stack) : result)) {
+      if (!(result === undefined ? baseIsEqual(srcValue, objValue, COMPARE_PARTIAL_FLAG$4 | COMPARE_UNORDERED_FLAG$2, customizer, stack) : result)) {
         return false;
       }
     }
@@ -1888,8 +1887,8 @@ function isSymbol(value) {
   return (typeof value === 'undefined' ? 'undefined' : _typeof(value)) == 'symbol' || isObjectLike(value) && baseGetTag(value) == symbolTag$1;
 }
 
-var reIsDeepProp = /\.|\[(?:[^[\]]*|(["'])(?:(?!\1)[^\\]|\\.)*?\1)\]/;
-var reIsPlainProp = /^\w*$/;
+var reIsDeepProp = /\.|\[(?:[^[\]]*|(["'])(?:(?!\1)[^\\]|\\.)*?\1)\]/,
+    reIsPlainProp = /^\w*$/;
 function isKey(value, object) {
   if (isArray(value)) {
     return false;
@@ -1934,8 +1933,8 @@ function memoizeCapped(func) {
   return result;
 }
 
-var reLeadingDot = /^\./;
-var rePropName = /[^.[\]]+|\[(?:(-?\d+(?:\.\d+)?)|(["'])((?:(?!\2)[^\\]|\\.)*?)\2)\]|(?=(?:\.|\[\])(?:\.|\[\]|$))/g;
+var reLeadingDot = /^\./,
+    rePropName = /[^.[\]]+|\[(?:(-?\d+(?:\.\d+)?)|(["'])((?:(?!\2)[^\\]|\\.)*?)\2)\]|(?=(?:\.|\[\])(?:\.|\[\]|$))/g;
 var reEscapeChar = /\\(\\)?/g;
 var stringToPath = memoizeCapped(function (string) {
   var result = [];
@@ -1949,8 +1948,8 @@ var stringToPath = memoizeCapped(function (string) {
 });
 
 var INFINITY = 1 / 0;
-var symbolProto$1 = _Symbol ? _Symbol.prototype : undefined;
-var symbolToString = symbolProto$1 ? symbolProto$1.toString : undefined;
+var symbolProto$1 = _Symbol ? _Symbol.prototype : undefined,
+    symbolToString = symbolProto$1 ? symbolProto$1.toString : undefined;
 function baseToString(value) {
   if (typeof value == 'string') {
     return value;
@@ -2027,8 +2026,8 @@ function hasIn(object, path) {
   return object != null && hasPath(object, path, baseHasIn);
 }
 
-var COMPARE_PARTIAL_FLAG$5 = 1;
-var COMPARE_UNORDERED_FLAG$3 = 2;
+var COMPARE_PARTIAL_FLAG$5 = 1,
+    COMPARE_UNORDERED_FLAG$3 = 2;
 function baseMatchesProperty(path, srcValue) {
   if (isKey(path) && isStrictComparable(srcValue)) {
     return matchesStrictComparable(toKey(path), srcValue);
@@ -2193,25 +2192,6 @@ function toCoords(arrayLatLng, closeRing) {
 	return ring;
 }
 
-var rsAstralRange$1 = '\\ud800-\\udfff';
-var rsComboMarksRange$1 = '\\u0300-\\u036f';
-var reComboHalfMarksRange$1 = '\\ufe20-\\ufe2f';
-var rsComboSymbolsRange$1 = '\\u20d0-\\u20ff';
-var rsComboRange$1 = rsComboMarksRange$1 + reComboHalfMarksRange$1 + rsComboSymbolsRange$1;
-var rsVarRange$1 = '\\ufe0e\\ufe0f';
-var rsAstral = '[' + rsAstralRange$1 + ']';
-var rsCombo = '[' + rsComboRange$1 + ']';
-var rsFitz = '\\ud83c[\\udffb-\\udfff]';
-var rsModifier = '(?:' + rsCombo + '|' + rsFitz + ')';
-var rsNonAstral = '[^' + rsAstralRange$1 + ']';
-var rsRegional = '(?:\\ud83c[\\udde6-\\uddff]){2}';
-var rsSurrPair = '[\\ud800-\\udbff][\\udc00-\\udfff]';
-var rsZWJ$1 = '\\u200d';
-var reOptMod = rsModifier + '?';
-var rsOptVar = '[' + rsVarRange$1 + ']?';
-var rsOptJoin = '(?:' + rsZWJ$1 + '(?:' + [rsNonAstral, rsRegional, rsSurrPair].join('|') + ')' + rsOptVar + reOptMod + ')*';
-var rsSymbol = '(?:' + [rsNonAstral + rsCombo + '?', rsCombo, rsRegional, rsSurrPair, rsAstral].join('|') + ')';
-
 var earthRadius = 6371008.8;
 var factors = {
     meters: earthRadius,
@@ -2230,8 +2210,6 @@ var factors = {
     radians: 1,
     degrees: earthRadius / 111325
 };
-
-
 function feature(geometry, properties, bbox, id) {
     if (geometry === undefined) throw new Error('geometry is required');
     if (properties && properties.constructor !== Object) throw new Error('properties must be an Object');
@@ -2247,7 +2225,6 @@ function feature(geometry, properties, bbox, id) {
     feat.geometry = geometry;
     return feat;
 }
-
 function point(coordinates, properties, bbox, id) {
     if (!coordinates) throw new Error('No coordinates passed');
     if (!Array.isArray(coordinates)) throw new Error('Coordinates must be an Array');
@@ -2304,8 +2281,6 @@ function multiLineString(coordinates, properties, bbox, id) {
         coordinates: coordinates
     }, properties, bbox, id);
 }
-
-
 function geometryCollection(geometries, properties, bbox, id) {
     if (!geometries) throw new Error('geometries is required');
     if (!Array.isArray(geometries)) throw new Error('geometries must be an Array');
@@ -2314,7 +2289,6 @@ function geometryCollection(geometries, properties, bbox, id) {
         geometries: geometries
     }, properties, bbox, id);
 }
-
 function radiansToLength(radians, units) {
     if (radians === undefined || radians === null) throw new Error('radians is required');
     if (units && typeof units !== 'string') throw new Error('units must be a string');
@@ -2329,8 +2303,6 @@ function lengthToRadians(distance, units) {
     if (!factor) throw new Error(units + ' units is invalid');
     return distance / factor;
 }
-
-
 function radiansToDegrees(radians) {
     if (radians === null || radians === undefined) throw new Error('radians is required');
     var degrees = radians % (2 * Math.PI);
@@ -2341,17 +2313,15 @@ function degreesToRadians(degrees) {
     var radians = degrees % 360;
     return radians * Math.PI / 180;
 }
-
-
 function isNumber(num) {
     return !isNaN(num) && num !== null && !Array.isArray(num);
 }
-function isObject$2(input) {
+function isObject$1(input) {
     return !!input && input.constructor === Object;
 }
 
-var debug = console.debug.bind(console, '%c turfHelper' + ':', "color:#00CC00;font-weight:bold;");
-var warn = console.debug.bind(console, '%c turfHelper' + ':', "color:orange;font-weight:bold;");
+var debug = console.debug.bind(console, '%c turfHelper' + ':', "color:#00CC00;font-weight:bold;"),
+    warn = console.debug.bind(console, '%c turfHelper' + ':', "color:orange;font-weight:bold;");
 function arrayToFeaturePolygon(LatLngArray) {
     var vertices = toCoords(LatLngArray, true);
     return {
@@ -2377,8 +2347,7 @@ function markerToFeaturePoint(marker) {
         }
     };
     return Feature;
-}
-function polylineToFeatureLinestring(objeto) {
+}function polylineToFeatureLinestring(objeto) {
     var vertices;
     if (objeto instanceof google.maps.Polyline) {
         vertices = toCoords(objeto.getPath().getArray());
@@ -2699,11 +2668,6 @@ function containsNumber(coordinates) {
     }
     throw new Error('coordinates must only contain numbers');
 }
-
-
-
-
-
 function getType(geojson, name) {
     if (!geojson) throw new Error((name || 'geojson') + ' is required');
     if (geojson.geometry && geojson.geometry.type) return geojson.geometry.type;
@@ -2788,9 +2752,6 @@ function coordEach(geojson, callback, excludeWrapCoord) {
         }
     }
 }
-
-
-
 function featureEach(geojson, callback) {
     if (geojson.type === 'Feature') {
         callback(geojson, 0);
@@ -2800,8 +2761,6 @@ function featureEach(geojson, callback) {
         }
     }
 }
-
-
 function geomEach(geojson, callback) {
     var i,
         j,
@@ -2855,13 +2814,6 @@ function geomEach(geojson, callback) {
         featureIndex++;
     }
 }
-function geomReduce(geojson, callback, initialValue) {
-    var previousValue = initialValue;
-    geomEach(geojson, function (currentGeometry, currentIndex, currentProperties) {
-        if (currentIndex === 0 && initialValue === undefined) previousValue = currentGeometry;else previousValue = callback(previousValue, currentGeometry, currentIndex, currentProperties);
-    });
-    return previousValue;
-}
 function flattenEach(geojson, callback) {
     geomEach(geojson, function (geometry$$1, featureIndex, properties, bbox, id) {
         var type = geometry$$1 === null ? null : geometry$$1.type;
@@ -2894,9 +2846,6 @@ function flattenEach(geojson, callback) {
         });
     });
 }
-
-
-
 function lineEach(geojson, callback) {
     if (!geojson) throw new Error('geojson is required');
     flattenEach(geojson, function (feature$$1, featureIndex, featureSubIndex) {
@@ -2925,7 +2874,7 @@ function lineReduce(geojson, callback, initialValue) {
 
 function lineDissolve(geojson, options) {
     options = options || {};
-    if (!isObject$2(options)) throw new Error('options is invalid');
+    if (!isObject$1(options)) throw new Error('options is invalid');
     var mutate = options.mutate;
     if (getType(geojson) !== 'FeatureCollection') throw new Error('geojson must be a FeatureCollection');
     if (!geojson.features.length) throw new Error('geojson is empty');
@@ -2961,12 +2910,12 @@ function mergeLineStrings(a, b) {
     return lineString(coords);
 }
 
-var identity$2 = function (x) {
+function identity$1 (x) {
   return x;
-};
+}
 
-var transform = function (transform) {
-  if (transform == null) return identity$2;
+function transform (transform) {
+  if (transform == null) return identity$1;
   var x0,
       y0,
       kx = transform.scale[0],
@@ -2984,16 +2933,16 @@ var transform = function (transform) {
       output[j] = input[j], ++j;
     }return output;
   };
-};
+}
 
-var reverse = function (array, n) {
+function reverse (array, n) {
   var t,
       j = array.length,
       i = j - n;
   while (i < --j) {
     t = array[i], array[i++] = array[j], array[j] = t;
   }
-};
+}
 
 function object(topology, o) {
   var transformPoint = transform(topology.transform),
@@ -3051,7 +3000,7 @@ function object(topology, o) {
   return geometry(o);
 }
 
-var stitch = function (topology, arcs) {
+function stitch (topology, arcs) {
   var stitchedArcs = {},
       fragmentByStart = {},
       fragmentByEnd = {},
@@ -3124,7 +3073,7 @@ var stitch = function (topology, arcs) {
     if (!stitchedArcs[i < 0 ? ~i : i]) fragments.push([i]);
   });
   return fragments;
-};
+}
 
 function planarRingArea(ring) {
   var i = -1,
@@ -3136,9 +3085,9 @@ function planarRingArea(ring) {
     a = b, b = ring[i], area += a[0] * b[1] - a[1] * b[0];
   }return Math.abs(area);
 }
-var merge = function (topology) {
+function merge (topology) {
   return object(topology, mergeArcs.apply(this, arguments));
-};
+}
 function mergeArcs(topology, objects) {
   var polygonsByArc = {},
       polygons = [],
@@ -3216,7 +3165,7 @@ function mergeArcs(topology, objects) {
   };
 }
 
-var bounds = function (objects) {
+function bounds (objects) {
   var x0 = Infinity,
       y0 = Infinity,
       x1 = -Infinity,
@@ -3265,9 +3214,9 @@ var bounds = function (objects) {
     boundGeometry(objects[key]);
   }
   return x1 >= x0 && y1 >= y0 ? [x0, y0, x1, y1] : undefined;
-};
+}
 
-var hashset = function (size, hash, equal, type, empty) {
+function hashset (size, hash, equal, type, empty) {
   if (arguments.length === 3) {
     type = Array;
     empty = null;
@@ -3313,9 +3262,9 @@ var hashset = function (size, hash, equal, type, empty) {
     has: has,
     values: values
   };
-};
+}
 
-var hashmap = function (size, hash, equal, keyType, keyEmpty, valueType) {
+function hashmap (size, hash, equal, keyType, keyEmpty, valueType) {
   if (arguments.length === 3) {
     keyType = valueType = Array;
     keyEmpty = null;
@@ -3377,24 +3326,24 @@ var hashmap = function (size, hash, equal, keyType, keyEmpty, valueType) {
     get: get,
     keys: keys
   };
-};
+}
 
-var equalPoint = function (pointA, pointB) {
+function equalPoint (pointA, pointB) {
   return pointA[0] === pointB[0] && pointA[1] === pointB[1];
-};
+}
 
-var buffer = new ArrayBuffer(16);
-var floats = new Float64Array(buffer);
-var uints = new Uint32Array(buffer);
-var hashPoint = function (point) {
+var buffer = new ArrayBuffer(16),
+    floats = new Float64Array(buffer),
+    uints = new Uint32Array(buffer);
+function hashPoint (point) {
   floats[0] = point[0];
   floats[1] = point[1];
   var hash = uints[0] ^ uints[1];
   hash = hash << 5 ^ hash >> 7 ^ uints[2] ^ uints[3];
   return hash & 0x7fffffff;
-};
+}
 
-var join = function (topology) {
+function join (topology) {
   var coordinates = topology.coordinates,
       lines = topology.lines,
       rings = topology.rings,
@@ -3476,9 +3425,9 @@ var join = function (topology) {
     }
   }
   return junctionByPoint;
-};
+}
 
-var cut = function (topology) {
+function cut (topology) {
   var junctions = join(topology),
       coordinates = topology.coordinates,
       lines = topology.lines,
@@ -3520,7 +3469,7 @@ var cut = function (topology) {
     }
   }
   return topology;
-};
+}
 function rotateArray(array, start, end, offset) {
   reverse$1(array, start, end);
   reverse$1(array, start, start + offset);
@@ -3532,7 +3481,7 @@ function reverse$1(array, start, end) {
   }
 }
 
-var dedup$1 = function (topology) {
+function dedup$1 (topology) {
   var coordinates = topology.coordinates,
       lines = topology.lines,
       line,
@@ -3696,9 +3645,9 @@ var dedup$1 = function (topology) {
     return minimum - start;
   }
   return topology;
-};
+}
 
-var delta = function (arcs) {
+function delta (arcs) {
   var i = -1,
       n = arcs.length;
   while (++i < n) {
@@ -3719,9 +3668,9 @@ var delta = function (arcs) {
     arc.length = k;
   }
   return arcs;
-};
+}
 
-var extract = function (objects) {
+function extract (objects) {
   var index = -1,
       lines = [],
       rings = [],
@@ -3773,15 +3722,15 @@ var extract = function (objects) {
     rings: rings,
     objects: objects
   };
-};
+}
 
-var geometry$1 = function (inputs) {
+function geometry$1 (inputs) {
   var outputs = {},
       key;
   for (key in inputs) {
     outputs[key] = geomifyObject(inputs[key]);
   }return outputs;
-};
+}
 function geomifyObject(input) {
   return input == null ? { type: null } : (input.type === "FeatureCollection" ? geomifyFeatureCollection : input.type === "Feature" ? geomifyFeature : geomifyGeometry)(input);
 }
@@ -3807,7 +3756,7 @@ function geomifyGeometry(input) {
   return output;
 }
 
-var prequantize = function (objects, bbox, n) {
+function prequantize (objects, bbox, n) {
   var x0 = bbox[0],
       y0 = bbox[1],
       x1 = bbox[2],
@@ -3880,9 +3829,9 @@ var prequantize = function (objects, bbox, n) {
     scale: [1 / kx, 1 / ky],
     translate: [x0, y0]
   };
-};
+}
 
-var topology = function (objects, quantization) {
+function topology (objects, quantization) {
   var bbox = bounds(objects = geometry$1(objects)),
       transform = quantization > 0 && bbox && prequantize(objects, bbox, quantization),
       topology = dedup$1(cut(extract(objects))),
@@ -3935,7 +3884,7 @@ var topology = function (objects, quantization) {
     topology.arcs = delta(topology.arcs);
   }
   return topology;
-};
+}
 function hashArc(arc) {
   var i = arc[0],
       j = arc[1],
@@ -3956,7 +3905,7 @@ function equalArc(arcA, arcB) {
 
 function polygonDissolve(geojson, options) {
     options = options || {};
-    if (!isObject$2(options)) throw new Error('options is invalid');
+    if (!isObject$1(options)) throw new Error('options is invalid');
     var mutate = options.mutate;
     if (getType(geojson) !== 'FeatureCollection') throw new Error('geojson must be a FeatureCollection');
     if (!geojson.features.length) throw new Error('geojson is empty');
@@ -3971,7 +3920,7 @@ function polygonDissolve(geojson, options) {
 
 function dissolve(geojson, options) {
     options = options || {};
-    if (!isObject$2(options)) throw new Error('options is invalid');
+    if (!isObject$1(options)) throw new Error('options is invalid');
     var mutate = options.mutate;
     if (getType(geojson) !== 'FeatureCollection') throw new Error('geojson must be a FeatureCollection');
     if (!geojson.features.length) throw new Error('geojson is empty');
@@ -3999,7 +3948,7 @@ function getHomogenousType(geojson) {
 
 function distance(from, to, options) {
   options = options || {};
-  if (!isObject$2(options)) throw new Error('options is invalid');
+  if (!isObject$1(options)) throw new Error('options is invalid');
   var units = options.units;
   var coordinates1 = getCoord(from);
   var coordinates2 = getCoord(to);
@@ -4011,9 +3960,9 @@ function distance(from, to, options) {
   return radiansToLength(2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)), units);
 }
 
-function concave$1(points, options) {
+function concave(points, options) {
     options = options || {};
-    if (!isObject$2(options)) throw new Error('options is invalid');
+    if (!isObject$1(options)) throw new Error('options is invalid');
     if (!points) throw new Error('points is required');
     var maxEdge = options.maxEdge || Infinity;
     if (!isNumber(maxEdge)) throw new Error('maxEdge is invalid');
@@ -4050,18 +3999,67 @@ function removeDuplicates(points) {
     return featureCollection(cleaned);
 }
 
-function concave(latLngArray, maxEdge, units) {
+function concave$1(latLngArray, maxEdge, units) {
   var FeatureCollection = arrayToFeaturePoints(latLngArray);
-  return concave$1(FeatureCollection, {
+  return concave(FeatureCollection, {
     maxEdge: maxEdge,
     units: units
   });
 }
 
+function feature$3(geometry, properties, options) {
+    options = options || {};
+    if (!isObject$2(options)) throw new Error('options is invalid');
+    var bbox = options.bbox;
+    var id = options.id;
+    if (geometry === undefined) throw new Error('geometry is required');
+    if (properties && properties.constructor !== Object) throw new Error('properties must be an Object');
+    if (bbox) validateBBox(bbox);
+    if (id) validateId(id);
+    var feat = { type: 'Feature' };
+    if (id) feat.id = id;
+    if (bbox) feat.bbox = bbox;
+    feat.properties = properties || {};
+    feat.geometry = geometry;
+    return feat;
+}
+function isNumber$1(num) {
+    return !isNaN(num) && num !== null && !Array.isArray(num);
+}
+function isObject$2(input) {
+    return !!input && input.constructor === Object;
+}
+function validateBBox(bbox) {
+    if (!bbox) throw new Error('bbox is required');
+    if (!Array.isArray(bbox)) throw new Error('bbox must be an Array');
+    if (bbox.length !== 4 && bbox.length !== 6) throw new Error('bbox must be an Array of 4 or 6 numbers');
+    bbox.forEach(function (num) {
+        if (!isNumber$1(num)) throw new Error('bbox must only contain numbers');
+    });
+}
+function validateId(id) {
+    if (!id) throw new Error('id is required');
+    if (['string', 'number'].indexOf(typeof id === 'undefined' ? 'undefined' : _typeof(id)) === -1) throw new Error('id must be a number or a string');
+}
+
+function getCoords$1(coords) {
+    if (!coords) throw new Error('coords is required');
+    if (coords.type === 'Feature' && coords.geometry !== null) return coords.geometry.coordinates;
+    if (coords.coordinates) return coords.coordinates;
+    if (Array.isArray(coords)) return coords;
+    throw new Error('coords must be GeoJSON Feature, Geometry Object or an Array');
+}
+function getType$1(geojson, name) {
+    if (!geojson) throw new Error((name || 'geojson') + ' is required');
+    if (geojson.geometry && geojson.geometry.type) return geojson.geometry.type;
+    if (geojson.type) return geojson.type;
+    throw new Error((name || 'geojson') + ' is invalid');
+}
+
 function cleanCoords(geojson, options) {
     var mutate = (typeof options === 'undefined' ? 'undefined' : _typeof(options)) === 'object' ? options.mutate : options;
     if (!geojson) throw new Error('geojson is required');
-    var type = getType(geojson);
+    var type = getType$1(geojson);
     var newCoords = [];
     switch (type) {
         case 'LineString':
@@ -4069,14 +4067,14 @@ function cleanCoords(geojson, options) {
             break;
         case 'MultiLineString':
         case 'Polygon':
-            getCoords(geojson).forEach(function (line) {
+            getCoords$1(geojson).forEach(function (line) {
                 newCoords.push(cleanLine(line));
             });
             break;
         case 'MultiPolygon':
-            getCoords(geojson).forEach(function (polygons) {
+            getCoords$1(geojson).forEach(function (polygons$$1) {
                 var polyPoints = [];
-                polygons.forEach(function (ring) {
+                polygons$$1.forEach(function (ring) {
                     polyPoints.push(cleanLine(ring));
                 });
                 newCoords.push(polyPoints);
@@ -4086,7 +4084,7 @@ function cleanCoords(geojson, options) {
             return geojson;
         case 'MultiPoint':
             var existing = {};
-            getCoords(geojson).forEach(function (coord) {
+            getCoords$1(geojson).forEach(function (coord) {
                 var key = coord.join('-');
                 if (!existing.hasOwnProperty(key)) {
                     newCoords.push(coord);
@@ -4108,22 +4106,22 @@ function cleanCoords(geojson, options) {
             geojson.geometry.coordinates = newCoords;
             return geojson;
         }
-        return feature({ type: type, coordinates: newCoords }, geojson.properties, geojson.bbox, geojson.id);
+        return feature$3({ type: type, coordinates: newCoords }, geojson.properties, geojson.bbox, geojson.id);
     }
 }
 function cleanLine(line) {
-    var points = getCoords(line);
-    if (points.length === 2 && !equals(points[0], points[1])) return points;
-    var prevPoint, point$$1, nextPoint;
+    var points$$1 = getCoords$1(line);
+    if (points$$1.length === 2 && !equals(points$$1[0], points$$1[1])) return points$$1;
+    var prevPoint, point, nextPoint;
     var newPoints = [];
-    var secondToLast = points.length - 1;
-    newPoints.push(points[0]);
+    var secondToLast = points$$1.length - 1;
+    newPoints.push(points$$1[0]);
     for (var i = 1; i < secondToLast; i++) {
-        prevPoint = points[i - 1];
-        point$$1 = points[i];
-        nextPoint = points[i + 1];
-        if (!isPointOnLineSegment(prevPoint, nextPoint, point$$1)) {
-            newPoints.push(point$$1);
+        prevPoint = points$$1[i - 1];
+        point = points$$1[i];
+        nextPoint = points$$1[i + 1];
+        if (!isPointOnLineSegment(prevPoint, nextPoint, point)) {
+            newPoints.push(point);
         }
     }
     newPoints.push(nextPoint);
@@ -4132,9 +4130,9 @@ function cleanLine(line) {
 function equals(pt1, pt2) {
     return pt1[0] === pt2[0] && pt1[1] === pt2[1];
 }
-function isPointOnLineSegment(start, end, point$$1) {
-    var x = point$$1[0],
-        y = point$$1[1];
+function isPointOnLineSegment(start, end, point) {
+    var x = point[0],
+        y = point[1];
     var startX = start[0],
         startY = start[1];
     var endX = end[0],
@@ -4147,47 +4145,263 @@ function isPointOnLineSegment(start, end, point$$1) {
     if (cross !== 0) return false;else if (Math.abs(dxl) >= Math.abs(dyl)) return dxl > 0 ? startX <= x && x <= endX : endX <= x && x <= startX;else return dyl > 0 ? startY <= y && y <= endY : endY <= y && y <= startY;
 }
 
-var simplifyJS = require('simplify-js');
+function clone$1(geojson) {
+    if (!geojson) throw new Error('geojson is required');
+    switch (geojson.type) {
+        case 'Feature':
+            return cloneFeature$1(geojson);
+        case 'FeatureCollection':
+            return cloneFeatureCollection$1(geojson);
+        case 'Point':
+        case 'LineString':
+        case 'Polygon':
+        case 'MultiPoint':
+        case 'MultiLineString':
+        case 'MultiPolygon':
+        case 'GeometryCollection':
+            return cloneGeometry$1(geojson);
+        default:
+            throw new Error('unknown GeoJSON type');
+    }
+}
+function cloneFeature$1(geojson) {
+    var cloned = { type: 'Feature' };
+    Object.keys(geojson).forEach(function (key) {
+        switch (key) {
+            case 'type':
+            case 'properties':
+            case 'geometry':
+                return;
+            default:
+                cloned[key] = geojson[key];
+        }
+    });
+    cloned.properties = cloneProperties$1(geojson.properties);
+    cloned.geometry = cloneGeometry$1(geojson.geometry);
+    return cloned;
+}
+function cloneProperties$1(properties) {
+    var cloned = {};
+    if (!properties) return cloned;
+    Object.keys(properties).forEach(function (key) {
+        var value = properties[key];
+        if ((typeof value === 'undefined' ? 'undefined' : _typeof(value)) === 'object') {
+            if (value === null) {
+                cloned[key] = null;
+            } else if (value.length) {
+                cloned[key] = value.map(function (item) {
+                    return item;
+                });
+            } else {
+                cloned[key] = cloneProperties$1(value);
+            }
+        } else cloned[key] = value;
+    });
+    return cloned;
+}
+function cloneFeatureCollection$1(geojson) {
+    var cloned = { type: 'FeatureCollection' };
+    Object.keys(geojson).forEach(function (key) {
+        switch (key) {
+            case 'type':
+            case 'features':
+                return;
+            default:
+                cloned[key] = geojson[key];
+        }
+    });
+    cloned.features = geojson.features.map(function (feature) {
+        return cloneFeature$1(feature);
+    });
+    return cloned;
+}
+function cloneGeometry$1(geometry) {
+    var geom = { type: geometry.type };
+    if (geometry.bbox) geom.bbox = geometry.bbox;
+    if (geometry.type === 'GeometryCollection') {
+        geom.geometries = geometry.geometries.map(function (geom) {
+            return cloneGeometry$1(geom);
+        });
+        return geom;
+    }
+    geom.coordinates = deepSlice$1(geometry.coordinates);
+    return geom;
+}
+function deepSlice$1(coords) {
+    if (_typeof(coords[0]) !== 'object') {
+        return coords.slice();
+    }
+    return coords.map(function (coord) {
+        return deepSlice$1(coord);
+    });
+}
+
+function isObject$3(input) {
+    return !!input && input.constructor === Object;
+}
+
+function geomEach$1(geojson, callback) {
+    var i,
+        j,
+        g,
+        geometry,
+        stopG,
+        geometryMaybeCollection,
+        isGeometryCollection,
+        featureProperties,
+        featureBBox,
+        featureId,
+        featureIndex = 0,
+        isFeatureCollection = geojson.type === 'FeatureCollection',
+        isFeature = geojson.type === 'Feature',
+        stop = isFeatureCollection ? geojson.features.length : 1;
+    for (i = 0; i < stop; i++) {
+        geometryMaybeCollection = isFeatureCollection ? geojson.features[i].geometry : isFeature ? geojson.geometry : geojson;
+        featureProperties = isFeatureCollection ? geojson.features[i].properties : isFeature ? geojson.properties : {};
+        featureBBox = isFeatureCollection ? geojson.features[i].bbox : isFeature ? geojson.bbox : undefined;
+        featureId = isFeatureCollection ? geojson.features[i].id : isFeature ? geojson.id : undefined;
+        isGeometryCollection = geometryMaybeCollection ? geometryMaybeCollection.type === 'GeometryCollection' : false;
+        stopG = isGeometryCollection ? geometryMaybeCollection.geometries.length : 1;
+        for (g = 0; g < stopG; g++) {
+            geometry = isGeometryCollection ? geometryMaybeCollection.geometries[g] : geometryMaybeCollection;
+            if (geometry === null) {
+                if (callback(null, featureIndex, featureProperties, featureBBox, featureId) === false) return false;
+                continue;
+            }
+            switch (geometry.type) {
+                case 'Point':
+                case 'LineString':
+                case 'MultiPoint':
+                case 'Polygon':
+                case 'MultiLineString':
+                case 'MultiPolygon':
+                    {
+                        if (callback(geometry, featureIndex, featureProperties, featureBBox, featureId) === false) return false;
+                        break;
+                    }
+                case 'GeometryCollection':
+                    {
+                        for (j = 0; j < geometry.geometries.length; j++) {
+                            if (callback(geometry.geometries[j], featureIndex, featureProperties, featureBBox, featureId) === false) return false;
+                        }
+                        break;
+                    }
+                default:
+                    throw new Error('Unknown Geometry Type');
+            }
+        }
+        featureIndex++;
+    }
+}
+
+function getSqDist(p1, p2) {
+    var dx = p1.x - p2.x,
+        dy = p1.y - p2.y;
+    return dx * dx + dy * dy;
+}
+function getSqSegDist(p, p1, p2) {
+    var x = p1.x,
+        y = p1.y,
+        dx = p2.x - x,
+        dy = p2.y - y;
+    if (dx !== 0 || dy !== 0) {
+        var t = ((p.x - x) * dx + (p.y - y) * dy) / (dx * dx + dy * dy);
+        if (t > 1) {
+            x = p2.x;
+            y = p2.y;
+        } else if (t > 0) {
+            x += dx * t;
+            y += dy * t;
+        }
+    }
+    dx = p.x - x;
+    dy = p.y - y;
+    return dx * dx + dy * dy;
+}
+function simplifyRadialDist(points, sqTolerance) {
+    var prevPoint = points[0],
+        newPoints = [prevPoint],
+        point;
+    for (var i = 1, len = points.length; i < len; i++) {
+        point = points[i];
+        if (getSqDist(point, prevPoint) > sqTolerance) {
+            newPoints.push(point);
+            prevPoint = point;
+        }
+    }
+    if (prevPoint !== point) newPoints.push(point);
+    return newPoints;
+}
+function simplifyDPStep(points, first, last, sqTolerance, simplified) {
+    var maxSqDist = sqTolerance,
+        index;
+    for (var i = first + 1; i < last; i++) {
+        var sqDist = getSqSegDist(points[i], points[first], points[last]);
+        if (sqDist > maxSqDist) {
+            index = i;
+            maxSqDist = sqDist;
+        }
+    }
+    if (maxSqDist > sqTolerance) {
+        if (index - first > 1) simplifyDPStep(points, first, index, sqTolerance, simplified);
+        simplified.push(points[index]);
+        if (last - index > 1) simplifyDPStep(points, index, last, sqTolerance, simplified);
+    }
+}
+function simplifyDouglasPeucker(points, sqTolerance) {
+    var last = points.length - 1;
+    var simplified = [points[0]];
+    simplifyDPStep(points, 0, last, sqTolerance, simplified);
+    simplified.push(points[last]);
+    return simplified;
+}
+function simplify$2(points, tolerance, highestQuality) {
+    if (points.length <= 2) return points;
+    var sqTolerance = tolerance !== undefined ? tolerance * tolerance : 1;
+    points = highestQuality ? points : simplifyRadialDist(points, sqTolerance);
+    points = simplifyDouglasPeucker(points, sqTolerance);
+    return points;
+}
 function simplify(geojson, options) {
     options = options || {};
-    if (!isObject$2(options)) throw new Error('options is invalid');
-    var tolerance = options.tolerance;
-    var highQuality = options.highQuality;
-    var mutate = options.mutate;
+    if (!isObject$3(options)) throw new Error('options is invalid');
+    var tolerance = options.tolerance !== undefined ? options.tolerance : 1;
+    var highQuality = options.highQuality || false;
+    var mutate = options.mutate || false;
     if (!geojson) throw new Error('geojson is required');
     if (tolerance && tolerance < 0) throw new Error('invalid tolerance');
-    if (mutate !== true) geojson = clone(geojson);
-    geomEach(geojson, function (geom) {
+    if (mutate !== true) geojson = clone$1(geojson);
+    geomEach$1(geojson, function (geom) {
         simplifyGeom(geom, tolerance, highQuality);
     });
     return geojson;
 }
-function simplifyGeom(geometry$$1, tolerance, highQuality) {
-    var type = geometry$$1.type;
-    if (type === 'Point' || type === 'MultiPoint') return geometry$$1;
-    cleanCoords(geometry$$1, true);
-    var coordinates = geometry$$1.coordinates;
+function simplifyGeom(geometry, tolerance, highQuality) {
+    var type = geometry.type;
+    if (type === 'Point' || type === 'MultiPoint') return geometry;
+    cleanCoords(geometry, true);
+    var coordinates = geometry.coordinates;
     switch (type) {
         case 'LineString':
-            geometry$$1['coordinates'] = simplifyLine(coordinates, tolerance, highQuality);
+            geometry['coordinates'] = simplifyLine(coordinates, tolerance, highQuality);
             break;
         case 'MultiLineString':
-            geometry$$1['coordinates'] = coordinates.map(function (lines) {
+            geometry['coordinates'] = coordinates.map(function (lines) {
                 return simplifyLine(lines, tolerance, highQuality);
             });
             break;
         case 'Polygon':
-            geometry$$1['coordinates'] = simplifyPolygon(coordinates, tolerance, highQuality);
+            geometry['coordinates'] = simplifyPolygon(coordinates, tolerance, highQuality);
             break;
         case 'MultiPolygon':
-            geometry$$1['coordinates'] = coordinates.map(function (rings) {
+            geometry['coordinates'] = coordinates.map(function (rings) {
                 return simplifyPolygon(rings, tolerance, highQuality);
             });
     }
-    return geometry$$1;
+    return geometry;
 }
 function simplifyLine(coordinates, tolerance, highQuality) {
-    return simplifyJS(coordinates.map(function (coord) {
+    return simplify$2(coordinates.map(function (coord) {
         return { x: coord[0], y: coord[1], z: coord[2] };
     }), tolerance, highQuality).map(function (coords) {
         return coords.z ? [coords.x, coords.y, coords.z] : [coords.x, coords.y];
@@ -4201,12 +4415,12 @@ function simplifyPolygon(coordinates, tolerance, highQuality) {
         if (pts.length < 4) {
             throw new Error('invalid polygon');
         }
-        var simpleRing = simplifyJS(pts, tolerance, highQuality).map(function (coords) {
+        var simpleRing = simplify$2(pts, tolerance, highQuality).map(function (coords) {
             return [coords.x, coords.y];
         });
         while (!checkValidity(simpleRing)) {
             tolerance -= tolerance * 0.01;
-            simpleRing = simplifyJS(pts, tolerance, highQuality).map(function (coords) {
+            simpleRing = simplify$2(pts, tolerance, highQuality).map(function (coords) {
                 return [coords.x, coords.y];
             });
         }
@@ -4227,8 +4441,7 @@ function simplifyPointArray(coordArray, tolerance, highQuality) {
 	var Feature = lineString(toCoords(coordArray));
 	var simplifiedgeom = simplify(Feature, tolerance, highQuality);
 	return simplifiedgeom.geometry.coordinates;
-}
-function simplifyFeature(object, output, tolerance, highQuality) {
+}function simplifyFeature(object, output, tolerance, highQuality) {
 	output = (output || 'feature').toLowerCase();
 	var Feature;
 	if (object instanceof google.maps.Polyline || object instanceof google.maps.Polygon) {
@@ -4264,7 +4477,7 @@ function simplifyFeature(object, output, tolerance, highQuality) {
 
 function bearing(start, end, options) {
     options = options || {};
-    if (!isObject$2(options)) throw new Error('options is invalid');
+    if (!isObject$1(options)) throw new Error('options is invalid');
     var final = options.final;
     if (final === true) return calculateFinalBearing(start, end);
     var coordinates1 = getCoord(start);
@@ -4285,7 +4498,7 @@ function calculateFinalBearing(start, end) {
 
 function destination(origin, distance, bearing, options) {
     options = options || {};
-    if (!isObject$2(options)) throw new Error('options is invalid');
+    if (!isObject$1(options)) throw new Error('options is invalid');
     var units = options.units;
     var coordinates1 = getCoord(origin);
     var longitude1 = degreesToRadians(coordinates1[0]);
@@ -4297,9 +4510,9 @@ function destination(origin, distance, bearing, options) {
     return point([radiansToDegrees(longitude2), radiansToDegrees(latitude2)]);
 }
 
-function along$1(line, distance$$1, options) {
+function along(line, distance$$1, options) {
     options = options || {};
-    if (!isObject$2(options)) throw new Error('options is invalid');
+    if (!isObject$1(options)) throw new Error('options is invalid');
     var coords;
     if (line.type === 'Feature') coords = line.geometry.coordinates;else if (line.type === 'LineString') coords = line.coordinates;else throw new Error('input must be a LineString Feature or Geometry');
     if (!isNumber(distance$$1)) throw new Error('distance must be a number');
@@ -4319,7 +4532,7 @@ function along$1(line, distance$$1, options) {
     return point(coords[coords.length - 1]);
 }
 
-function along(object, distance, units) {
+function along$1(object, distance, units) {
 	var Feature;
 	if (object instanceof google.maps.Polyline) {
 		var geometry$$1 = Wicket$1().fromObject(object).toJson();
@@ -4334,14 +4547,14 @@ function along(object, distance, units) {
 		var arrayCoords = toCoords(object);
 		Feature = lineString(arrayCoords);
 	}
-	return along$1(Feature, distance, units);
+	return along(Feature, distance, units);
 }
 
-var extend = function (target, source) {
+function extend (target, source) {
   for (var key in source) {
     if (source.hasOwnProperty(key)) target[key] = source[key];
   }
-};
+}
 
 function NumberUtil() {}
 extend(NumberUtil.prototype, {
@@ -4390,10 +4603,10 @@ function RuntimeException(message) {
 RuntimeException.prototype = Object.create(Error.prototype);
 RuntimeException.prototype.constructor = Error;
 
-var inherits$1 = function (c, p) {
+function inherits$1 (c, p) {
   c.prototype = Object.create(p.prototype);
   c.prototype.constructor = c;
-};
+}
 
 function AssertionFailedException() {
 	if (arguments.length === 0) {
@@ -4651,13 +4864,11 @@ Coordinate.X = 0;
 Coordinate.Y = 1;
 Coordinate.Z = 2;
 
-function Iterator() {}
-Iterator.prototype.hasNext = function () {};
+function Iterator() {}Iterator.prototype.hasNext = function () {};
 Iterator.prototype.next = function () {};
 Iterator.prototype.remove = function () {};
 
-function Collection() {}
-Collection.prototype.add = function () {};
+function Collection() {}Collection.prototype.add = function () {};
 Collection.prototype.addAll = function () {};
 Collection.prototype.isEmpty = function () {};
 Collection.prototype.iterator = function () {};
@@ -4667,12 +4878,10 @@ Collection.prototype.remove = function () {};
 
 function IndexOutOfBoundsException$1(message) {
   this.message = message || '';
-}
-IndexOutOfBoundsException$1.prototype = new Error();
+}IndexOutOfBoundsException$1.prototype = new Error();
 IndexOutOfBoundsException$1.prototype.name = 'IndexOutOfBoundsException';
 
-function List() {}
-List.prototype = Object.create(Collection.prototype);
+function List() {}List.prototype = Object.create(Collection.prototype);
 List.prototype.constructor = List;
 List.prototype.get = function () {};
 List.prototype.set = function () {};
@@ -4680,14 +4889,12 @@ List.prototype.isEmpty = function () {};
 
 function NoSuchElementException(message) {
   this.message = message || '';
-}
-NoSuchElementException.prototype = new Error();
+}NoSuchElementException.prototype = new Error();
 NoSuchElementException.prototype.name = 'NoSuchElementException';
 
 function OperationNotSupported(message) {
   this.message = message || '';
-}
-OperationNotSupported.prototype = new Error();
+}OperationNotSupported.prototype = new Error();
 OperationNotSupported.prototype.name = 'OperationNotSupported';
 
 function ArrayList() {
@@ -4695,8 +4902,7 @@ function ArrayList() {
   if (arguments[0] instanceof Collection) {
     this.addAll(arguments[0]);
   }
-}
-ArrayList.prototype = Object.create(List.prototype);
+}ArrayList.prototype = Object.create(List.prototype);
 ArrayList.prototype.constructor = ArrayList;
 ArrayList.prototype.ensureCapacity = function () {};
 ArrayList.prototype.interfaces_ = function () {
@@ -4783,7 +4989,7 @@ Iterator_.prototype.remove = function () {
 
 function CoordinateList() {
 	ArrayList.apply(this);
-	if (arguments.length === 0) {} else if (arguments.length === 1) {
+	if (arguments.length === 0) ; else if (arguments.length === 1) {
 		var coord = arguments[0];
 		this.ensureCapacity(coord.length);
 		this.add(coord, true);
@@ -5292,9 +5498,9 @@ Location.BOUNDARY = 1;
 Location.EXTERIOR = 2;
 Location.NONE = -1;
 
-var hasInterface = function (o, i) {
+function hasInterface (o, i) {
   return o.interfaces_ && o.interfaces_().indexOf(i) > -1;
-};
+}
 
 function MathUtil() {}
 extend(MathUtil.prototype, {
@@ -6112,7 +6318,6 @@ extend(CoordinateSequence.prototype, {
 	size: function size() {},
 	getOrdinate: function getOrdinate(index, ordinateIndex) {},
 	getCoordinate: function getCoordinate() {
-		
 	},
 	getCoordinateCopy: function getCoordinateCopy(i) {},
 	getDimension: function getDimension() {},
@@ -6254,13 +6459,7 @@ function CoordinateSequenceFactory() {}
 extend(CoordinateSequenceFactory.prototype, {
 	create: function create() {
 		if (arguments.length === 1) {
-			if (arguments[0] instanceof Array) {
-				
-			} else if (hasInterface(arguments[0], CoordinateSequence)) {
-				
-			}
-		} else if (arguments.length === 2) {
-			
+			if (arguments[0] instanceof Array) ; else if (hasInterface(arguments[0], CoordinateSequence)) ;
 		}
 	},
 	interfaces_: function interfaces_() {
@@ -6804,27 +7003,23 @@ CoordinateArrays.ForwardComparator = ForwardComparator;
 CoordinateArrays.BidirectionalComparator = BidirectionalComparator;
 CoordinateArrays.coordArrayType = new Array(0).fill(null);
 
-function Map$3() {}
-Map$3.prototype.get = function () {};
-Map$3.prototype.put = function () {};
-Map$3.prototype.size = function () {};
-Map$3.prototype.values = function () {};
-Map$3.prototype.entrySet = function () {};
+function Map$2() {}Map$2.prototype.get = function () {};
+Map$2.prototype.put = function () {};
+Map$2.prototype.size = function () {};
+Map$2.prototype.values = function () {};
+Map$2.prototype.entrySet = function () {};
 
-function SortedMap() {}
-SortedMap.prototype = new Map$3();
+function SortedMap() {}SortedMap.prototype = new Map$2();
 
-function Set$2() {}
-Set$2.prototype = new Collection();
-Set$2.prototype.contains = function () {};
+function Set$1() {}Set$1.prototype = new Collection();
+Set$1.prototype.contains = function () {};
 
 function HashSet() {
   this.array_ = [];
   if (arguments[0] instanceof Collection) {
     this.addAll(arguments[0]);
   }
-}
-HashSet.prototype = new Set$2();
+}HashSet.prototype = new Set$1();
 HashSet.prototype.contains = function (o) {
   for (var i = 0, len = this.array_.length; i < len; i++) {
     var e = this.array_[i];
@@ -6907,8 +7102,7 @@ function rightOf(p) {
 function TreeMap() {
   this.root_ = null;
   this.size_ = 0;
-}
-TreeMap.prototype = new SortedMap();
+}TreeMap.prototype = new SortedMap();
 TreeMap.prototype.get = function (key) {
   var p = this.root_;
   while (p !== null) {
@@ -7104,16 +7298,14 @@ extend(Lineal.prototype, {
 	}
 });
 
-function SortedSet() {}
-SortedSet.prototype = new Set$2();
+function SortedSet() {}SortedSet.prototype = new Set$1();
 
 function TreeSet() {
   this.array_ = [];
   if (arguments[0] instanceof Collection) {
     this.addAll(arguments[0]);
   }
-}
-TreeSet.prototype = new SortedSet();
+}TreeSet.prototype = new SortedSet();
 TreeSet.prototype.contains = function (o) {
   for (var i = 0, len = this.array_.length; i < len; i++) {
     var e = this.array_[i];
@@ -7183,8 +7375,7 @@ Iterator_$2.prototype.remove = function () {
   throw new OperationNotSupported();
 };
 
-function Arrays() {}
-Arrays.sort = function () {
+function Arrays() {}Arrays.sort = function () {
   var a = arguments[0],
       i,
       t,
@@ -8710,7 +8901,7 @@ MultiPolygon.serialVersionUID = -551033529766975875;
 function GeometryEditor() {
 	this._factory = null;
 	this._isUserDataCopied = false;
-	if (arguments.length === 0) {} else if (arguments.length === 1) {
+	if (arguments.length === 0) ; else if (arguments.length === 1) {
 		var factory = arguments[0];
 		this._factory = factory;
 	}
@@ -9150,7 +9341,7 @@ var MapImpl = typeof Map === 'undefined' || !Map.prototype.values ? MapPolyfill 
 function HashMap() {
   this.map_ = new MapImpl();
 }
-HashMap.prototype = new Map$3();
+HashMap.prototype = new Map$2();
 HashMap.prototype.get = function (key) {
   return this.map_.get(key) || null;
 };
@@ -10231,9 +10422,7 @@ RobustDeterminant.signOfDet2x2 = function (x1, y1, x2, y2) {
 	}
 	if (0.0 < y1) {
 		if (0.0 < y2) {
-			if (y1 <= y2) {
-				
-			} else {
+			if (y1 <= y2) ; else {
 				sign = -sign;
 				swap = x1;
 				x1 = x2;
@@ -10276,7 +10465,6 @@ RobustDeterminant.signOfDet2x2 = function (x1, y1, x2, y2) {
 				y1 = -y1;
 				x2 = -x2;
 				y2 = -y2;
-				
 			} else {
 				sign = -sign;
 				swap = -x1;
@@ -10290,9 +10478,7 @@ RobustDeterminant.signOfDet2x2 = function (x1, y1, x2, y2) {
 	}
 	if (0.0 < x1) {
 		if (0.0 < x2) {
-			if (x1 <= x2) {
-				
-			} else {
+			if (x1 <= x2) ; else {
 				return sign;
 			}
 		} else {
@@ -10306,7 +10492,6 @@ RobustDeterminant.signOfDet2x2 = function (x1, y1, x2, y2) {
 				sign = -sign;
 				x1 = -x1;
 				x2 = -x2;
-				
 			} else {
 				return -sign;
 			}
@@ -10835,7 +11020,7 @@ extend(LineSegment.prototype, {
 			var intPt = HCoordinate.intersection(this.p0, this.p1, line.p0, line.p1);
 			return intPt;
 		} catch (ex) {
-			if (ex instanceof NotRepresentableException) {} else throw ex;
+			if (ex instanceof NotRepresentableException) ; else throw ex;
 		} finally {}
 		return null;
 	},
@@ -11258,57 +11443,55 @@ Centroid.getCentroid = function (geom) {
 
 function EmptyStackException(message) {
   this.message = message || '';
-}
-EmptyStackException.prototype = new Error();
+}EmptyStackException.prototype = new Error();
 EmptyStackException.prototype.name = 'EmptyStackException';
 
-function Stack$2() {
+function Stack$1() {
   this.array_ = [];
-}
-Stack$2.prototype = new List();
-Stack$2.prototype.add = function (e) {
+}Stack$1.prototype = new List();
+Stack$1.prototype.add = function (e) {
   this.array_.push(e);
   return true;
 };
-Stack$2.prototype.get = function (index) {
+Stack$1.prototype.get = function (index) {
   if (index < 0 || index >= this.size()) {
     throw new IndexOutOfBoundsException();
   }
   return this.array_[index];
 };
-Stack$2.prototype.push = function (e) {
+Stack$1.prototype.push = function (e) {
   this.array_.push(e);
   return e;
 };
-Stack$2.prototype.pop = function (e) {
+Stack$1.prototype.pop = function (e) {
   if (this.array_.length === 0) {
     throw new EmptyStackException();
   }
   return this.array_.pop();
 };
-Stack$2.prototype.peek = function () {
+Stack$1.prototype.peek = function () {
   if (this.array_.length === 0) {
     throw new EmptyStackException();
   }
   return this.array_[this.array_.length - 1];
 };
-Stack$2.prototype.empty = function () {
+Stack$1.prototype.empty = function () {
   if (this.array_.length === 0) {
     return true;
   } else {
     return false;
   }
 };
-Stack$2.prototype.isEmpty = function () {
+Stack$1.prototype.isEmpty = function () {
   return this.empty();
 };
-Stack$2.prototype.search = function (o) {
+Stack$1.prototype.search = function (o) {
   return this.array_.indexOf(o);
 };
-Stack$2.prototype.size = function () {
+Stack$1.prototype.size = function () {
   return this.array_.length;
 };
-Stack$2.prototype.toArray = function () {
+Stack$1.prototype.toArray = function () {
   var array = [];
   for (var i = 0, len = this.array_.length; i < len; i++) {
     array.push(this.array_[i]);
@@ -11519,7 +11702,7 @@ extend(ConvexHull.prototype, {
 	},
 	grahamScan: function grahamScan(c) {
 		var p = null;
-		var ps = new Stack$2();
+		var ps = new Stack$1();
 		p = ps.push(c[0]);
 		p = ps.push(c[1]);
 		p = ps.push(c[2]);
@@ -12127,7 +12310,7 @@ function PointLocator() {
 	this._boundaryRule = BoundaryNodeRule.OGC_SFS_BOUNDARY_RULE;
 	this._isIn = null;
 	this._numBoundaries = null;
-	if (arguments.length === 0) {} else if (arguments.length === 1) {
+	if (arguments.length === 0) ; else if (arguments.length === 1) {
 		var boundaryRule = arguments[0];
 		if (boundaryRule === null) throw new IllegalArgumentException("Rule must be non-null");
 		this._boundaryRule = boundaryRule;
@@ -12432,7 +12615,6 @@ extend(SpatialIndex.prototype, {
 	insert: function insert(itemEnv, item) {},
 	remove: function remove(itemEnv, item) {},
 	query: function query() {
-		
 	},
 	interfaces_: function interfaces_() {
 		return [];
@@ -12446,7 +12628,7 @@ function AbstractNode() {
 	this._childBoundables = new ArrayList();
 	this._bounds = null;
 	this._level = null;
-	if (arguments.length === 0) {} else if (arguments.length === 1) {
+	if (arguments.length === 0) ; else if (arguments.length === 1) {
 		var level = arguments[0];
 		this._level = level;
 	}
@@ -13376,7 +13558,7 @@ extend(NodeVertexIterator.prototype, {
 			this.readNextNode();
 			return this._currNode;
 		}
-		if (this._nextNode.segmentIndex > this._currNode.segmentIndex) {}
+		if (this._nextNode.segmentIndex > this._currNode.segmentIndex) ;
 		return null;
 	},
 	remove: function remove() {
@@ -13452,7 +13634,6 @@ extend(NodedSegmentString.prototype, {
 		} else if (arguments.length === 4) {
 			var li = arguments[0],
 			    segmentIndex = arguments[1],
-			    geomIndex = arguments[2],
 			    intIndex = arguments[3];
 			var intPt = new Coordinate(li.getIntersection(intIndex));
 			this.addIntersection(intPt, segmentIndex);
@@ -13512,9 +13693,7 @@ function MonotoneChainOverlapAction() {
 }
 extend(MonotoneChainOverlapAction.prototype, {
 	overlap: function overlap() {
-		if (arguments.length === 2) {
-			
-		} else if (arguments.length === 4) {
+		if (arguments.length === 2) ; else if (arguments.length === 4) {
 			var mc1 = arguments[0],
 			    start1 = arguments[1],
 			    mc2 = arguments[2],
@@ -13775,7 +13954,7 @@ extend(Noder.prototype, {
 
 function SinglePassNoder() {
 	this._segInt = null;
-	if (arguments.length === 0) {} else if (arguments.length === 1) {
+	if (arguments.length === 0) ; else if (arguments.length === 1) {
 		var segInt = arguments[0];
 		this.setSegmentIntersector(segInt);
 	}
@@ -13798,7 +13977,7 @@ function MCIndexNoder() {
 	this._idCounter = 0;
 	this._nodedSegStrings = null;
 	this._nOverlaps = 0;
-	if (arguments.length === 0) {} else if (arguments.length === 1) {
+	if (arguments.length === 0) ; else if (arguments.length === 1) {
 		var si = arguments[0];
 		SinglePassNoder.call(this, si);
 	}
@@ -14641,7 +14820,7 @@ function GraphComponent() {
 	this._isCovered = false;
 	this._isCoveredSet = false;
 	this._isVisited = false;
-	if (arguments.length === 0) {} else if (arguments.length === 1) {
+	if (arguments.length === 0) ; else if (arguments.length === 1) {
 		var label = arguments[0];
 		this._label = label;
 	}
@@ -17384,7 +17563,6 @@ function GeometryGraphOperation() {
 		this.setComputationPrecision(g0.getPrecisionModel());
 		this._arg = new Array(1).fill(null);
 		this._arg[0] = new GeometryGraph(0, g0);
-		
 	} else if (arguments.length === 2) {
 		var g0 = arguments[0],
 		    g1 = arguments[1];
@@ -18191,9 +18369,7 @@ function MonotoneChainSelectAction() {
 }
 extend(MonotoneChainSelectAction.prototype, {
 	select: function select() {
-		if (arguments.length === 1) {
-			
-		} else if (arguments.length === 2) {
+		if (arguments.length === 1) ; else if (arguments.length === 2) {
 			var mc = arguments[0],
 			    startIndex = arguments[1];
 			mc.getLineSegment(startIndex, this.selectedSegment);
@@ -19763,7 +19939,7 @@ function LineDissolver() {
 	this._factory = null;
 	this._graph = null;
 	this._lines = new ArrayList();
-	this._nodeEdgeStack = new Stack$2();
+	this._nodeEdgeStack = new Stack$1();
 	this._ringStartEdge = null;
 	this._graph = new DissolveEdgeGraph();
 }
@@ -20970,7 +21146,7 @@ function BufferParameters() {
 	this._mitreLimit = BufferParameters.DEFAULT_MITRE_LIMIT;
 	this._isSingleSided = false;
 	this._simplifyFactor = BufferParameters.DEFAULT_SIMPLIFY_FACTOR;
-	if (arguments.length === 0) {} else if (arguments.length === 1) {
+	if (arguments.length === 0) ; else if (arguments.length === 1) {
 		var quadrantSegments = arguments[0];
 		this.setQuadrantSegments(quadrantSegments);
 	} else if (arguments.length === 2) {
@@ -21268,7 +21444,7 @@ extend(BufferSubgraph.prototype, {
 		return this._env;
 	},
 	addReachable: function addReachable(startNode) {
-		var nodeStack = new Stack$2();
+		var nodeStack = new Stack$1();
 		nodeStack.add(startNode);
 		while (!nodeStack.empty()) {
 			var node = nodeStack.pop();
@@ -23067,7 +23243,6 @@ extend(DistanceOp.prototype, {
 					this._minDistance = 0.0;
 					locPtPoly[0] = ptLoc;
 					locPtPoly[1] = new GeometryLocation(poly, pt);
-					
 					return null;
 				}
 			}
@@ -23454,7 +23629,7 @@ extend(LineMergeDirectedEdge.prototype, {
 function Edge$1() {
 	GraphComponent$1.apply(this);
 	this._dirEdge = null;
-	if (arguments.length === 0) {} else if (arguments.length === 2) {
+	if (arguments.length === 0) ; else if (arguments.length === 2) {
 		var de0 = arguments[0],
 		    de1 = arguments[1];
 		this.setDirectedEdges(de0, de1);
@@ -24156,8 +24331,7 @@ function EdgeEndBundle() {
 		var e = arguments[0];
 		EdgeEndBundle.call(this, null, e);
 	} else if (arguments.length === 2) {
-		var boundaryNodeRule = arguments[0],
-		    e = arguments[1];
+		var e = arguments[1];
 		EdgeEnd.call(this, e.getEdge(), e.getCoordinate(), e.getDirectedCoordinate(), new Label(e.getLabel()));
 		this.insert(e);
 	}
@@ -25128,7 +25302,7 @@ extend(PolygonizeGraph.prototype, {
 	deleteDangles: function deleteDangles() {
 		var nodesToRemove = this.findNodesOfDegree(1);
 		var dangleLines = new HashSet();
-		var nodeStack = new Stack$2();
+		var nodeStack = new Stack$1();
 		for (var i = nodesToRemove.iterator(); i.hasNext();) {
 			nodeStack.push(i.next());
 		}
@@ -26742,7 +26916,6 @@ extend(DPTransformer.prototype, {
 		var removeDegenerateRings = parent instanceof Polygon;
 		var simpResult = GeometryTransformer.prototype.transformLinearRing.call(this, geom, parent);
 		if (removeDegenerateRings && !(simpResult instanceof LinearRing)) return null;
-		
 		return simpResult;
 	},
 	interfaces_: function interfaces_() {
@@ -27969,7 +28142,7 @@ extend(QuadEdgeSubdivision.prototype, {
 	},
 	visitTriangles: function visitTriangles(triVisitor, includeFrame) {
 		this._visitedKey++;
-		var edgeStack = new Stack$2();
+		var edgeStack = new Stack$1();
 		edgeStack.push(this._startingEdge);
 		var visitedEdges = new HashSet();
 		while (!edgeStack.empty()) {
@@ -28085,7 +28258,7 @@ extend(QuadEdgeSubdivision.prototype, {
 	getPrimaryEdges: function getPrimaryEdges(includeFrame) {
 		this._visitedKey++;
 		var edges = new ArrayList();
-		var edgeStack = new Stack$2();
+		var edgeStack = new Stack$1();
 		edgeStack.push(this._startingEdge);
 		var visitedEdges = new HashSet();
 		while (!edgeStack.empty()) {
@@ -29107,7 +29280,7 @@ function LinearLocation() {
 	this._componentIndex = 0;
 	this._segmentIndex = 0;
 	this._segmentFraction = 0.0;
-	if (arguments.length === 0) {} else if (arguments.length === 1) {
+	if (arguments.length === 0) ; else if (arguments.length === 1) {
 		var loc = arguments[0];
 		this._componentIndex = loc._componentIndex;
 		this._segmentIndex = loc._segmentIndex;
@@ -29916,7 +30089,7 @@ extend(LengthIndexedLine.prototype, {
 	}
 });
 
-function union$1() {
+function union() {
     var reader = new GeoJSONReader();
     var result = reader.read(JSON.stringify(arguments[0].geometry));
     for (var i = 1; i < arguments.length; i++) {
@@ -29931,10 +30104,10 @@ function union$1() {
     };
 }
 
-function union(poly1, poly2) {
+function union$1(poly1, poly2) {
   var featurePolygon1 = polygonToFeaturePolygon(poly1),
       featurePolygon2 = polygonToFeaturePolygon(poly2),
-      FeatureUnion = union$1(featurePolygon1, featurePolygon2);
+      FeatureUnion = union(featurePolygon1, featurePolygon2);
   return FeatureUnion;
 }
 
@@ -29964,7 +30137,7 @@ function toWgs84(geojson, options) {
 }
 function convert(geojson, projection, options) {
     options = options || {};
-    if (!isObject$2(options)) throw new Error('options is invalid');
+    if (!isObject$1(options)) throw new Error('options is invalid');
     var mutate = options.mutate;
     if (!geojson) throw new Error('geojson is required');
     if (Array.isArray(geojson) && isNumber(geojson[0])) geojson = projection === 'mercator' ? convertToMercator(geojson) : convertToWgs84(geojson);
@@ -29999,9 +30172,9 @@ function sign(x) {
     return x < 0 ? -1 : x > 0 ? 1 : 0;
 }
 
-var adder = function () {
+function adder () {
   return new Adder();
-};
+}
 function Adder() {
   this.reset();
 }
@@ -30029,7 +30202,6 @@ function _add(adder, a, b) {
 }
 
 var epsilon = 1e-6;
-
 var pi = Math.PI;
 var halfPi = pi / 2;
 var quarterPi = pi / 4;
@@ -30040,13 +30212,9 @@ var abs = Math.abs;
 var atan = Math.atan;
 var atan2 = Math.atan2;
 var cos = Math.cos;
-
 var exp = Math.exp;
-
 var log = Math.log;
-
 var sin = Math.sin;
-
 var sqrt = Math.sqrt;
 var tan = Math.tan;
 function acos(x) {
@@ -30140,13 +30308,13 @@ function streamPolygon(coordinates, stream) {
     streamLine(coordinates[i], stream, 1);
   }stream.polygonEnd();
 }
-var geoStream = function (object, stream) {
+function geoStream (object, stream) {
   if (object && streamObjectType.hasOwnProperty(object.type)) {
     streamObjectType[object.type](object, stream);
   } else {
     streamGeometry(object, stream);
   }
-};
+}
 
 var areaRingSum = adder();
 var areaSum = adder();
@@ -30179,7 +30347,7 @@ function cartesianNormalizeInPlace(d) {
 
 var deltaSum = adder();
 
-var compose = function (a, b) {
+function compose (a, b) {
   function compose(x, y) {
     return x = a(x, y), b(x[0], x[1]);
   }
@@ -30187,7 +30355,7 @@ var compose = function (a, b) {
     return x = b.invert(x, y), x && a.invert(x[0], x[1]);
   };
   return compose;
-};
+}
 
 function rotationIdentity(lambda, phi) {
   return [lambda > pi ? lambda - tau : lambda < -pi ? lambda + tau : lambda, phi];
@@ -30229,7 +30397,7 @@ function rotationPhiGamma(deltaPhi, deltaGamma) {
   };
   return rotation;
 }
-var rotation = function (rotate) {
+function rotation (rotate) {
   rotate = rotateRadians(rotate[0] * radians, rotate[1] * radians, rotate.length > 2 ? rotate[2] * radians : 0);
   function forward(coordinates) {
     coordinates = rotate(coordinates[0] * radians, coordinates[1] * radians);
@@ -30240,7 +30408,7 @@ var rotation = function (rotate) {
     return coordinates[0] *= degrees, coordinates[1] *= degrees, coordinates;
   };
   return forward;
-};
+}
 
 function circleStream(stream, radius, delta, direction, t0, t1) {
   if (!delta) return;
@@ -30267,7 +30435,7 @@ function circleRadius(cosRadius, point) {
   return ((-point[2] < 0 ? -radius : radius) + tau - epsilon) % tau;
 }
 
-var clipBuffer = function () {
+function clipBuffer () {
   var lines = [],
       line;
   return {
@@ -30288,9 +30456,9 @@ var clipBuffer = function () {
       return result;
     }
   };
-};
+}
 
-var clipLine = function (a, b, x0, y0, x1, y1) {
+function clipLine (a, b, x0, y0, x1, y1) {
   var ax = a[0],
       ay = a[1],
       bx = b[0],
@@ -30343,11 +30511,11 @@ var clipLine = function (a, b, x0, y0, x1, y1) {
   if (t0 > 0) a[0] = ax + t0 * dx, a[1] = ay + t0 * dy;
   if (t1 < 1) b[0] = ax + t1 * dx, b[1] = ay + t1 * dy;
   return true;
-};
+}
 
-var pointEqual = function (a, b) {
+function pointEqual (a, b) {
   return abs(a[0] - b[0]) < epsilon && abs(a[1] - b[1]) < epsilon;
-};
+}
 
 function Intersection(point, points, other, entry) {
   this.x = point;
@@ -30357,7 +30525,7 @@ function Intersection(point, points, other, entry) {
   this.v = false;
   this.n = this.p = null;
 }
-var clipPolygon = function (segments, compareIntersection, startInside, interpolate, stream) {
+function clipPolygon (segments, compareIntersection, startInside, interpolate, stream) {
   var subject = [],
       clip = [],
       i,
@@ -30425,7 +30593,7 @@ var clipPolygon = function (segments, compareIntersection, startInside, interpol
     } while (!current.v);
     stream.lineEnd();
   }
-};
+}
 function link(array) {
   if (!(n = array.length)) return;
   var n,
@@ -30441,11 +30609,11 @@ function link(array) {
   b.p = a;
 }
 
-var ascending = function (a, b) {
+function ascending (a, b) {
   return a < b ? -1 : a > b ? 1 : a >= b ? 0 : NaN;
-};
+}
 
-var bisector = function (compare) {
+function bisector (compare) {
   if (compare.length === 1) compare = ascendingComparator(compare);
   return {
     left: function left(a, x, lo, hi) {
@@ -30467,7 +30635,7 @@ var bisector = function (compare) {
       return lo;
     }
   };
-};
+}
 function ascendingComparator(f) {
   return function (d, x) {
     return ascending(f(d), x);
@@ -30476,7 +30644,7 @@ function ascendingComparator(f) {
 
 var ascendingBisect = bisector(ascending);
 
-var merge$1 = function (arrays) {
+function merge$1 (arrays) {
   var n = arrays.length,
       m,
       i = -1,
@@ -30494,10 +30662,10 @@ var merge$1 = function (arrays) {
     }
   }
   return merged;
-};
+}
 
-var clipMax = 1e9;
-var clipMin = -clipMax;
+var clipMax = 1e9,
+    clipMin = -clipMax;
 function clipExtent(x0, y0, x1, y1) {
   function visible(x, y) {
     return x0 <= x && x <= x1 && y0 <= y && y <= y1;
@@ -30635,7 +30803,7 @@ function clipExtent(x0, y0, x1, y1) {
 }
 
 var sum$1 = adder();
-var polygonContains = function (polygon, point) {
+function polygonContains (polygon, point) {
   var lambda = point[0],
       phi = point[1],
       normal = [sin(lambda), -cos(lambda), 0],
@@ -30677,21 +30845,21 @@ var polygonContains = function (polygon, point) {
     }
   }
   return (angle < -epsilon || angle < epsilon && sum$1 < -epsilon) ^ winding & 1;
-};
+}
 
 var lengthSum = adder();
 
-var identity$4 = function (x) {
+function identity$3 (x) {
   return x;
-};
+}
 
-var areaSum$1 = adder();
-var areaRingSum$1 = adder();
+var areaSum$1 = adder(),
+    areaRingSum$1 = adder();
 
-var x0$2 = Infinity;
-var y0$2 = x0$2;
-var x1 = -x0$2;
-var y1 = x1;
+var x0$2 = Infinity,
+    y0$2 = x0$2,
+    x1 = -x0$2,
+    y1 = x1;
 var boundsStream$1 = {
   point: boundsPoint$1,
   lineStart: noop,
@@ -30713,7 +30881,7 @@ function boundsPoint$1(x, y) {
 
 var lengthSum$1 = adder();
 
-var clip = function (pointVisible, clipLine, interpolate, start) {
+function clip (pointVisible, clipLine, interpolate, start) {
   return function (rotate, sink) {
     var line = clipLine(sink),
         rotatedStart = rotate.invert(start[0], start[1]),
@@ -30815,7 +30983,7 @@ var clip = function (pointVisible, clipLine, interpolate, start) {
     }
     return clip;
   };
-};
+}
 function validSegment(segment) {
   return segment.length > 1;
 }
@@ -30899,7 +31067,7 @@ function clipAntimeridianInterpolate(from, to, direction, stream) {
   }
 }
 
-var clipCircle = function (radius, delta) {
+function clipCircle (radius, delta) {
   var cr = cos(radius),
       smallRadius = cr > 0,
       notHemisphere = abs(cr) > epsilon;
@@ -31028,7 +31196,7 @@ var clipCircle = function (radius, delta) {
     return code;
   }
   return clip(visible, clipLine, interpolate, smallRadius ? [0, -radius] : [-pi, radius - pi]);
-};
+}
 
 function transformer(methods) {
   return function (stream) {
@@ -31080,11 +31248,11 @@ function fitSize(projection, size, object) {
     return fitExtent(projection, [[0, 0], size], object);
 }
 
-var maxDepth = 16;
-var cosMinDistance = cos(30 * radians);
-var resample = function (project, delta2) {
+var maxDepth = 16,
+cosMinDistance = cos(30 * radians);
+function resample (project, delta2) {
   return +delta2 ? resample$1(project, delta2) : resampleNone(project);
-};
+}
 function resampleNone(project) {
   return transformer({
     point: function point(x, y) {
@@ -31201,7 +31369,7 @@ function projectionMutator(projectAt) {
       y0,
       x1,
       y1,
-      postclip = identity$4,
+      postclip = identity$3,
   delta2 = 0.5,
       projectResample = resample(projectTransform, delta2),
   cache,
@@ -31224,7 +31392,7 @@ function projectionMutator(projectAt) {
     return arguments.length ? (preclip = +_ ? clipCircle(theta = _ * radians, 6 * radians) : (theta = null, clipAntimeridian), reset()) : theta * degrees;
   };
   projection.clipExtent = function (_) {
-    return arguments.length ? (postclip = _ == null ? (x0 = y0 = x1 = y1 = null, identity$4) : clipExtent(x0 = +_[0][0], y0 = +_[0][1], x1 = +_[1][0], y1 = +_[1][1]), reset()) : x0 == null ? null : [[x0, y0], [x1, y1]];
+    return arguments.length ? (postclip = _ == null ? (x0 = y0 = x1 = y1 = null, identity$3) : clipExtent(x0 = +_[0][0], y0 = +_[0][1], x1 = +_[1][0], y1 = +_[1][1]), reset()) : x0 == null ? null : [[x0, y0], [x1, y1]];
   };
   projection.scale = function (_) {
     return arguments.length ? (k = +_, recenter()) : k;
@@ -31241,8 +31409,8 @@ function projectionMutator(projectAt) {
   projection.precision = function (_) {
     return arguments.length ? (projectResample = resample(projectTransform, delta2 = _ * _), reset()) : sqrt(delta2);
   };
-  projection.fitExtent = function (extent$$1, object) {
-    return fitExtent(projection, extent$$1, object);
+  projection.fitExtent = function (extent, object) {
+    return fitExtent(projection, extent, object);
   };
   projection.fitSize = function (size, object) {
     return fitSize(projection, size, object);
@@ -31307,7 +31475,7 @@ function transverseMercatorRaw(lambda, phi) {
 transverseMercatorRaw.invert = function (x, y) {
   return [-y, 2 * atan(exp(x)) - halfPi];
 };
-var geoTransverseMercator = function () {
+function geoTransverseMercator () {
   var m = mercatorProjection(transverseMercatorRaw),
       center = m.center,
       rotate = m.rotate;
@@ -31318,7 +31486,7 @@ var geoTransverseMercator = function () {
     return arguments.length ? rotate([_[0], _[1], _.length > 2 ? _[2] + 90 : 90]) : (_ = rotate(), [_[0], _[1], _[2] - 90]);
   };
   return rotate([0, 0, 90]).scale(159.155);
-};
+}
 
 function buffer$1(geojson, radius, options) {
     options = options || {};
@@ -31520,7 +31688,7 @@ function pointInPolygon(sourceArray, geojsonPolygon) {
 	};
 }
 
-function kinks$1(featureIn) {
+function kinks(featureIn) {
     var coordinates;
     var feature$$1;
     var results = {
@@ -31608,7 +31776,7 @@ function lineIntersects(line1StartX, line1StartY, line1EndX, line1EndY, line2Sta
     }
 }
 
-function kinks(object) {
+function kinks$1(object) {
   var Feature;
   if (object instanceof google.maps.Polyline || object instanceof google.maps.Polygon) {
     var geometry = Wicket().fromObject(object).toJson();
@@ -31622,554 +31790,179 @@ function kinks(object) {
   } else {
     Feature = polygonToFeaturePolygon(object);
   }
-  return kinks$1(Feature);
+  return kinks(Feature);
 }
 
-var rbush$1 = require('rbush');
-var isects = function (feature, filterFn, useSpatialIndex) {
-    if (feature.geometry.type !== 'Polygon') throw new Error('The input feature must be a Polygon');
-    if (useSpatialIndex === undefined) useSpatialIndex = 1;
-    var coord = feature.geometry.coordinates;
-    var output = [];
-    var seen = {};
-    if (useSpatialIndex) {
-        var allEdgesAsRbushTreeItems = [];
-        for (var ring0 = 0; ring0 < coord.length; ring0++) {
-            for (var edge0 = 0; edge0 < coord[ring0].length - 1; edge0++) {
-                allEdgesAsRbushTreeItems.push(rbushTreeItem(ring0, edge0));
-            }
+function feature$5(geometry, properties, options) {
+    options = options || {};
+    if (!isObject$4(options)) throw new Error('options is invalid');
+    var bbox = options.bbox;
+    var id = options.id;
+    if (geometry === undefined) throw new Error('geometry is required');
+    if (properties && properties.constructor !== Object) throw new Error('properties must be an Object');
+    if (bbox) validateBBox$2(bbox);
+    if (id) validateId$2(id);
+    var feat = { type: 'Feature' };
+    if (id) feat.id = id;
+    if (bbox) feat.bbox = bbox;
+    feat.properties = properties || {};
+    feat.geometry = geometry;
+    return feat;
+}
+function polygon$3(coordinates, properties, options) {
+    if (!coordinates) throw new Error('coordinates is required');
+    for (var i = 0; i < coordinates.length; i++) {
+        var ring = coordinates[i];
+        if (ring.length < 4) {
+            throw new Error('Each LinearRing of a Polygon must have 4 or more Positions.');
         }
-        var tree = rbush$1();
-        tree.load(allEdgesAsRbushTreeItems);
-    }
-    for (var ringA = 0; ringA < coord.length; ringA++) {
-        for (var edgeA = 0; edgeA < coord[ringA].length - 1; edgeA++) {
-            if (useSpatialIndex) {
-                var bboxOverlaps = tree.search(rbushTreeItem(ringA, edgeA));
-                bboxOverlaps.forEach(function (bboxIsect) {
-                    var ring1 = bboxIsect.ring;
-                    var edge1 = bboxIsect.edge;
-                    ifIsectAddToOutput(ringA, edgeA, ring1, edge1);
-                });
-            } else {
-                for (var ring1 = 0; ring1 < coord.length; ring1++) {
-                    for (var edge1 = 0; edge1 < coord[ring1].length - 1; edge1++) {
-                        ifIsectAddToOutput(ringA, edgeA, ring1, edge1);
-                    }
-                }
+        for (var j = 0; j < ring[ring.length - 1].length; j++) {
+            if (i === 0 && j === 0 && !isNumber$3(ring[0][0]) || !isNumber$3(ring[0][1])) throw new Error('coordinates must contain numbers');
+            if (ring[ring.length - 1][j] !== ring[0][j]) {
+                throw new Error('First and last Position are not equivalent.');
             }
         }
     }
-    if (!filterFn) output = { type: 'Feature', geometry: { type: 'MultiPoint', coordinates: output } };
-    return output;
-    function ifIsectAddToOutput(ring0, edge0, ring1, edge1) {
-        var start0 = coord[ring0][edge0];
-        var end0 = coord[ring0][edge0 + 1];
-        var start1 = coord[ring1][edge1];
-        var end1 = coord[ring1][edge1 + 1];
-        var isect = intersect(start0, end0, start1, end1);
-        if (isect === null) return;
-        var frac0;
-        var frac1;
-        if (end0[0] !== start0[0]) {
-            frac0 = (isect[0] - start0[0]) / (end0[0] - start0[0]);
-        } else {
-            frac0 = (isect[1] - start0[1]) / (end0[1] - start0[1]);
-        }
-        if (end1[0] !== start1[0]) {
-            frac1 = (isect[0] - start1[0]) / (end1[0] - start1[0]);
-        } else {
-            frac1 = (isect[1] - start1[1]) / (end1[1] - start1[1]);
-        }
-        if (frac0 >= 1 || frac0 <= 0 || frac1 >= 1 || frac1 <= 0) return;
-        var key = isect;
-        var unique = !seen[key];
-        if (unique) {
-            seen[key] = true;
-        }
-        if (filterFn) {
-            output.push(filterFn(isect, ring0, edge0, start0, end0, frac0, ring1, edge1, start1, end1, frac1, unique));
-        } else {
-            output.push(isect);
-        }
-    }
-    function rbushTreeItem(ring, edge) {
-        var start = coord[ring][edge];
-        var end = coord[ring][edge + 1];
-        var minX;
-        var maxX;
-        var minY;
-        var maxY;
-        if (start[0] < end[0]) {
-            minX = start[0];
-            maxX = end[0];
-        } else {
-            minX = end[0];
-            maxX = start[0];
-        }
-        if (start[1] < end[1]) {
-            minY = start[1];
-            maxY = end[1];
-        } else {
-            minY = end[1];
-            maxY = start[1];
-        }
-        return { minX: minX, minY: minY, maxX: maxX, maxY: maxY, ring: ring, edge: edge };
-    }
-};
-function intersect(start0, end0, start1, end1) {
-    if (equalArrays$3(start0, start1) || equalArrays$3(start0, end1) || equalArrays$3(end0, start1) || equalArrays$3(end1, start1)) return null;
-    var x0 = start0[0],
-        y0 = start0[1],
-        x1 = end0[0],
-        y1 = end0[1],
-        x2 = start1[0],
-        y2 = start1[1],
-        x3 = end1[0],
-        y3 = end1[1];
-    var denom = (x0 - x1) * (y2 - y3) - (y0 - y1) * (x2 - x3);
-    if (denom === 0) return null;
-    var x4 = ((x0 * y1 - y0 * x1) * (x2 - x3) - (x0 - x1) * (x2 * y3 - y2 * x3)) / denom;
-    var y4 = ((x0 * y1 - y0 * x1) * (y2 - y3) - (y0 - y1) * (x2 * y3 - y2 * x3)) / denom;
-    return [x4, y4];
+    return feature$5({
+        type: 'Polygon',
+        coordinates: coordinates
+    }, properties, options);
 }
-function equalArrays$3(array1, array2) {
-    if (!array1 || !array2) return false;
-    if (array1.length !== array2.length) return false;
-    for (var i = 0, l = array1.length; i < l; i++) {
-        if (array1[i] instanceof Array && array2[i] instanceof Array) {
-            if (!equalArrays$3(array1[i], array2[i])) return false;
-        } else if (array1[i] !== array2[i]) {
-            return false;
-        }
-    }
-    return true;
+function featureCollection$3(features, options) {
+    options = options || {};
+    if (!isObject$4(options)) throw new Error('options is invalid');
+    var bbox = options.bbox;
+    var id = options.id;
+    if (!features) throw new Error('No features passed');
+    if (!Array.isArray(features)) throw new Error('features must be an Array');
+    if (bbox) validateBBox$2(bbox);
+    if (id) validateId$2(id);
+    var fc = { type: 'FeatureCollection' };
+    if (id) fc.id = id;
+    if (bbox) fc.bbox = bbox;
+    fc.features = features;
+    return fc;
 }
-
-function area$1(geojson) {
-    return geomReduce(geojson, function (value, geom) {
-        return value + calculateArea(geom);
-    }, 0);
+function isNumber$3(num) {
+    return !isNaN(num) && num !== null && !Array.isArray(num);
 }
-var RADIUS = 6378137;
-function calculateArea(geojson) {
-    var area = 0,
-        i;
-    switch (geojson.type) {
-        case 'Polygon':
-            return polygonArea(geojson.coordinates);
-        case 'MultiPolygon':
-            for (i = 0; i < geojson.coordinates.length; i++) {
-                area += polygonArea(geojson.coordinates[i]);
-            }
-            return area;
-        case 'Point':
-        case 'MultiPoint':
-        case 'LineString':
-        case 'MultiLineString':
-            return 0;
-        case 'GeometryCollection':
-            for (i = 0; i < geojson.geometries.length; i++) {
-                area += calculateArea(geojson.geometries[i]);
-            }
-            return area;
-    }
+function isObject$4(input) {
+    return !!input && input.constructor === Object;
 }
-function polygonArea(coords) {
-    var area = 0;
-    if (coords && coords.length > 0) {
-        area += Math.abs(ringArea(coords[0]));
-        for (var i = 1; i < coords.length; i++) {
-            area -= Math.abs(ringArea(coords[i]));
-        }
-    }
-    return area;
-}
-function ringArea(coords) {
-    var p1;
-    var p2;
-    var p3;
-    var lowerIndex;
-    var middleIndex;
-    var upperIndex;
-    var i;
-    var area = 0;
-    var coordsLength = coords.length;
-    if (coordsLength > 2) {
-        for (i = 0; i < coordsLength; i++) {
-            if (i === coordsLength - 2) {
-                lowerIndex = coordsLength - 2;
-                middleIndex = coordsLength - 1;
-                upperIndex = 0;
-            } else if (i === coordsLength - 1) {
-                lowerIndex = coordsLength - 1;
-                middleIndex = 0;
-                upperIndex = 1;
-            } else {
-                lowerIndex = i;
-                middleIndex = i + 1;
-                upperIndex = i + 2;
-            }
-            p1 = coords[lowerIndex];
-            p2 = coords[middleIndex];
-            p3 = coords[upperIndex];
-            area += (rad(p3[0]) - rad(p1[0])) * Math.sin(rad(p2[1]));
-        }
-        area = area * RADIUS * RADIUS / 2;
-    }
-    return area;
-}
-function rad(_) {
-    return _ * Math.PI / 180;
-}
-
-var rbush = require('rbush');
-var simplepolygon = function (feature$$1) {
-    if (feature$$1.type != 'Feature') throw new Error('The input must a geojson object of type Feature');
-    if (feature$$1.geometry === undefined || feature$$1.geometry == null) throw new Error('The input must a geojson object with a non-empty geometry');
-    if (feature$$1.geometry.type != 'Polygon') throw new Error('The input must be a geojson Polygon');
-    var numRings = feature$$1.geometry.coordinates.length;
-    var vertices = [];
-    for (var i = 0; i < numRings; i++) {
-        var ring = feature$$1.geometry.coordinates[i];
-        if (!equalArrays$2(ring[0], ring[ring.length - 1])) {
-            ring.push(ring[0]);
-        }
-        vertices.push.apply(vertices, ring.slice(0, ring.length - 1));
-    }
-    if (!isUnique(vertices)) throw new Error('The input polygon may not have duplicate vertices (except for the first and last vertex of each ring)');
-    var numvertices = vertices.length;
-    var selfIsectsData = isects(feature$$1, function filterFn(isect, ring0, edge0, start0, end0, frac0, ring1, edge1, start1, end1, frac1, unique) {
-        return [isect, ring0, edge0, start0, end0, frac0, ring1, edge1, start1, end1, frac1, unique];
+function validateBBox$2(bbox) {
+    if (!bbox) throw new Error('bbox is required');
+    if (!Array.isArray(bbox)) throw new Error('bbox must be an Array');
+    if (bbox.length !== 4 && bbox.length !== 6) throw new Error('bbox must be an Array of 4 or 6 numbers');
+    bbox.forEach(function (num) {
+        if (!isNumber$3(num)) throw new Error('bbox must only contain numbers');
     });
-    var numSelfIsect = selfIsectsData.length;
-    if (numSelfIsect == 0) {
-        var outputFeatureArray = [];
-        for (var i = 0; i < numRings; i++) {
-            outputFeatureArray.push(polygon([feature$$1.geometry.coordinates[i]], { parent: -1, winding: windingOfRing(feature$$1.geometry.coordinates[i]) }));
-        }
-        var output = featureCollection(outputFeatureArray);
-        determineParents();
-        setNetWinding();
-        return output;
-    }
-    var pseudoVtxListByRingAndEdge = [];
-    var isectList = [];
-    for (var i = 0; i < numRings; i++) {
-        pseudoVtxListByRingAndEdge.push([]);
-        for (var j = 0; j < feature$$1.geometry.coordinates[i].length - 1; j++) {
-            pseudoVtxListByRingAndEdge[i].push([new PseudoVtx(feature$$1.geometry.coordinates[i][(j + 1).modulo(feature$$1.geometry.coordinates[i].length - 1)], 1, [i, j], [i, (j + 1).modulo(feature$$1.geometry.coordinates[i].length - 1)], undefined)]);
-            isectList.push(new Isect(feature$$1.geometry.coordinates[i][j], [i, (j - 1).modulo(feature$$1.geometry.coordinates[i].length - 1)], [i, j], undefined, undefined, false, true));
+}
+function validateId$2(id) {
+    if (!id) throw new Error('id is required');
+    if (['string', 'number'].indexOf(typeof id === 'undefined' ? 'undefined' : _typeof(id)) === -1) throw new Error('id must be a number or a string');
+}
+
+function featureEach$2(geojson, callback) {
+    if (geojson.type === 'Feature') {
+        callback(geojson, 0);
+    } else if (geojson.type === 'FeatureCollection') {
+        for (var i = 0; i < geojson.features.length; i++) {
+            if (callback(geojson.features[i], i) === false) break;
         }
     }
-    for (var i = 0; i < numSelfIsect; i++) {
-        pseudoVtxListByRingAndEdge[selfIsectsData[i][1]][selfIsectsData[i][2]].push(new PseudoVtx(selfIsectsData[i][0], selfIsectsData[i][5], [selfIsectsData[i][1], selfIsectsData[i][2]], [selfIsectsData[i][6], selfIsectsData[i][7]], undefined));
-        if (selfIsectsData[i][11]) isectList.push(new Isect(selfIsectsData[i][0], [selfIsectsData[i][1], selfIsectsData[i][2]], [selfIsectsData[i][6], selfIsectsData[i][7]], undefined, undefined, true, true));
-    }
-    var numIsect = isectList.length;
-    for (var i = 0; i < pseudoVtxListByRingAndEdge.length; i++) {
-        for (var j = 0; j < pseudoVtxListByRingAndEdge[i].length; j++) {
-            pseudoVtxListByRingAndEdge[i][j].sort(function (a, b) {
-                return a.param < b.param ? -1 : 1;
-            });
-        }
-    }
-    var allIsectsAsIsectRbushTreeItem = [];
-    for (var i = 0; i < numIsect; i++) {
-        allIsectsAsIsectRbushTreeItem.push({ minX: isectList[i].coord[0], minY: isectList[i].coord[1], maxX: isectList[i].coord[0], maxY: isectList[i].coord[1], index: i });
-    }
-    var isectRbushTree = rbush();
-    isectRbushTree.load(allIsectsAsIsectRbushTreeItem);
-    for (var i = 0; i < pseudoVtxListByRingAndEdge.length; i++) {
-        for (var j = 0; j < pseudoVtxListByRingAndEdge[i].length; j++) {
-            for (var k = 0; k < pseudoVtxListByRingAndEdge[i][j].length; k++) {
-                var coordToFind;
-                if (k == pseudoVtxListByRingAndEdge[i][j].length - 1) {
-                    coordToFind = pseudoVtxListByRingAndEdge[i][(j + 1).modulo(feature$$1.geometry.coordinates[i].length - 1)][0].coord;
-                } else {
-                    coordToFind = pseudoVtxListByRingAndEdge[i][j][k + 1].coord;
-                }
-                var IsectRbushTreeItemFound = isectRbushTree.search({ minX: coordToFind[0], minY: coordToFind[1], maxX: coordToFind[0], maxY: coordToFind[1] })[0];
-                pseudoVtxListByRingAndEdge[i][j][k].nxtIsectAlongEdgeIn = IsectRbushTreeItemFound.index;
+}
+function geomEach$2(geojson, callback) {
+    var i,
+        j,
+        g,
+        geometry,
+        stopG,
+        geometryMaybeCollection,
+        isGeometryCollection,
+        featureProperties,
+        featureBBox,
+        featureId,
+        featureIndex = 0,
+        isFeatureCollection = geojson.type === 'FeatureCollection',
+        isFeature = geojson.type === 'Feature',
+        stop = isFeatureCollection ? geojson.features.length : 1;
+    for (i = 0; i < stop; i++) {
+        geometryMaybeCollection = isFeatureCollection ? geojson.features[i].geometry : isFeature ? geojson.geometry : geojson;
+        featureProperties = isFeatureCollection ? geojson.features[i].properties : isFeature ? geojson.properties : {};
+        featureBBox = isFeatureCollection ? geojson.features[i].bbox : isFeature ? geojson.bbox : undefined;
+        featureId = isFeatureCollection ? geojson.features[i].id : isFeature ? geojson.id : undefined;
+        isGeometryCollection = geometryMaybeCollection ? geometryMaybeCollection.type === 'GeometryCollection' : false;
+        stopG = isGeometryCollection ? geometryMaybeCollection.geometries.length : 1;
+        for (g = 0; g < stopG; g++) {
+            geometry = isGeometryCollection ? geometryMaybeCollection.geometries[g] : geometryMaybeCollection;
+            if (geometry === null) {
+                if (callback(null, featureIndex, featureProperties, featureBBox, featureId) === false) return false;
+                continue;
             }
-        }
-    }
-    for (var i = 0; i < pseudoVtxListByRingAndEdge.length; i++) {
-        for (var j = 0; j < pseudoVtxListByRingAndEdge[i].length; j++) {
-            for (var k = 0; k < pseudoVtxListByRingAndEdge[i][j].length; k++) {
-                var coordToFind = pseudoVtxListByRingAndEdge[i][j][k].coord;
-                var IsectRbushTreeItemFound = isectRbushTree.search({ minX: coordToFind[0], minY: coordToFind[1], maxX: coordToFind[0], maxY: coordToFind[1] })[0];
-                var l = IsectRbushTreeItemFound.index;
-                if (l < numvertices) {
-                    isectList[l].nxtIsectAlongRingAndEdge2 = pseudoVtxListByRingAndEdge[i][j][k].nxtIsectAlongEdgeIn;
-                } else {
-                    if (equalArrays$2(isectList[l].ringAndEdge1, pseudoVtxListByRingAndEdge[i][j][k].ringAndEdgeIn)) {
-                        isectList[l].nxtIsectAlongRingAndEdge1 = pseudoVtxListByRingAndEdge[i][j][k].nxtIsectAlongEdgeIn;
-                    } else {
-                        isectList[l].nxtIsectAlongRingAndEdge2 = pseudoVtxListByRingAndEdge[i][j][k].nxtIsectAlongEdgeIn;
+            switch (geometry.type) {
+                case 'Point':
+                case 'LineString':
+                case 'MultiPoint':
+                case 'Polygon':
+                case 'MultiLineString':
+                case 'MultiPolygon':
+                    {
+                        if (callback(geometry, featureIndex, featureProperties, featureBBox, featureId) === false) return false;
+                        break;
                     }
-                }
-            }
-        }
-    }
-    var queue = [];
-    var i = 0;
-    for (var j = 0; j < numRings; j++) {
-        var leftIsect = i;
-        for (var k = 0; k < feature$$1.geometry.coordinates[j].length - 1; k++) {
-            if (isectList[i].coord[0] < isectList[leftIsect].coord[0]) {
-                leftIsect = i;
-            }
-            i++;
-        }
-        var isectAfterLeftIsect = isectList[leftIsect].nxtIsectAlongRingAndEdge2;
-        for (var k = 0; k < isectList.length; k++) {
-            if (isectList[k].nxtIsectAlongRingAndEdge1 == leftIsect || isectList[k].nxtIsectAlongRingAndEdge2 == leftIsect) {
-                var isectBeforeLeftIsect = k;
-                break;
-            }
-        }
-        var windingAtIsect = isConvex([isectList[isectBeforeLeftIsect].coord, isectList[leftIsect].coord, isectList[isectAfterLeftIsect].coord], true) ? 1 : -1;
-        queue.push({ isect: leftIsect, parent: -1, winding: windingAtIsect });
-    }
-    queue.sort(function (a, b) {
-        return isectList[a.isect].coord > isectList[b.isect].coord ? -1 : 1;
-    });
-    var outputFeatureArray = [];
-    while (queue.length > 0) {
-        var popped = queue.pop();
-        var startIsect = popped.isect;
-        var currentOutputRingParent = popped.parent;
-        var currentOutputRingWinding = popped.winding;
-        var currentOutputRing = outputFeatureArray.length;
-        var currentOutputRingCoords = [isectList[startIsect].coord];
-        var currentIsect = startIsect;
-        if (isectList[startIsect].ringAndEdge1Walkable) {
-            var walkingRingAndEdge = isectList[startIsect].ringAndEdge1;
-            var nxtIsect = isectList[startIsect].nxtIsectAlongRingAndEdge1;
-        } else {
-            var walkingRingAndEdge = isectList[startIsect].ringAndEdge2;
-            var nxtIsect = isectList[startIsect].nxtIsectAlongRingAndEdge2;
-        }
-        while (!equalArrays$2(isectList[startIsect].coord, isectList[nxtIsect].coord)) {
-            currentOutputRingCoords.push(isectList[nxtIsect].coord);
-            var nxtIsectInQueue = undefined;
-            for (var i = 0; i < queue.length; i++) {
-                if (queue[i].isect == nxtIsect) {
-                    nxtIsectInQueue = i;break;
-                }
-            }
-            if (nxtIsectInQueue != undefined) {
-                queue.splice(nxtIsectInQueue, 1);
-            }
-            if (equalArrays$2(walkingRingAndEdge, isectList[nxtIsect].ringAndEdge1)) {
-                walkingRingAndEdge = isectList[nxtIsect].ringAndEdge2;
-                isectList[nxtIsect].ringAndEdge2Walkable = false;
-                if (isectList[nxtIsect].ringAndEdge1Walkable) {
-                    var pushing = { isect: nxtIsect };
-                    if (isConvex([isectList[currentIsect].coord, isectList[nxtIsect].coord, isectList[isectList[nxtIsect].nxtIsectAlongRingAndEdge2].coord], currentOutputRingWinding == 1)) {
-                        pushing.parent = currentOutputRingParent;
-                        pushing.winding = -currentOutputRingWinding;
-                    } else {
-                        pushing.parent = currentOutputRing;
-                        pushing.winding = currentOutputRingWinding;
-                    }
-                    queue.push(pushing);
-                }
-                currentIsect = nxtIsect;
-                nxtIsect = isectList[nxtIsect].nxtIsectAlongRingAndEdge2;
-            } else {
-                walkingRingAndEdge = isectList[nxtIsect].ringAndEdge1;
-                isectList[nxtIsect].ringAndEdge1Walkable = false;
-                if (isectList[nxtIsect].ringAndEdge2Walkable) {
-                    var pushing = { isect: nxtIsect };
-                    if (isConvex([isectList[currentIsect].coord, isectList[nxtIsect].coord, isectList[isectList[nxtIsect].nxtIsectAlongRingAndEdge1].coord], currentOutputRingWinding == 1)) {
-                        pushing.parent = currentOutputRingParent;
-                        pushing.winding = -currentOutputRingWinding;
-                    } else {
-                        pushing.parent = currentOutputRing;
-                        pushing.winding = currentOutputRingWinding;
-                    }
-                    queue.push(pushing);
-                }
-                currentIsect = nxtIsect;
-                nxtIsect = isectList[nxtIsect].nxtIsectAlongRingAndEdge1;
-            }
-        }
-        currentOutputRingCoords.push(isectList[nxtIsect].coord);
-        outputFeatureArray.push(polygon([currentOutputRingCoords], { index: currentOutputRing, parent: currentOutputRingParent, winding: currentOutputRingWinding, netWinding: undefined }));
-    }
-    var output = featureCollection(outputFeatureArray);
-    determineParents();
-    setNetWinding();
-    function determineParents() {
-        var featuresWithoutParent = [];
-        for (var i = 0; i < output.features.length; i++) {
-            if (output.features[i].properties.parent == -1) featuresWithoutParent.push(i);
-        }
-        if (featuresWithoutParent.length > 1) {
-            for (var i = 0; i < featuresWithoutParent.length; i++) {
-                var parent = -1;
-                var parentArea = Infinity;
-                for (var j = 0; j < output.features.length; j++) {
-                    if (featuresWithoutParent[i] == j) continue;
-                    if (booleanPointInPolygon(output.features[featuresWithoutParent[i]].geometry.coordinates[0][0], output.features[j], { ignoreBoundary: true })) {
-                        if (area$1(output.features[j]) < parentArea) {
-                            parent = j;
+                case 'GeometryCollection':
+                    {
+                        for (j = 0; j < geometry.geometries.length; j++) {
+                            if (callback(geometry.geometries[j], featureIndex, featureProperties, featureBBox, featureId) === false) return false;
                         }
+                        break;
                     }
-                }
-                output.features[featuresWithoutParent[i]].properties.parent = parent;
+                default:
+                    throw new Error('Unknown Geometry Type');
             }
         }
+        featureIndex++;
     }
-    function setNetWinding() {
-        for (var i = 0; i < output.features.length; i++) {
-            if (output.features[i].properties.parent == -1) {
-                var netWinding = output.features[i].properties.winding;
-                output.features[i].properties.netWinding = netWinding;
-                setNetWindingOfChildren(i, netWinding);
-            }
-        }
-    }
-    function setNetWindingOfChildren(parent, ParentNetWinding) {
-        for (var i = 0; i < output.features.length; i++) {
-            if (output.features[i].properties.parent == parent) {
-                var netWinding = ParentNetWinding + output.features[i].properties.winding;
-                output.features[i].properties.netWinding = netWinding;
-                setNetWindingOfChildren(i, netWinding);
-            }
-        }
-    }
-    return output;
-};
-var PseudoVtx = function PseudoVtx(coord, param, ringAndEdgeIn, ringAndEdgeOut, nxtIsectAlongEdgeIn) {
-    this.coord = coord;
-    this.param = param;
-    this.ringAndEdgeIn = ringAndEdgeIn;
-    this.ringAndEdgeOut = ringAndEdgeOut;
-    this.nxtIsectAlongEdgeIn = nxtIsectAlongEdgeIn;
-};
-var Isect = function Isect(coord, ringAndEdge1, ringAndEdge2, nxtIsectAlongRingAndEdge1, nxtIsectAlongRingAndEdge2, ringAndEdge1Walkable, ringAndEdge2Walkable) {
-    this.coord = coord;
-    this.ringAndEdge1 = ringAndEdge1;
-    this.ringAndEdge2 = ringAndEdge2;
-    this.nxtIsectAlongRingAndEdge1 = nxtIsectAlongRingAndEdge1;
-    this.nxtIsectAlongRingAndEdge2 = nxtIsectAlongRingAndEdge2;
-    this.ringAndEdge1Walkable = ringAndEdge1Walkable;
-    this.ringAndEdge2Walkable = ringAndEdge2Walkable;
-};
-function isConvex(pts, righthanded) {
-    if (typeof righthanded === 'undefined') righthanded = true;
-    if (pts.length != 3) throw new Error('This function requires an array of three points [x,y]');
-    var d = (pts[1][0] - pts[0][0]) * (pts[2][1] - pts[0][1]) - (pts[1][1] - pts[0][1]) * (pts[2][0] - pts[0][0]);
-    return d >= 0 == righthanded;
 }
-function windingOfRing(ring) {
-    var leftVtx = 0;
-    for (var i = 0; i < ring.length - 1; i++) {
-        if (ring[i][0] < ring[leftVtx][0]) leftVtx = i;
-    }
-    if (isConvex([ring[(leftVtx - 1).modulo(ring.length - 1)], ring[leftVtx], ring[(leftVtx + 1).modulo(ring.length - 1)]], true)) {
-        var winding = 1;
-    } else {
-        var winding = -1;
-    }
-    return winding;
-}
-function equalArrays$2(array1, array2) {
-    if (!array1 || !array2) return false;
-    if (array1.length != array2.length) return false;
-    for (var i = 0, l = array1.length; i < l; i++) {
-        if (array1[i] instanceof Array && array2[i] instanceof Array) {
-            if (!equalArrays$2(array1[i], array2[i])) return false;
-        } else if (array1[i] != array2[i]) {
-            return false;
+function flattenEach$2(geojson, callback) {
+    geomEach$2(geojson, function (geometry, featureIndex, properties, bbox, id) {
+        var type = geometry === null ? null : geometry.type;
+        switch (type) {
+            case null:
+            case 'Point':
+            case 'LineString':
+            case 'Polygon':
+                if (callback(feature$5(geometry, properties, { bbox: bbox, id: id }), featureIndex, 0) === false) return false;
+                return;
         }
-    }
-    return true;
-}
-Number.prototype.modulo = function (n) {
-    return (this % n + n) % n;
-};
-function isUnique(array) {
-    var u = {};
-    var isUnique = 1;
-    for (var i = 0, l = array.length; i < l; ++i) {
-        if (u.hasOwnProperty(array[i])) {
-            isUnique = 0;
-            break;
+        var geomType;
+        switch (type) {
+            case 'MultiPoint':
+                geomType = 'Point';
+                break;
+            case 'MultiLineString':
+                geomType = 'LineString';
+                break;
+            case 'MultiPolygon':
+                geomType = 'Polygon';
+                break;
         }
-        u[array[i]] = 1;
-    }
-    return isUnique;
-}
-
-function unkinkPolygon(geojson) {
-    var features = [];
-    flattenEach(geojson, function (feature$$1) {
-        if (feature$$1.geometry.type !== 'Polygon') return;
-        featureEach(simplepolygon(feature$$1), function (poly) {
-            features.push(polygon(poly.geometry.coordinates, feature$$1.properties));
-        });
+        for (var multiFeatureIndex = 0; multiFeatureIndex < geometry.coordinates.length; multiFeatureIndex++) {
+            var coordinate = geometry.coordinates[multiFeatureIndex];
+            var geom = {
+                type: geomType,
+                coordinates: coordinate
+            };
+            if (callback(feature$5(geom, properties), featureIndex, multiFeatureIndex) === false) return false;
+        }
     });
-    return featureCollection(features);
 }
 
-function unkink(object) {
-  var polygonFeature = polygonToFeaturePolygon(object);
-  return unkinkPolygon(polygonFeature);
-}
-
-function baseFilter(collection, predicate) {
-  var result = [];
-  baseEach(collection, function (value, index, collection) {
-    if (predicate(value, index, collection)) {
-      result.push(value);
-    }
-  });
-  return result;
-}
-
-function filter(collection, predicate) {
-  var func = isArray(collection) ? arrayFilter : baseFilter;
-  return func(collection, baseIteratee(predicate, 3));
-}
-
-function baseExtremum(array, iteratee, comparator) {
-  var index = -1,
-      length = array.length;
-  while (++index < length) {
-    var value = array[index],
-        current = iteratee(value);
-    if (current != null && (computed === undefined ? current === current && !isSymbol(current) : comparator(current, computed))) {
-      var computed = current,
-          result = value;
-    }
-  }
-  return result;
-}
-
-function baseGt(value, other) {
-  return value > other;
-}
-
-function max$1(array) {
-  return array && array.length ? baseExtremum(array, identity, baseGt) : undefined;
-}
-
-function baseLt(value, other) {
-  return value < other;
-}
-
-function min$1(array) {
-  return array && array.length ? baseExtremum(array, identity, baseLt) : undefined;
-}
-
-function quickselect(arr, k, left, right, compare) {
-    quickselectStep(arr, k, left || 0, right || arr.length - 1, compare || defaultCompare);
-}
-function quickselectStep(arr, k, left, right, compare) {
+var quickselect = partialSort;
+function partialSort(arr, k, left, right, compare) {
+    left = left || 0;
+    right = right || arr.length - 1;
+    compare = compare || defaultCompare;
     while (right > left) {
         if (right - left > 600) {
             var n = right - left + 1;
@@ -32179,7 +31972,7 @@ function quickselectStep(arr, k, left, right, compare) {
             var sd = 0.5 * Math.sqrt(z * s * (n - s) / n) * (m - n / 2 < 0 ? -1 : 1);
             var newLeft = Math.max(left, Math.floor(k - m * s / n + sd));
             var newRight = Math.min(right, Math.floor(k + (n - m) * s / n + sd));
-            quickselectStep(arr, k, newLeft, newRight, compare);
+            partialSort(arr, k, newLeft, newRight, compare);
         }
         var t = arr[k];
         var i = left;
@@ -32213,8 +32006,16 @@ function defaultCompare(a, b) {
     return a < b ? -1 : a > b ? 1 : 0;
 }
 
-function rbush$3(maxEntries, format) {
-    if (!(this instanceof rbush$3)) return new rbush$3(maxEntries, format);
+var quickselect$1 = /*#__PURE__*/Object.freeze({
+  default: quickselect,
+  __moduleExports: quickselect
+});
+
+var quickselect$2 = ( quickselect$1 && quickselect ) || quickselect$1;
+
+var rbush_1 = rbush;
+function rbush(maxEntries, format) {
+    if (!(this instanceof rbush)) return new rbush(maxEntries, format);
     this._maxEntries = Math.max(4, maxEntries || 9);
     this._minEntries = Math.max(2, Math.ceil(this._maxEntries * 0.4));
     if (format) {
@@ -32222,7 +32023,7 @@ function rbush$3(maxEntries, format) {
     }
     this.clear();
 }
-rbush$3.prototype = {
+rbush.prototype = {
     all: function all() {
         return this._all(this.data, []);
     },
@@ -32230,7 +32031,7 @@ rbush$3.prototype = {
         var node = this.data,
             result = [],
             toBBox = this.toBBox;
-        if (!intersects$1(bbox, node)) return result;
+        if (!intersects(bbox, node)) return result;
         var nodesToSearch = [],
             i,
             len,
@@ -32240,7 +32041,7 @@ rbush$3.prototype = {
             for (i = 0, len = node.children.length; i < len; i++) {
                 child = node.children[i];
                 childBBox = node.leaf ? toBBox(child) : child;
-                if (intersects$1(bbox, childBBox)) {
+                if (intersects(bbox, childBBox)) {
                     if (node.leaf) result.push(child);else if (contains$1(bbox, childBBox)) this._all(child, result);else nodesToSearch.push(child);
                 }
             }
@@ -32251,7 +32052,7 @@ rbush$3.prototype = {
     collides: function collides(bbox) {
         var node = this.data,
             toBBox = this.toBBox;
-        if (!intersects$1(bbox, node)) return false;
+        if (!intersects(bbox, node)) return false;
         var nodesToSearch = [],
             i,
             len,
@@ -32261,7 +32062,7 @@ rbush$3.prototype = {
             for (i = 0, len = node.children.length; i < len; i++) {
                 child = node.children[i];
                 childBBox = node.leaf ? toBBox(child) : child;
-                if (intersects$1(bbox, childBBox)) {
+                if (intersects(bbox, childBBox)) {
                     if (node.leaf || contains$1(bbox, childBBox)) return true;
                     nodesToSearch.push(child);
                 }
@@ -32578,7 +32379,7 @@ function intersectionArea(a, b) {
 function contains$1(a, b) {
     return a.minX <= b.minX && a.minY <= b.minY && b.maxX <= a.maxX && b.maxY <= a.maxY;
 }
-function intersects$1(a, b) {
+function intersects(a, b) {
     return b.minX <= a.maxX && b.minY <= a.maxY && b.maxX >= a.minX && b.maxY >= a.minY;
 }
 function createNode(children) {
@@ -32600,13 +32401,1111 @@ function multiSelect(arr, left, right, n, compare) {
         left = stack.pop();
         if (right - left <= n) continue;
         mid = left + Math.ceil((right - left) / n / 2) * n;
-        quickselect(arr, mid, left, right, compare);
+        quickselect$2(arr, mid, left, right, compare);
+        stack.push(left, mid, mid, right);
+    }
+}
+
+function geomEach$3(geojson, callback) {
+    var i,
+        j,
+        g,
+        geometry,
+        stopG,
+        geometryMaybeCollection,
+        isGeometryCollection,
+        featureProperties,
+        featureBBox,
+        featureId,
+        featureIndex = 0,
+        isFeatureCollection = geojson.type === 'FeatureCollection',
+        isFeature = geojson.type === 'Feature',
+        stop = isFeatureCollection ? geojson.features.length : 1;
+    for (i = 0; i < stop; i++) {
+        geometryMaybeCollection = isFeatureCollection ? geojson.features[i].geometry : isFeature ? geojson.geometry : geojson;
+        featureProperties = isFeatureCollection ? geojson.features[i].properties : isFeature ? geojson.properties : {};
+        featureBBox = isFeatureCollection ? geojson.features[i].bbox : isFeature ? geojson.bbox : undefined;
+        featureId = isFeatureCollection ? geojson.features[i].id : isFeature ? geojson.id : undefined;
+        isGeometryCollection = geometryMaybeCollection ? geometryMaybeCollection.type === 'GeometryCollection' : false;
+        stopG = isGeometryCollection ? geometryMaybeCollection.geometries.length : 1;
+        for (g = 0; g < stopG; g++) {
+            geometry = isGeometryCollection ? geometryMaybeCollection.geometries[g] : geometryMaybeCollection;
+            if (geometry === null) {
+                if (callback(null, featureIndex, featureProperties, featureBBox, featureId) === false) return false;
+                continue;
+            }
+            switch (geometry.type) {
+                case 'Point':
+                case 'LineString':
+                case 'MultiPoint':
+                case 'Polygon':
+                case 'MultiLineString':
+                case 'MultiPolygon':
+                    {
+                        if (callback(geometry, featureIndex, featureProperties, featureBBox, featureId) === false) return false;
+                        break;
+                    }
+                case 'GeometryCollection':
+                    {
+                        for (j = 0; j < geometry.geometries.length; j++) {
+                            if (callback(geometry.geometries[j], featureIndex, featureProperties, featureBBox, featureId) === false) return false;
+                        }
+                        break;
+                    }
+                default:
+                    throw new Error('Unknown Geometry Type');
+            }
+        }
+        featureIndex++;
+    }
+}
+function geomReduce$3(geojson, callback, initialValue) {
+    var previousValue = initialValue;
+    geomEach$3(geojson, function (currentGeometry, featureIndex, featureProperties, featureBBox, featureId) {
+        if (featureIndex === 0 && initialValue === undefined) previousValue = currentGeometry;else previousValue = callback(previousValue, currentGeometry, featureIndex, featureProperties, featureBBox, featureId);
+    });
+    return previousValue;
+}
+
+function area$1(geojson) {
+    return geomReduce$3(geojson, function (value, geom) {
+        return value + calculateArea(geom);
+    }, 0);
+}
+var RADIUS = 6378137;
+function calculateArea(geojson) {
+    var area = 0,
+        i;
+    switch (geojson.type) {
+        case 'Polygon':
+            return polygonArea(geojson.coordinates);
+        case 'MultiPolygon':
+            for (i = 0; i < geojson.coordinates.length; i++) {
+                area += polygonArea(geojson.coordinates[i]);
+            }
+            return area;
+        case 'Point':
+        case 'MultiPoint':
+        case 'LineString':
+        case 'MultiLineString':
+            return 0;
+        case 'GeometryCollection':
+            for (i = 0; i < geojson.geometries.length; i++) {
+                area += calculateArea(geojson.geometries[i]);
+            }
+            return area;
+    }
+}
+function polygonArea(coords) {
+    var area = 0;
+    if (coords && coords.length > 0) {
+        area += Math.abs(ringArea(coords[0]));
+        for (var i = 1; i < coords.length; i++) {
+            area -= Math.abs(ringArea(coords[i]));
+        }
+    }
+    return area;
+}
+function ringArea(coords) {
+    var p1;
+    var p2;
+    var p3;
+    var lowerIndex;
+    var middleIndex;
+    var upperIndex;
+    var i;
+    var area = 0;
+    var coordsLength = coords.length;
+    if (coordsLength > 2) {
+        for (i = 0; i < coordsLength; i++) {
+            if (i === coordsLength - 2) {
+                lowerIndex = coordsLength - 2;
+                middleIndex = coordsLength - 1;
+                upperIndex = 0;
+            } else if (i === coordsLength - 1) {
+                lowerIndex = coordsLength - 1;
+                middleIndex = 0;
+                upperIndex = 1;
+            } else {
+                lowerIndex = i;
+                middleIndex = i + 1;
+                upperIndex = i + 2;
+            }
+            p1 = coords[lowerIndex];
+            p2 = coords[middleIndex];
+            p3 = coords[upperIndex];
+            area += (rad(p3[0]) - rad(p1[0])) * Math.sin(rad(p2[1]));
+        }
+        area = area * RADIUS * RADIUS / 2;
+    }
+    return area;
+}
+function rad(_) {
+    return _ * Math.PI / 180;
+}
+
+function getCoord$2(coord) {
+    if (!coord) throw new Error('coord is required');
+    if (coord.type === 'Feature' && coord.geometry !== null && coord.geometry.type === 'Point') return coord.geometry.coordinates;
+    if (coord.type === 'Point') return coord.coordinates;
+    if (Array.isArray(coord) && coord.length >= 2 && coord[0].length === undefined && coord[1].length === undefined) return coord;
+    throw new Error('coord must be GeoJSON Point or an Array of numbers');
+}
+function getCoords$2(coords) {
+    if (!coords) throw new Error('coords is required');
+    if (coords.type === 'Feature' && coords.geometry !== null) return coords.geometry.coordinates;
+    if (coords.coordinates) return coords.coordinates;
+    if (Array.isArray(coords)) return coords;
+    throw new Error('coords must be GeoJSON Feature, Geometry Object or an Array');
+}
+
+function booleanPointInPolygon$1(point, polygon, options) {
+    options = options || {};
+    if ((typeof options === 'undefined' ? 'undefined' : _typeof(options)) !== 'object') throw new Error('options is invalid');
+    var ignoreBoundary = options.ignoreBoundary;
+    if (!point) throw new Error('point is required');
+    if (!polygon) throw new Error('polygon is required');
+    var pt = getCoord$2(point);
+    var polys = getCoords$2(polygon);
+    var type = polygon.geometry ? polygon.geometry.type : polygon.type;
+    var bbox = polygon.bbox;
+    if (bbox && inBBox$1(pt, bbox) === false) return false;
+    if (type === 'Polygon') polys = [polys];
+    for (var i = 0, insidePoly = false; i < polys.length && !insidePoly; i++) {
+        if (inRing$1(pt, polys[i][0], ignoreBoundary)) {
+            var inHole = false;
+            var k = 1;
+            while (k < polys[i].length && !inHole) {
+                if (inRing$1(pt, polys[i][k], !ignoreBoundary)) {
+                    inHole = true;
+                }
+                k++;
+            }
+            if (!inHole) insidePoly = true;
+        }
+    }
+    return insidePoly;
+}
+function inRing$1(pt, ring, ignoreBoundary) {
+    var isInside = false;
+    if (ring[0][0] === ring[ring.length - 1][0] && ring[0][1] === ring[ring.length - 1][1]) ring = ring.slice(0, ring.length - 1);
+    for (var i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+        var xi = ring[i][0],
+            yi = ring[i][1];
+        var xj = ring[j][0],
+            yj = ring[j][1];
+        var onBoundary = pt[1] * (xi - xj) + yi * (xj - pt[0]) + yj * (pt[0] - xi) === 0 && (xi - pt[0]) * (xj - pt[0]) <= 0 && (yi - pt[1]) * (yj - pt[1]) <= 0;
+        if (onBoundary) return !ignoreBoundary;
+        var intersect = yi > pt[1] !== yj > pt[1] && pt[0] < (xj - xi) * (pt[1] - yi) / (yj - yi) + xi;
+        if (intersect) isInside = !isInside;
+    }
+    return isInside;
+}
+function inBBox$1(pt, bbox) {
+    return bbox[0] <= pt[0] && bbox[1] <= pt[1] && bbox[2] >= pt[0] && bbox[3] >= pt[1];
+}
+
+var isects = function isects(feature, filterFn, useSpatialIndex) {
+    if (feature.geometry.type !== 'Polygon') throw new Error('The input feature must be a Polygon');
+    if (useSpatialIndex === undefined) useSpatialIndex = 1;
+    var coord = feature.geometry.coordinates;
+    var output = [];
+    var seen = {};
+    if (useSpatialIndex) {
+        var allEdgesAsRbushTreeItems = [];
+        for (var ring0 = 0; ring0 < coord.length; ring0++) {
+            for (var edge0 = 0; edge0 < coord[ring0].length - 1; edge0++) {
+                allEdgesAsRbushTreeItems.push(rbushTreeItem(ring0, edge0));
+            }
+        }
+        var tree = rbush_1();
+        tree.load(allEdgesAsRbushTreeItems);
+    }
+    for (var ringA = 0; ringA < coord.length; ringA++) {
+        for (var edgeA = 0; edgeA < coord[ringA].length - 1; edgeA++) {
+            if (useSpatialIndex) {
+                var bboxOverlaps = tree.search(rbushTreeItem(ringA, edgeA));
+                bboxOverlaps.forEach(function (bboxIsect) {
+                    var ring1 = bboxIsect.ring;
+                    var edge1 = bboxIsect.edge;
+                    ifIsectAddToOutput(ringA, edgeA, ring1, edge1);
+                });
+            } else {
+                for (var ring1 = 0; ring1 < coord.length; ring1++) {
+                    for (var edge1 = 0; edge1 < coord[ring1].length - 1; edge1++) {
+                        ifIsectAddToOutput(ringA, edgeA, ring1, edge1);
+                    }
+                }
+            }
+        }
+    }
+    if (!filterFn) output = { type: 'Feature', geometry: { type: 'MultiPoint', coordinates: output } };
+    return output;
+    function ifIsectAddToOutput(ring0, edge0, ring1, edge1) {
+        var start0 = coord[ring0][edge0];
+        var end0 = coord[ring0][edge0 + 1];
+        var start1 = coord[ring1][edge1];
+        var end1 = coord[ring1][edge1 + 1];
+        var isect = intersect(start0, end0, start1, end1);
+        if (isect === null) return;
+        var frac0;
+        var frac1;
+        if (end0[0] !== start0[0]) {
+            frac0 = (isect[0] - start0[0]) / (end0[0] - start0[0]);
+        } else {
+            frac0 = (isect[1] - start0[1]) / (end0[1] - start0[1]);
+        }
+        if (end1[0] !== start1[0]) {
+            frac1 = (isect[0] - start1[0]) / (end1[0] - start1[0]);
+        } else {
+            frac1 = (isect[1] - start1[1]) / (end1[1] - start1[1]);
+        }
+        if (frac0 >= 1 || frac0 <= 0 || frac1 >= 1 || frac1 <= 0) return;
+        var key = isect;
+        var unique = !seen[key];
+        if (unique) {
+            seen[key] = true;
+        }
+        if (filterFn) {
+            output.push(filterFn(isect, ring0, edge0, start0, end0, frac0, ring1, edge1, start1, end1, frac1, unique));
+        } else {
+            output.push(isect);
+        }
+    }
+    function rbushTreeItem(ring, edge) {
+        var start = coord[ring][edge];
+        var end = coord[ring][edge + 1];
+        var minX;
+        var maxX;
+        var minY;
+        var maxY;
+        if (start[0] < end[0]) {
+            minX = start[0];
+            maxX = end[0];
+        } else {
+            minX = end[0];
+            maxX = start[0];
+        }
+        if (start[1] < end[1]) {
+            minY = start[1];
+            maxY = end[1];
+        } else {
+            minY = end[1];
+            maxY = start[1];
+        }
+        return { minX: minX, minY: minY, maxX: maxX, maxY: maxY, ring: ring, edge: edge };
+    }
+};
+function intersect(start0, end0, start1, end1) {
+    if (equalArrays$1(start0, start1) || equalArrays$1(start0, end1) || equalArrays$1(end0, start1) || equalArrays$1(end1, start1)) return null;
+    var x0 = start0[0],
+        y0 = start0[1],
+        x1 = end0[0],
+        y1 = end0[1],
+        x2 = start1[0],
+        y2 = start1[1],
+        x3 = end1[0],
+        y3 = end1[1];
+    var denom = (x0 - x1) * (y2 - y3) - (y0 - y1) * (x2 - x3);
+    if (denom === 0) return null;
+    var x4 = ((x0 * y1 - y0 * x1) * (x2 - x3) - (x0 - x1) * (x2 * y3 - y2 * x3)) / denom;
+    var y4 = ((x0 * y1 - y0 * x1) * (y2 - y3) - (y0 - y1) * (x2 * y3 - y2 * x3)) / denom;
+    return [x4, y4];
+}
+function equalArrays$1(array1, array2) {
+    if (!array1 || !array2) return false;
+    if (array1.length !== array2.length) return false;
+    for (var i = 0, l = array1.length; i < l; i++) {
+        if (array1[i] instanceof Array && array2[i] instanceof Array) {
+            if (!equalArrays$1(array1[i], array2[i])) return false;
+        } else if (array1[i] !== array2[i]) {
+            return false;
+        }
+    }
+    return true;
+}
+var simplepolygon = function simplepolygon(feature) {
+    if (feature.type != 'Feature') throw new Error('The input must a geojson object of type Feature');
+    if (feature.geometry === undefined || feature.geometry == null) throw new Error('The input must a geojson object with a non-empty geometry');
+    if (feature.geometry.type != 'Polygon') throw new Error('The input must be a geojson Polygon');
+    var numRings = feature.geometry.coordinates.length;
+    var vertices = [];
+    for (var i = 0; i < numRings; i++) {
+        var ring = feature.geometry.coordinates[i];
+        if (!equalArrays$2(ring[0], ring[ring.length - 1])) {
+            ring.push(ring[0]);
+        }
+        vertices.push.apply(vertices, ring.slice(0, ring.length - 1));
+    }
+    if (!isUnique(vertices)) throw new Error('The input polygon may not have duplicate vertices (except for the first and last vertex of each ring)');
+    var numvertices = vertices.length;
+    var selfIsectsData = isects(feature, function filterFn(isect, ring0, edge0, start0, end0, frac0, ring1, edge1, start1, end1, frac1, unique) {
+        return [isect, ring0, edge0, start0, end0, frac0, ring1, edge1, start1, end1, frac1, unique];
+    });
+    var numSelfIsect = selfIsectsData.length;
+    if (numSelfIsect == 0) {
+        var outputFeatureArray = [];
+        for (var i = 0; i < numRings; i++) {
+            outputFeatureArray.push(polygon$3([feature.geometry.coordinates[i]], { parent: -1, winding: windingOfRing(feature.geometry.coordinates[i]) }));
+        }
+        var output = featureCollection$3(outputFeatureArray);
+        determineParents();
+        setNetWinding();
+        return output;
+    }
+    var pseudoVtxListByRingAndEdge = [];
+    var isectList = [];
+    for (var i = 0; i < numRings; i++) {
+        pseudoVtxListByRingAndEdge.push([]);
+        for (var j = 0; j < feature.geometry.coordinates[i].length - 1; j++) {
+            pseudoVtxListByRingAndEdge[i].push([new PseudoVtx(feature.geometry.coordinates[i][(j + 1).modulo(feature.geometry.coordinates[i].length - 1)], 1, [i, j], [i, (j + 1).modulo(feature.geometry.coordinates[i].length - 1)], undefined)]);
+            isectList.push(new Isect(feature.geometry.coordinates[i][j], [i, (j - 1).modulo(feature.geometry.coordinates[i].length - 1)], [i, j], undefined, undefined, false, true));
+        }
+    }
+    for (var i = 0; i < numSelfIsect; i++) {
+        pseudoVtxListByRingAndEdge[selfIsectsData[i][1]][selfIsectsData[i][2]].push(new PseudoVtx(selfIsectsData[i][0], selfIsectsData[i][5], [selfIsectsData[i][1], selfIsectsData[i][2]], [selfIsectsData[i][6], selfIsectsData[i][7]], undefined));
+        if (selfIsectsData[i][11]) isectList.push(new Isect(selfIsectsData[i][0], [selfIsectsData[i][1], selfIsectsData[i][2]], [selfIsectsData[i][6], selfIsectsData[i][7]], undefined, undefined, true, true));
+    }
+    var numIsect = isectList.length;
+    for (var i = 0; i < pseudoVtxListByRingAndEdge.length; i++) {
+        for (var j = 0; j < pseudoVtxListByRingAndEdge[i].length; j++) {
+            pseudoVtxListByRingAndEdge[i][j].sort(function (a, b) {
+                return a.param < b.param ? -1 : 1;
+            });
+        }
+    }
+    var allIsectsAsIsectRbushTreeItem = [];
+    for (var i = 0; i < numIsect; i++) {
+        allIsectsAsIsectRbushTreeItem.push({ minX: isectList[i].coord[0], minY: isectList[i].coord[1], maxX: isectList[i].coord[0], maxY: isectList[i].coord[1], index: i });
+    }
+    var isectRbushTree = rbush_1();
+    isectRbushTree.load(allIsectsAsIsectRbushTreeItem);
+    for (var i = 0; i < pseudoVtxListByRingAndEdge.length; i++) {
+        for (var j = 0; j < pseudoVtxListByRingAndEdge[i].length; j++) {
+            for (var k = 0; k < pseudoVtxListByRingAndEdge[i][j].length; k++) {
+                var coordToFind;
+                if (k == pseudoVtxListByRingAndEdge[i][j].length - 1) {
+                    coordToFind = pseudoVtxListByRingAndEdge[i][(j + 1).modulo(feature.geometry.coordinates[i].length - 1)][0].coord;
+                } else {
+                    coordToFind = pseudoVtxListByRingAndEdge[i][j][k + 1].coord;
+                }
+                var IsectRbushTreeItemFound = isectRbushTree.search({ minX: coordToFind[0], minY: coordToFind[1], maxX: coordToFind[0], maxY: coordToFind[1] })[0];
+                pseudoVtxListByRingAndEdge[i][j][k].nxtIsectAlongEdgeIn = IsectRbushTreeItemFound.index;
+            }
+        }
+    }
+    for (var i = 0; i < pseudoVtxListByRingAndEdge.length; i++) {
+        for (var j = 0; j < pseudoVtxListByRingAndEdge[i].length; j++) {
+            for (var k = 0; k < pseudoVtxListByRingAndEdge[i][j].length; k++) {
+                var coordToFind = pseudoVtxListByRingAndEdge[i][j][k].coord;
+                var IsectRbushTreeItemFound = isectRbushTree.search({ minX: coordToFind[0], minY: coordToFind[1], maxX: coordToFind[0], maxY: coordToFind[1] })[0];
+                var l = IsectRbushTreeItemFound.index;
+                if (l < numvertices) {
+                    isectList[l].nxtIsectAlongRingAndEdge2 = pseudoVtxListByRingAndEdge[i][j][k].nxtIsectAlongEdgeIn;
+                } else {
+                    if (equalArrays$2(isectList[l].ringAndEdge1, pseudoVtxListByRingAndEdge[i][j][k].ringAndEdgeIn)) {
+                        isectList[l].nxtIsectAlongRingAndEdge1 = pseudoVtxListByRingAndEdge[i][j][k].nxtIsectAlongEdgeIn;
+                    } else {
+                        isectList[l].nxtIsectAlongRingAndEdge2 = pseudoVtxListByRingAndEdge[i][j][k].nxtIsectAlongEdgeIn;
+                    }
+                }
+            }
+        }
+    }
+    var queue = [];
+    var i = 0;
+    for (var j = 0; j < numRings; j++) {
+        var leftIsect = i;
+        for (var k = 0; k < feature.geometry.coordinates[j].length - 1; k++) {
+            if (isectList[i].coord[0] < isectList[leftIsect].coord[0]) {
+                leftIsect = i;
+            }
+            i++;
+        }
+        var isectAfterLeftIsect = isectList[leftIsect].nxtIsectAlongRingAndEdge2;
+        for (var k = 0; k < isectList.length; k++) {
+            if (isectList[k].nxtIsectAlongRingAndEdge1 == leftIsect || isectList[k].nxtIsectAlongRingAndEdge2 == leftIsect) {
+                var isectBeforeLeftIsect = k;
+                break;
+            }
+        }
+        var windingAtIsect = isConvex([isectList[isectBeforeLeftIsect].coord, isectList[leftIsect].coord, isectList[isectAfterLeftIsect].coord], true) ? 1 : -1;
+        queue.push({ isect: leftIsect, parent: -1, winding: windingAtIsect });
+    }
+    queue.sort(function (a, b) {
+        return isectList[a.isect].coord > isectList[b.isect].coord ? -1 : 1;
+    });
+    var outputFeatureArray = [];
+    while (queue.length > 0) {
+        var popped = queue.pop();
+        var startIsect = popped.isect;
+        var currentOutputRingParent = popped.parent;
+        var currentOutputRingWinding = popped.winding;
+        var currentOutputRing = outputFeatureArray.length;
+        var currentOutputRingCoords = [isectList[startIsect].coord];
+        var currentIsect = startIsect;
+        if (isectList[startIsect].ringAndEdge1Walkable) {
+            var walkingRingAndEdge = isectList[startIsect].ringAndEdge1;
+            var nxtIsect = isectList[startIsect].nxtIsectAlongRingAndEdge1;
+        } else {
+            var walkingRingAndEdge = isectList[startIsect].ringAndEdge2;
+            var nxtIsect = isectList[startIsect].nxtIsectAlongRingAndEdge2;
+        }
+        while (!equalArrays$2(isectList[startIsect].coord, isectList[nxtIsect].coord)) {
+            currentOutputRingCoords.push(isectList[nxtIsect].coord);
+            var nxtIsectInQueue = undefined;
+            for (var i = 0; i < queue.length; i++) {
+                if (queue[i].isect == nxtIsect) {
+                    nxtIsectInQueue = i;break;
+                }
+            }
+            if (nxtIsectInQueue != undefined) {
+                queue.splice(nxtIsectInQueue, 1);
+            }
+            if (equalArrays$2(walkingRingAndEdge, isectList[nxtIsect].ringAndEdge1)) {
+                walkingRingAndEdge = isectList[nxtIsect].ringAndEdge2;
+                isectList[nxtIsect].ringAndEdge2Walkable = false;
+                if (isectList[nxtIsect].ringAndEdge1Walkable) {
+                    var pushing = { isect: nxtIsect };
+                    if (isConvex([isectList[currentIsect].coord, isectList[nxtIsect].coord, isectList[isectList[nxtIsect].nxtIsectAlongRingAndEdge2].coord], currentOutputRingWinding == 1)) {
+                        pushing.parent = currentOutputRingParent;
+                        pushing.winding = -currentOutputRingWinding;
+                    } else {
+                        pushing.parent = currentOutputRing;
+                        pushing.winding = currentOutputRingWinding;
+                    }
+                    queue.push(pushing);
+                }
+                currentIsect = nxtIsect;
+                nxtIsect = isectList[nxtIsect].nxtIsectAlongRingAndEdge2;
+            } else {
+                walkingRingAndEdge = isectList[nxtIsect].ringAndEdge1;
+                isectList[nxtIsect].ringAndEdge1Walkable = false;
+                if (isectList[nxtIsect].ringAndEdge2Walkable) {
+                    var pushing = { isect: nxtIsect };
+                    if (isConvex([isectList[currentIsect].coord, isectList[nxtIsect].coord, isectList[isectList[nxtIsect].nxtIsectAlongRingAndEdge1].coord], currentOutputRingWinding == 1)) {
+                        pushing.parent = currentOutputRingParent;
+                        pushing.winding = -currentOutputRingWinding;
+                    } else {
+                        pushing.parent = currentOutputRing;
+                        pushing.winding = currentOutputRingWinding;
+                    }
+                    queue.push(pushing);
+                }
+                currentIsect = nxtIsect;
+                nxtIsect = isectList[nxtIsect].nxtIsectAlongRingAndEdge1;
+            }
+        }
+        currentOutputRingCoords.push(isectList[nxtIsect].coord);
+        outputFeatureArray.push(polygon$3([currentOutputRingCoords], { index: currentOutputRing, parent: currentOutputRingParent, winding: currentOutputRingWinding, netWinding: undefined }));
+    }
+    var output = featureCollection$3(outputFeatureArray);
+    determineParents();
+    setNetWinding();
+    function determineParents() {
+        var featuresWithoutParent = [];
+        for (var i = 0; i < output.features.length; i++) {
+            if (output.features[i].properties.parent == -1) featuresWithoutParent.push(i);
+        }
+        if (featuresWithoutParent.length > 1) {
+            for (var i = 0; i < featuresWithoutParent.length; i++) {
+                var parent = -1;
+                var parentArea = Infinity;
+                for (var j = 0; j < output.features.length; j++) {
+                    if (featuresWithoutParent[i] == j) continue;
+                    if (booleanPointInPolygon$1(output.features[featuresWithoutParent[i]].geometry.coordinates[0][0], output.features[j], { ignoreBoundary: true })) {
+                        if (area$1(output.features[j]) < parentArea) {
+                            parent = j;
+                        }
+                    }
+                }
+                output.features[featuresWithoutParent[i]].properties.parent = parent;
+            }
+        }
+    }
+    function setNetWinding() {
+        for (var i = 0; i < output.features.length; i++) {
+            if (output.features[i].properties.parent == -1) {
+                var netWinding = output.features[i].properties.winding;
+                output.features[i].properties.netWinding = netWinding;
+                setNetWindingOfChildren(i, netWinding);
+            }
+        }
+    }
+    function setNetWindingOfChildren(parent, ParentNetWinding) {
+        for (var i = 0; i < output.features.length; i++) {
+            if (output.features[i].properties.parent == parent) {
+                var netWinding = ParentNetWinding + output.features[i].properties.winding;
+                output.features[i].properties.netWinding = netWinding;
+                setNetWindingOfChildren(i, netWinding);
+            }
+        }
+    }
+    return output;
+};
+var PseudoVtx = function PseudoVtx(coord, param, ringAndEdgeIn, ringAndEdgeOut, nxtIsectAlongEdgeIn) {
+    this.coord = coord;
+    this.param = param;
+    this.ringAndEdgeIn = ringAndEdgeIn;
+    this.ringAndEdgeOut = ringAndEdgeOut;
+    this.nxtIsectAlongEdgeIn = nxtIsectAlongEdgeIn;
+};
+var Isect = function Isect(coord, ringAndEdge1, ringAndEdge2, nxtIsectAlongRingAndEdge1, nxtIsectAlongRingAndEdge2, ringAndEdge1Walkable, ringAndEdge2Walkable) {
+    this.coord = coord;
+    this.ringAndEdge1 = ringAndEdge1;
+    this.ringAndEdge2 = ringAndEdge2;
+    this.nxtIsectAlongRingAndEdge1 = nxtIsectAlongRingAndEdge1;
+    this.nxtIsectAlongRingAndEdge2 = nxtIsectAlongRingAndEdge2;
+    this.ringAndEdge1Walkable = ringAndEdge1Walkable;
+    this.ringAndEdge2Walkable = ringAndEdge2Walkable;
+};
+function isConvex(pts, righthanded) {
+    if (typeof righthanded === 'undefined') righthanded = true;
+    if (pts.length != 3) throw new Error('This function requires an array of three points [x,y]');
+    var d = (pts[1][0] - pts[0][0]) * (pts[2][1] - pts[0][1]) - (pts[1][1] - pts[0][1]) * (pts[2][0] - pts[0][0]);
+    return d >= 0 == righthanded;
+}
+function windingOfRing(ring) {
+    var leftVtx = 0;
+    for (var i = 0; i < ring.length - 1; i++) {
+        if (ring[i][0] < ring[leftVtx][0]) leftVtx = i;
+    }
+    if (isConvex([ring[(leftVtx - 1).modulo(ring.length - 1)], ring[leftVtx], ring[(leftVtx + 1).modulo(ring.length - 1)]], true)) {
+        var winding = 1;
+    } else {
+        var winding = -1;
+    }
+    return winding;
+}
+function equalArrays$2(array1, array2) {
+    if (!array1 || !array2) return false;
+    if (array1.length != array2.length) return false;
+    for (var i = 0, l = array1.length; i < l; i++) {
+        if (array1[i] instanceof Array && array2[i] instanceof Array) {
+            if (!equalArrays$2(array1[i], array2[i])) return false;
+        } else if (array1[i] != array2[i]) {
+            return false;
+        }
+    }
+    return true;
+}
+Number.prototype.modulo = function (n) {
+    return (this % n + n) % n;
+};
+function isUnique(array) {
+    var u = {};
+    var isUnique = 1;
+    for (var i = 0, l = array.length; i < l; ++i) {
+        if (u.hasOwnProperty(array[i])) {
+            isUnique = 0;
+            break;
+        }
+        u[array[i]] = 1;
+    }
+    return isUnique;
+}
+function unkinkPolygon(geojson) {
+    var features = [];
+    flattenEach$2(geojson, function (feature) {
+        if (feature.geometry.type !== 'Polygon') return;
+        featureEach$2(simplepolygon(feature), function (poly) {
+            features.push(polygon$3(poly.geometry.coordinates, feature.properties));
+        });
+    });
+    return featureCollection$3(features);
+}
+
+function unkink(object) {
+  var polygonFeature = polygonToFeaturePolygon(object);
+  return unkinkPolygon(polygonFeature);
+}
+
+function baseFilter(collection, predicate) {
+  var result = [];
+  baseEach(collection, function (value, index, collection) {
+    if (predicate(value, index, collection)) {
+      result.push(value);
+    }
+  });
+  return result;
+}
+
+function filter(collection, predicate) {
+  var func = isArray(collection) ? arrayFilter : baseFilter;
+  return func(collection, baseIteratee(predicate, 3));
+}
+
+function baseExtremum(array, iteratee, comparator) {
+  var index = -1,
+      length = array.length;
+  while (++index < length) {
+    var value = array[index],
+        current = iteratee(value);
+    if (current != null && (computed === undefined ? current === current && !isSymbol(current) : comparator(current, computed))) {
+      var computed = current,
+          result = value;
+    }
+  }
+  return result;
+}
+
+function baseGt(value, other) {
+  return value > other;
+}
+
+function max$1(array) {
+  return array && array.length ? baseExtremum(array, identity, baseGt) : undefined;
+}
+
+function baseLt(value, other) {
+  return value < other;
+}
+
+function min$1(array) {
+  return array && array.length ? baseExtremum(array, identity, baseLt) : undefined;
+}
+
+function quickselect$3(arr, k, left, right, compare) {
+    quickselectStep(arr, k, left || 0, right || arr.length - 1, compare || defaultCompare$1);
+}
+function quickselectStep(arr, k, left, right, compare) {
+    while (right > left) {
+        if (right - left > 600) {
+            var n = right - left + 1;
+            var m = k - left + 1;
+            var z = Math.log(n);
+            var s = 0.5 * Math.exp(2 * z / 3);
+            var sd = 0.5 * Math.sqrt(z * s * (n - s) / n) * (m - n / 2 < 0 ? -1 : 1);
+            var newLeft = Math.max(left, Math.floor(k - m * s / n + sd));
+            var newRight = Math.min(right, Math.floor(k + (n - m) * s / n + sd));
+            quickselectStep(arr, k, newLeft, newRight, compare);
+        }
+        var t = arr[k];
+        var i = left;
+        var j = right;
+        swap$1(arr, left, k);
+        if (compare(arr[right], t) > 0) swap$1(arr, left, right);
+        while (i < j) {
+            swap$1(arr, i, j);
+            i++;
+            j--;
+            while (compare(arr[i], t) < 0) {
+                i++;
+            }while (compare(arr[j], t) > 0) {
+                j--;
+            }
+        }
+        if (compare(arr[left], t) === 0) swap$1(arr, left, j);else {
+            j++;
+            swap$1(arr, j, right);
+        }
+        if (j <= k) left = j + 1;
+        if (k <= j) right = j - 1;
+    }
+}
+function swap$1(arr, i, j) {
+    var tmp = arr[i];
+    arr[i] = arr[j];
+    arr[j] = tmp;
+}
+function defaultCompare$1(a, b) {
+    return a < b ? -1 : a > b ? 1 : 0;
+}
+
+function rbush$1(maxEntries, format) {
+    if (!(this instanceof rbush$1)) return new rbush$1(maxEntries, format);
+    this._maxEntries = Math.max(4, maxEntries || 9);
+    this._minEntries = Math.max(2, Math.ceil(this._maxEntries * 0.4));
+    if (format) {
+        this._initFormat(format);
+    }
+    this.clear();
+}
+rbush$1.prototype = {
+    all: function all() {
+        return this._all(this.data, []);
+    },
+    search: function search(bbox) {
+        var node = this.data,
+            result = [],
+            toBBox = this.toBBox;
+        if (!intersects$1(bbox, node)) return result;
+        var nodesToSearch = [],
+            i,
+            len,
+            child,
+            childBBox;
+        while (node) {
+            for (i = 0, len = node.children.length; i < len; i++) {
+                child = node.children[i];
+                childBBox = node.leaf ? toBBox(child) : child;
+                if (intersects$1(bbox, childBBox)) {
+                    if (node.leaf) result.push(child);else if (contains$2(bbox, childBBox)) this._all(child, result);else nodesToSearch.push(child);
+                }
+            }
+            node = nodesToSearch.pop();
+        }
+        return result;
+    },
+    collides: function collides(bbox) {
+        var node = this.data,
+            toBBox = this.toBBox;
+        if (!intersects$1(bbox, node)) return false;
+        var nodesToSearch = [],
+            i,
+            len,
+            child,
+            childBBox;
+        while (node) {
+            for (i = 0, len = node.children.length; i < len; i++) {
+                child = node.children[i];
+                childBBox = node.leaf ? toBBox(child) : child;
+                if (intersects$1(bbox, childBBox)) {
+                    if (node.leaf || contains$2(bbox, childBBox)) return true;
+                    nodesToSearch.push(child);
+                }
+            }
+            node = nodesToSearch.pop();
+        }
+        return false;
+    },
+    load: function load(data) {
+        if (!(data && data.length)) return this;
+        if (data.length < this._minEntries) {
+            for (var i = 0, len = data.length; i < len; i++) {
+                this.insert(data[i]);
+            }
+            return this;
+        }
+        var node = this._build(data.slice(), 0, data.length - 1, 0);
+        if (!this.data.children.length) {
+            this.data = node;
+        } else if (this.data.height === node.height) {
+            this._splitRoot(this.data, node);
+        } else {
+            if (this.data.height < node.height) {
+                var tmpNode = this.data;
+                this.data = node;
+                node = tmpNode;
+            }
+            this._insert(node, this.data.height - node.height - 1, true);
+        }
+        return this;
+    },
+    insert: function insert(item) {
+        if (item) this._insert(item, this.data.height - 1);
+        return this;
+    },
+    clear: function clear() {
+        this.data = createNode$1([]);
+        return this;
+    },
+    remove: function remove(item, equalsFn) {
+        if (!item) return this;
+        var node = this.data,
+            bbox = this.toBBox(item),
+            path = [],
+            indexes = [],
+            i,
+            parent,
+            index,
+            goingUp;
+        while (node || path.length) {
+            if (!node) {
+                node = path.pop();
+                parent = path[path.length - 1];
+                i = indexes.pop();
+                goingUp = true;
+            }
+            if (node.leaf) {
+                index = findItem$1(item, node.children, equalsFn);
+                if (index !== -1) {
+                    node.children.splice(index, 1);
+                    path.push(node);
+                    this._condense(path);
+                    return this;
+                }
+            }
+            if (!goingUp && !node.leaf && contains$2(node, bbox)) {
+                path.push(node);
+                indexes.push(i);
+                i = 0;
+                parent = node;
+                node = node.children[0];
+            } else if (parent) {
+                i++;
+                node = parent.children[i];
+                goingUp = false;
+            } else node = null;
+        }
+        return this;
+    },
+    toBBox: function toBBox(item) {
+        return item;
+    },
+    compareMinX: compareNodeMinX$1,
+    compareMinY: compareNodeMinY$1,
+    toJSON: function toJSON() {
+        return this.data;
+    },
+    fromJSON: function fromJSON(data) {
+        this.data = data;
+        return this;
+    },
+    _all: function _all(node, result) {
+        var nodesToSearch = [];
+        while (node) {
+            if (node.leaf) result.push.apply(result, node.children);else nodesToSearch.push.apply(nodesToSearch, node.children);
+            node = nodesToSearch.pop();
+        }
+        return result;
+    },
+    _build: function _build(items, left, right, height) {
+        var N = right - left + 1,
+            M = this._maxEntries,
+            node;
+        if (N <= M) {
+            node = createNode$1(items.slice(left, right + 1));
+            calcBBox$1(node, this.toBBox);
+            return node;
+        }
+        if (!height) {
+            height = Math.ceil(Math.log(N) / Math.log(M));
+            M = Math.ceil(N / Math.pow(M, height - 1));
+        }
+        node = createNode$1([]);
+        node.leaf = false;
+        node.height = height;
+        var N2 = Math.ceil(N / M),
+            N1 = N2 * Math.ceil(Math.sqrt(M)),
+            i,
+            j,
+            right2,
+            right3;
+        multiSelect$1(items, left, right, N1, this.compareMinX);
+        for (i = left; i <= right; i += N1) {
+            right2 = Math.min(i + N1 - 1, right);
+            multiSelect$1(items, i, right2, N2, this.compareMinY);
+            for (j = i; j <= right2; j += N2) {
+                right3 = Math.min(j + N2 - 1, right2);
+                node.children.push(this._build(items, j, right3, height - 1));
+            }
+        }
+        calcBBox$1(node, this.toBBox);
+        return node;
+    },
+    _chooseSubtree: function _chooseSubtree(bbox, node, level, path) {
+        var i, len, child, targetNode, area, enlargement, minArea, minEnlargement;
+        while (true) {
+            path.push(node);
+            if (node.leaf || path.length - 1 === level) break;
+            minArea = minEnlargement = Infinity;
+            for (i = 0, len = node.children.length; i < len; i++) {
+                child = node.children[i];
+                area = bboxArea$1(child);
+                enlargement = enlargedArea$1(bbox, child) - area;
+                if (enlargement < minEnlargement) {
+                    minEnlargement = enlargement;
+                    minArea = area < minArea ? area : minArea;
+                    targetNode = child;
+                } else if (enlargement === minEnlargement) {
+                    if (area < minArea) {
+                        minArea = area;
+                        targetNode = child;
+                    }
+                }
+            }
+            node = targetNode || node.children[0];
+        }
+        return node;
+    },
+    _insert: function _insert(item, level, isNode) {
+        var toBBox = this.toBBox,
+            bbox = isNode ? item : toBBox(item),
+            insertPath = [];
+        var node = this._chooseSubtree(bbox, this.data, level, insertPath);
+        node.children.push(item);
+        extend$2(node, bbox);
+        while (level >= 0) {
+            if (insertPath[level].children.length > this._maxEntries) {
+                this._split(insertPath, level);
+                level--;
+            } else break;
+        }
+        this._adjustParentBBoxes(bbox, insertPath, level);
+    },
+    _split: function _split(insertPath, level) {
+        var node = insertPath[level],
+            M = node.children.length,
+            m = this._minEntries;
+        this._chooseSplitAxis(node, m, M);
+        var splitIndex = this._chooseSplitIndex(node, m, M);
+        var newNode = createNode$1(node.children.splice(splitIndex, node.children.length - splitIndex));
+        newNode.height = node.height;
+        newNode.leaf = node.leaf;
+        calcBBox$1(node, this.toBBox);
+        calcBBox$1(newNode, this.toBBox);
+        if (level) insertPath[level - 1].children.push(newNode);else this._splitRoot(node, newNode);
+    },
+    _splitRoot: function _splitRoot(node, newNode) {
+        this.data = createNode$1([node, newNode]);
+        this.data.height = node.height + 1;
+        this.data.leaf = false;
+        calcBBox$1(this.data, this.toBBox);
+    },
+    _chooseSplitIndex: function _chooseSplitIndex(node, m, M) {
+        var i, bbox1, bbox2, overlap, area, minOverlap, minArea, index;
+        minOverlap = minArea = Infinity;
+        for (i = m; i <= M - m; i++) {
+            bbox1 = distBBox$1(node, 0, i, this.toBBox);
+            bbox2 = distBBox$1(node, i, M, this.toBBox);
+            overlap = intersectionArea$1(bbox1, bbox2);
+            area = bboxArea$1(bbox1) + bboxArea$1(bbox2);
+            if (overlap < minOverlap) {
+                minOverlap = overlap;
+                index = i;
+                minArea = area < minArea ? area : minArea;
+            } else if (overlap === minOverlap) {
+                if (area < minArea) {
+                    minArea = area;
+                    index = i;
+                }
+            }
+        }
+        return index;
+    },
+    _chooseSplitAxis: function _chooseSplitAxis(node, m, M) {
+        var compareMinX = node.leaf ? this.compareMinX : compareNodeMinX$1,
+            compareMinY = node.leaf ? this.compareMinY : compareNodeMinY$1,
+            xMargin = this._allDistMargin(node, m, M, compareMinX),
+            yMargin = this._allDistMargin(node, m, M, compareMinY);
+        if (xMargin < yMargin) node.children.sort(compareMinX);
+    },
+    _allDistMargin: function _allDistMargin(node, m, M, compare) {
+        node.children.sort(compare);
+        var toBBox = this.toBBox,
+            leftBBox = distBBox$1(node, 0, m, toBBox),
+            rightBBox = distBBox$1(node, M - m, M, toBBox),
+            margin = bboxMargin$1(leftBBox) + bboxMargin$1(rightBBox),
+            i,
+            child;
+        for (i = m; i < M - m; i++) {
+            child = node.children[i];
+            extend$2(leftBBox, node.leaf ? toBBox(child) : child);
+            margin += bboxMargin$1(leftBBox);
+        }
+        for (i = M - m - 1; i >= m; i--) {
+            child = node.children[i];
+            extend$2(rightBBox, node.leaf ? toBBox(child) : child);
+            margin += bboxMargin$1(rightBBox);
+        }
+        return margin;
+    },
+    _adjustParentBBoxes: function _adjustParentBBoxes(bbox, path, level) {
+        for (var i = level; i >= 0; i--) {
+            extend$2(path[i], bbox);
+        }
+    },
+    _condense: function _condense(path) {
+        for (var i = path.length - 1, siblings; i >= 0; i--) {
+            if (path[i].children.length === 0) {
+                if (i > 0) {
+                    siblings = path[i - 1].children;
+                    siblings.splice(siblings.indexOf(path[i]), 1);
+                } else this.clear();
+            } else calcBBox$1(path[i], this.toBBox);
+        }
+    },
+    _initFormat: function _initFormat(format) {
+        var compareArr = ['return a', ' - b', ';'];
+        this.compareMinX = new Function('a', 'b', compareArr.join(format[0]));
+        this.compareMinY = new Function('a', 'b', compareArr.join(format[1]));
+        this.toBBox = new Function('a', 'return {minX: a' + format[0] + ', minY: a' + format[1] + ', maxX: a' + format[2] + ', maxY: a' + format[3] + '};');
+    }
+};
+function findItem$1(item, items, equalsFn) {
+    if (!equalsFn) return items.indexOf(item);
+    for (var i = 0; i < items.length; i++) {
+        if (equalsFn(item, items[i])) return i;
+    }
+    return -1;
+}
+function calcBBox$1(node, toBBox) {
+    distBBox$1(node, 0, node.children.length, toBBox, node);
+}
+function distBBox$1(node, k, p, toBBox, destNode) {
+    if (!destNode) destNode = createNode$1(null);
+    destNode.minX = Infinity;
+    destNode.minY = Infinity;
+    destNode.maxX = -Infinity;
+    destNode.maxY = -Infinity;
+    for (var i = k, child; i < p; i++) {
+        child = node.children[i];
+        extend$2(destNode, node.leaf ? toBBox(child) : child);
+    }
+    return destNode;
+}
+function extend$2(a, b) {
+    a.minX = Math.min(a.minX, b.minX);
+    a.minY = Math.min(a.minY, b.minY);
+    a.maxX = Math.max(a.maxX, b.maxX);
+    a.maxY = Math.max(a.maxY, b.maxY);
+    return a;
+}
+function compareNodeMinX$1(a, b) {
+    return a.minX - b.minX;
+}
+function compareNodeMinY$1(a, b) {
+    return a.minY - b.minY;
+}
+function bboxArea$1(a) {
+    return (a.maxX - a.minX) * (a.maxY - a.minY);
+}
+function bboxMargin$1(a) {
+    return a.maxX - a.minX + (a.maxY - a.minY);
+}
+function enlargedArea$1(a, b) {
+    return (Math.max(b.maxX, a.maxX) - Math.min(b.minX, a.minX)) * (Math.max(b.maxY, a.maxY) - Math.min(b.minY, a.minY));
+}
+function intersectionArea$1(a, b) {
+    var minX = Math.max(a.minX, b.minX),
+        minY = Math.max(a.minY, b.minY),
+        maxX = Math.min(a.maxX, b.maxX),
+        maxY = Math.min(a.maxY, b.maxY);
+    return Math.max(0, maxX - minX) * Math.max(0, maxY - minY);
+}
+function contains$2(a, b) {
+    return a.minX <= b.minX && a.minY <= b.minY && b.maxX <= a.maxX && b.maxY <= a.maxY;
+}
+function intersects$1(a, b) {
+    return b.minX <= a.maxX && b.minY <= a.maxY && b.maxX >= a.minX && b.maxY >= a.minY;
+}
+function createNode$1(children) {
+    return {
+        children: children,
+        height: 1,
+        leaf: true,
+        minX: Infinity,
+        minY: Infinity,
+        maxX: -Infinity,
+        maxY: -Infinity
+    };
+}
+function multiSelect$1(arr, left, right, n, compare) {
+    var stack = [left, right],
+        mid;
+    while (stack.length) {
+        right = stack.pop();
+        left = stack.pop();
+        if (right - left <= n) continue;
+        mid = left + Math.ceil((right - left) / n / 2) * n;
+        quickselect$3(arr, mid, left, right, compare);
         stack.push(left, mid, mid, right);
     }
 }
 
 function geojsonRbush(maxEntries) {
-    var tree = rbush$3(maxEntries);
+    var tree = rbush$1(maxEntries);
     tree.insert = function (feature) {
         if (Array.isArray(feature)) {
             var bbox = feature;
@@ -32615,7 +33514,7 @@ function geojsonRbush(maxEntries) {
         } else {
             feature.bbox = feature.bbox ? feature.bbox : turfBBox(feature);
         }
-        return rbush$3.prototype.insert.call(this, feature);
+        return rbush$1.prototype.insert.call(this, feature);
     };
     tree.load = function (features) {
         var load = [];
@@ -32631,7 +33530,7 @@ function geojsonRbush(maxEntries) {
                 load.push(feature);
             });
         }
-        return rbush$3.prototype.load.call(this, load);
+        return rbush$1.prototype.load.call(this, load);
     };
     tree.remove = function (feature) {
         if (Array.isArray(feature)) {
@@ -32639,33 +33538,33 @@ function geojsonRbush(maxEntries) {
             feature = bboxPolygon(bbox);
             feature.bbox = bbox;
         }
-        return rbush$3.prototype.remove.call(this, feature);
+        return rbush$1.prototype.remove.call(this, feature);
     };
     tree.clear = function () {
-        return rbush$3.prototype.clear.call(this);
+        return rbush$1.prototype.clear.call(this);
     };
     tree.search = function (geojson) {
-        var features = rbush$3.prototype.search.call(this, this.toBBox(geojson));
+        var features = rbush$1.prototype.search.call(this, this.toBBox(geojson));
         return {
             type: 'FeatureCollection',
             features: features
         };
     };
     tree.collides = function (geojson) {
-        return rbush$3.prototype.collides.call(this, this.toBBox(geojson));
+        return rbush$1.prototype.collides.call(this, this.toBBox(geojson));
     };
     tree.all = function () {
-        var features = rbush$3.prototype.all.call(this);
+        var features = rbush$1.prototype.all.call(this);
         return {
             type: 'FeatureCollection',
             features: features
         };
     };
     tree.toJSON = function () {
-        return rbush$3.prototype.toJSON.call(this);
+        return rbush$1.prototype.toJSON.call(this);
     };
     tree.fromJSON = function (json) {
-        return rbush$3.prototype.fromJSON.call(this, json);
+        return rbush$1.prototype.fromJSON.call(this, json);
     };
     tree.toBBox = function (geojson) {
         var bbox;
@@ -32706,23 +33605,177 @@ function turfBBox(geojson) {
     return bbox;
 }
 
+function feature$7(geometry, properties, options) {
+    options = options || {};
+    if (!isObject$6(options)) throw new Error('options is invalid');
+    var bbox = options.bbox;
+    var id = options.id;
+    if (geometry === undefined) throw new Error('geometry is required');
+    if (properties && properties.constructor !== Object) throw new Error('properties must be an Object');
+    if (bbox) validateBBox$4(bbox);
+    if (id) validateId$4(id);
+    var feat = { type: 'Feature' };
+    if (id) feat.id = id;
+    if (bbox) feat.bbox = bbox;
+    feat.properties = properties || {};
+    feat.geometry = geometry;
+    return feat;
+}
+function lineString$5(coordinates, properties, options) {
+    if (!coordinates) throw new Error('coordinates is required');
+    if (coordinates.length < 2) throw new Error('coordinates must be an array of two or more positions');
+    if (!isNumber$5(coordinates[0][1]) || !isNumber$5(coordinates[0][1])) throw new Error('coordinates must contain numbers');
+    return feature$7({
+        type: 'LineString',
+        coordinates: coordinates
+    }, properties, options);
+}
+function featureCollection$5(features, options) {
+    options = options || {};
+    if (!isObject$6(options)) throw new Error('options is invalid');
+    var bbox = options.bbox;
+    var id = options.id;
+    if (!features) throw new Error('No features passed');
+    if (!Array.isArray(features)) throw new Error('features must be an Array');
+    if (bbox) validateBBox$4(bbox);
+    if (id) validateId$4(id);
+    var fc = { type: 'FeatureCollection' };
+    if (id) fc.id = id;
+    if (bbox) fc.bbox = bbox;
+    fc.features = features;
+    return fc;
+}
+function isNumber$5(num) {
+    return !isNaN(num) && num !== null && !Array.isArray(num);
+}
+function isObject$6(input) {
+    return !!input && input.constructor === Object;
+}
+function validateBBox$4(bbox) {
+    if (!bbox) throw new Error('bbox is required');
+    if (!Array.isArray(bbox)) throw new Error('bbox must be an Array');
+    if (bbox.length !== 4 && bbox.length !== 6) throw new Error('bbox must be an Array of 4 or 6 numbers');
+    bbox.forEach(function (num) {
+        if (!isNumber$5(num)) throw new Error('bbox must only contain numbers');
+    });
+}
+function validateId$4(id) {
+    if (!id) throw new Error('id is required');
+    if (['string', 'number'].indexOf(typeof id === 'undefined' ? 'undefined' : _typeof(id)) === -1) throw new Error('id must be a number or a string');
+}
+
+function getCoords$3(coords) {
+    if (!coords) throw new Error('coords is required');
+    if (coords.type === 'Feature' && coords.geometry !== null) return coords.geometry.coordinates;
+    if (coords.coordinates) return coords.coordinates;
+    if (Array.isArray(coords)) return coords;
+    throw new Error('coords must be GeoJSON Feature, Geometry Object or an Array');
+}
+
+function geomEach$4(geojson, callback) {
+    var i,
+        j,
+        g,
+        geometry,
+        stopG,
+        geometryMaybeCollection,
+        isGeometryCollection,
+        featureProperties,
+        featureBBox,
+        featureId,
+        featureIndex = 0,
+        isFeatureCollection = geojson.type === 'FeatureCollection',
+        isFeature = geojson.type === 'Feature',
+        stop = isFeatureCollection ? geojson.features.length : 1;
+    for (i = 0; i < stop; i++) {
+        geometryMaybeCollection = isFeatureCollection ? geojson.features[i].geometry : isFeature ? geojson.geometry : geojson;
+        featureProperties = isFeatureCollection ? geojson.features[i].properties : isFeature ? geojson.properties : {};
+        featureBBox = isFeatureCollection ? geojson.features[i].bbox : isFeature ? geojson.bbox : undefined;
+        featureId = isFeatureCollection ? geojson.features[i].id : isFeature ? geojson.id : undefined;
+        isGeometryCollection = geometryMaybeCollection ? geometryMaybeCollection.type === 'GeometryCollection' : false;
+        stopG = isGeometryCollection ? geometryMaybeCollection.geometries.length : 1;
+        for (g = 0; g < stopG; g++) {
+            geometry = isGeometryCollection ? geometryMaybeCollection.geometries[g] : geometryMaybeCollection;
+            if (geometry === null) {
+                if (callback(null, featureIndex, featureProperties, featureBBox, featureId) === false) return false;
+                continue;
+            }
+            switch (geometry.type) {
+                case 'Point':
+                case 'LineString':
+                case 'MultiPoint':
+                case 'Polygon':
+                case 'MultiLineString':
+                case 'MultiPolygon':
+                    {
+                        if (callback(geometry, featureIndex, featureProperties, featureBBox, featureId) === false) return false;
+                        break;
+                    }
+                case 'GeometryCollection':
+                    {
+                        for (j = 0; j < geometry.geometries.length; j++) {
+                            if (callback(geometry.geometries[j], featureIndex, featureProperties, featureBBox, featureId) === false) return false;
+                        }
+                        break;
+                    }
+                default:
+                    throw new Error('Unknown Geometry Type');
+            }
+        }
+        featureIndex++;
+    }
+}
+function flattenEach$4(geojson, callback) {
+    geomEach$4(geojson, function (geometry, featureIndex, properties, bbox, id) {
+        var type = geometry === null ? null : geometry.type;
+        switch (type) {
+            case null:
+            case 'Point':
+            case 'LineString':
+            case 'Polygon':
+                if (callback(feature$7(geometry, properties, { bbox: bbox, id: id }), featureIndex, 0) === false) return false;
+                return;
+        }
+        var geomType;
+        switch (type) {
+            case 'MultiPoint':
+                geomType = 'Point';
+                break;
+            case 'MultiLineString':
+                geomType = 'LineString';
+                break;
+            case 'MultiPolygon':
+                geomType = 'Polygon';
+                break;
+        }
+        for (var multiFeatureIndex = 0; multiFeatureIndex < geometry.coordinates.length; multiFeatureIndex++) {
+            var coordinate = geometry.coordinates[multiFeatureIndex];
+            var geom = {
+                type: geomType,
+                coordinates: coordinate
+            };
+            if (callback(feature$7(geom, properties), featureIndex, multiFeatureIndex) === false) return false;
+        }
+    });
+}
+
 function lineSegment(geojson) {
     if (!geojson) throw new Error('geojson is required');
     var results = [];
-    flattenEach(geojson, function (feature$$1) {
-        lineSegmentFeature(feature$$1, results);
+    flattenEach$4(geojson, function (feature) {
+        lineSegmentFeature(feature, results);
     });
-    return featureCollection(results);
+    return featureCollection$5(results);
 }
 function lineSegmentFeature(geojson, results) {
     var coords = [];
-    var geometry$$1 = geojson.geometry;
-    switch (geometry$$1.type) {
+    var geometry = geojson.geometry;
+    switch (geometry.type) {
         case 'Polygon':
-            coords = getCoords(geometry$$1);
+            coords = getCoords$3(geometry);
             break;
         case 'LineString':
-            coords = [getCoords(geometry$$1)];
+            coords = [getCoords$3(geometry)];
     }
     coords.forEach(function (coord) {
         var segments = createSegments(coord, geojson.properties);
@@ -32735,14 +33788,14 @@ function lineSegmentFeature(geojson, results) {
 function createSegments(coords, properties) {
     var segments = [];
     coords.reduce(function (previousCoords, currentCoords) {
-        var segment = lineString([previousCoords, currentCoords], properties);
-        segment.bbox = bbox$3(previousCoords, currentCoords);
+        var segment = lineString$5([previousCoords, currentCoords], properties);
+        segment.bbox = bbox$2(previousCoords, currentCoords);
         segments.push(segment);
         return currentCoords;
     });
     return segments;
 }
-function bbox$3(coords1, coords2) {
+function bbox$2(coords1, coords2) {
     var x1 = coords1[0];
     var y1 = coords1[1];
     var x2 = coords2[0];
@@ -32754,23 +33807,101 @@ function bbox$3(coords1, coords2) {
     return [west, south, east, north];
 }
 
+function feature$8(geometry, properties, options) {
+    options = options || {};
+    if (!isObject$7(options)) throw new Error('options is invalid');
+    var bbox = options.bbox;
+    var id = options.id;
+    if (geometry === undefined) throw new Error('geometry is required');
+    if (properties && properties.constructor !== Object) throw new Error('properties must be an Object');
+    if (bbox) validateBBox$5(bbox);
+    if (id) validateId$5(id);
+    var feat = { type: 'Feature' };
+    if (id) feat.id = id;
+    if (bbox) feat.bbox = bbox;
+    feat.properties = properties || {};
+    feat.geometry = geometry;
+    return feat;
+}
+function point$6(coordinates, properties, options) {
+    if (!coordinates) throw new Error('coordinates is required');
+    if (!Array.isArray(coordinates)) throw new Error('coordinates must be an Array');
+    if (coordinates.length < 2) throw new Error('coordinates must be at least 2 numbers long');
+    if (!isNumber$6(coordinates[0]) || !isNumber$6(coordinates[1])) throw new Error('coordinates must contain numbers');
+    return feature$8({
+        type: 'Point',
+        coordinates: coordinates
+    }, properties, options);
+}
+function featureCollection$6(features, options) {
+    options = options || {};
+    if (!isObject$7(options)) throw new Error('options is invalid');
+    var bbox = options.bbox;
+    var id = options.id;
+    if (!features) throw new Error('No features passed');
+    if (!Array.isArray(features)) throw new Error('features must be an Array');
+    if (bbox) validateBBox$5(bbox);
+    if (id) validateId$5(id);
+    var fc = { type: 'FeatureCollection' };
+    if (id) fc.id = id;
+    if (bbox) fc.bbox = bbox;
+    fc.features = features;
+    return fc;
+}
+function isNumber$6(num) {
+    return !isNaN(num) && num !== null && !Array.isArray(num);
+}
+function isObject$7(input) {
+    return !!input && input.constructor === Object;
+}
+function validateBBox$5(bbox) {
+    if (!bbox) throw new Error('bbox is required');
+    if (!Array.isArray(bbox)) throw new Error('bbox must be an Array');
+    if (bbox.length !== 4 && bbox.length !== 6) throw new Error('bbox must be an Array of 4 or 6 numbers');
+    bbox.forEach(function (num) {
+        if (!isNumber$6(num)) throw new Error('bbox must only contain numbers');
+    });
+}
+function validateId$5(id) {
+    if (!id) throw new Error('id is required');
+    if (['string', 'number'].indexOf(typeof id === 'undefined' ? 'undefined' : _typeof(id)) === -1) throw new Error('id must be a number or a string');
+}
+
+function getCoords$4(coords) {
+    if (!coords) throw new Error('coords is required');
+    if (coords.type === 'Feature' && coords.geometry !== null) return coords.geometry.coordinates;
+    if (coords.coordinates) return coords.coordinates;
+    if (Array.isArray(coords)) return coords;
+    throw new Error('coords must be GeoJSON Feature, Geometry Object or an Array');
+}
+
+function featureEach$5(geojson, callback) {
+    if (geojson.type === 'Feature') {
+        callback(geojson, 0);
+    } else if (geojson.type === 'FeatureCollection') {
+        for (var i = 0; i < geojson.features.length; i++) {
+            if (callback(geojson.features[i], i) === false) break;
+        }
+    }
+}
+
 function lineIntersect(line1, line2) {
     var unique = {};
     var results = [];
-    if (line1.type === 'LineString') line1 = feature(line1);
-    if (line2.type === 'LineString') line2 = feature(line2);
+    if (line1.type === 'LineString') line1 = feature$8(line1);
+    if (line2.type === 'LineString') line2 = feature$8(line2);
     if (line1.type === 'Feature' && line2.type === 'Feature' && line1.geometry.type === 'LineString' && line2.geometry.type === 'LineString' && line1.geometry.coordinates.length === 2 && line2.geometry.coordinates.length === 2) {
-        var intersect = intersects(line1, line2);
+        var intersect = intersects$2(line1, line2);
         if (intersect) results.push(intersect);
-        return featureCollection(results);
+        return featureCollection$6(results);
     }
     var tree = geojsonRbush();
     tree.load(lineSegment(line2));
-    featureEach(lineSegment(line1), function (segment) {
-        featureEach(tree.search(segment), function (match) {
-            var intersect = intersects(segment, match);
+    featureEach$5(lineSegment(line1), function (segment) {
+        featureEach$5(tree.search(segment), function (match) {
+            var intersect = intersects$2(segment, match);
             if (intersect) {
-                var key = getCoords(intersect).join(',');
+                var key = getCoords$4(intersect).join(',');
                 if (!unique[key]) {
                     unique[key] = true;
                     results.push(intersect);
@@ -32778,11 +33909,11 @@ function lineIntersect(line1, line2) {
             }
         });
     });
-    return featureCollection(results);
+    return featureCollection$6(results);
 }
-function intersects(line1, line2) {
-    var coords1 = getCoords(line1);
-    var coords2 = getCoords(line2);
+function intersects$2(line1, line2) {
+    var coords1 = getCoords$4(line1);
+    var coords2 = getCoords$4(line2);
     if (coords1.length !== 2) {
         throw new Error('<intersects> line1 must only contain 2 coordinates');
     }
@@ -32811,14 +33942,14 @@ function intersects(line1, line2) {
     if (uA >= 0 && uA <= 1 && uB >= 0 && uB <= 1) {
         var x = x1 + uA * (x2 - x1);
         var y = y1 + uA * (y2 - y1);
-        return point([x, y]);
+        return point$6([x, y]);
     }
     return null;
 }
 
 function nearestPointOnLine(lines, pt, options) {
     options = options || {};
-    if (!isObject$2(options)) throw new Error('options is invalid');
+    if (!isObject$1(options)) throw new Error('options is invalid');
     var type = lines.geometry ? lines.geometry.type : lines.type;
     if (type !== 'LineString' && type !== 'MultiLineString') {
         throw new Error('lines must be LineString or MultiLineString');
@@ -32940,8 +34071,7 @@ function traverseRings(ring1, ring2) {
 		}
 	}
 	return intersections;
-}
-function trimPaths(arrayLatLng1, arrayLatLng2) {
+}function trimPaths(arrayLatLng1, arrayLatLng2) {
 	var ring1 = toCoords(arrayLatLng1);
 	var ring2 = toCoords(arrayLatLng2);
 	var intersections = traverseRings(ring1, ring2);
@@ -32977,7 +34107,7 @@ function trimPaths(arrayLatLng1, arrayLatLng2) {
 }
 
 var ig_turfhelper = {
-    along: along,
+    along: along$1,
     arrayToFeaturePoints: arrayToFeaturePoints,
     createbuffer: createbuffer,
     pointInPolygon: pointInPolygon,
@@ -32988,11 +34118,11 @@ var ig_turfhelper = {
     toLatLngs: toLatLngs,
     toCoords: toCoords,
     trimPaths: trimPaths,
-    union: union,
-    kinks: kinks,
+    union: union$1,
+    kinks: kinks$1,
     unkink: unkink,
-    concave: concave
+    concave: concave$1
 };
 
-export { along, arrayToFeaturePoints, createbuffer, pointInPolygon, polygonToFeaturePolygon, polylineToFeatureLinestring, simplifyFeature, simplifyPointArray, toLatLngs, toCoords, trimPaths, kinks, unkink, union, concave };
 export default ig_turfhelper;
+export { along$1 as along, arrayToFeaturePoints, createbuffer, pointInPolygon, polygonToFeaturePolygon, polylineToFeatureLinestring, simplifyFeature, simplifyPointArray, toLatLngs, toCoords, trimPaths, kinks$1 as kinks, unkink, union$1 as union, concave$1 as concave };
