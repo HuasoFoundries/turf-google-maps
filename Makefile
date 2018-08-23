@@ -48,6 +48,7 @@ endif
 	sed -i s/'"version": "$(VERSION)"'/'"version": "$(v)"'/g package.json
 
 
+
 tag_and_push:
 		git add --all
 		git commit -a -m "Tag v $(v) $(m)"
@@ -56,6 +57,6 @@ tag_and_push:
 		git push --tags
 
 
-tag:  build docs update_version tag_and_push		
+tag:  update_version build docs  tag_and_push		
 release: update_version  tag_and_push		
 	
