@@ -50,6 +50,16 @@ Receives an object and returns a GeoJson Feature of type Polygon
 
 Returns **Feature.Polygon** [description]
 
+## area
+
+Receives an object and returns a GeoJson Feature of type Polygon
+
+**Parameters**
+
+-   `object` **([google.maps.Polygon](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/Polygon.md) | Feature.Polygon | [Geometry](http://geojson.org/geojson-spec.html#geometry))** object whose area will be calculated
+
+Returns **[Number](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number)** object's area
+
 ## arrayToFeaturePoints
 
 Transforma un array de gmaps.LatLng en un featurecollection geoJson

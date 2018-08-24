@@ -3,7 +3,6 @@ import {
 } from './wicket_helper.js';
 
 
-import turf_simplify from '@turf/simplify';
 import {
 	toCoords
 } from './coords_to_latlng.js'
@@ -13,9 +12,11 @@ import {
 	warn
 } from './utils.js';
 
-import turf_helpers from '@turf/helpers';
 
-var turf_linestring = turf_helpers.lineString;
+import {
+	simplify as turf_simplify,
+	lineString as turf_linestring
+} from '../turf.js';
 
 
 /**
@@ -25,12 +26,12 @@ var turf_linestring = turf_helpers.lineString;
  * @param  {boolean} highQuality [description]
  * @return {Array.<Number>}  Array de coordenadas [lng,lat]
  */
-export function simplifyPointArray(coordArray, tolerance, highQuality) {
-	tolerance = tolerance || 0.00001;
-	highQuality = highQuality || false;
+export function simplifyPointArray(coordArray, options) {
+	options.tolerance = options.tolerance || 0.00001;
+	options.highQuality = options.highQuality || false;
 	var Feature = turf_linestring(toCoords(coordArray));
 
-	var simplifiedgeom = turf_simplify(Feature, tolerance, highQuality);
+	var simplifiedgeom = turf_simplify(Feature, options);
 
 	//debug('simplifyPointArray', 'geometry is', Feature.geometry, 'simplifiedgeom is', simplifiedgeom);
 
@@ -46,7 +47,7 @@ export function simplifyPointArray(coordArray, tolerance, highQuality) {
  * @param  {boolean} highQuality [description]
  * @return {Feature|Geometry} whether or not to spend more time to create a higher-quality simplification with a different algorithm
  */
-export function simplifyFeature(object, output, tolerance, highQuality) {
+export function simplifyFeature(object, output, options) {
 
 	output = (output || 'feature').toLowerCase();
 
@@ -69,7 +70,7 @@ export function simplifyFeature(object, output, tolerance, highQuality) {
 		Feature.geometry.type = 'Polygon';
 		Feature.geometry.coordinates = Feature.geometry.coordinates[0];
 	}
-	var simplifiedgeom = turf_simplify(Feature, tolerance, highQuality);
+	var simplifiedgeom = turf_simplify(Feature, options);
 
 
 	if (simplifiedgeom && simplifiedgeom.geometry) {

@@ -2,7 +2,6 @@
 
   QUnit.config.noglobals = false;
 
-  console.log('_ is', _.VERSION);
 
   var history = window.history;
   var pushState = history.pushState;

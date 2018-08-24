@@ -1,4 +1,7 @@
-import turf_unkink from '@turf/unkink-polygon';
+import {
+	unkinkPolygon as turf_unkink
+} from '../turf.js';
+
 
 import {
 	polygonToFeaturePolygon

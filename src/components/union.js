@@ -1,4 +1,6 @@
-import turf_union from '@turf/union';
+import {
+	union as turf_union
+} from '../turf.js';
 
 
 import {

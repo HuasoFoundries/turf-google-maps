@@ -24,11 +24,12 @@ import {
 }
 from 'lodash-es/reduce.js';
 
-import turf_area from '@turf/area';
 
-import turf_helpers from '@turf/helpers';
+import {
+    area as turf__area,
+    lineString as turf_linestring
+} from '../turf.js';
 
-var turf_linestring = turf_helpers.lineString;
 
 var debug = console.debug.bind(console, '%c turfHelper' + ':', "color:#00CC00;font-weight:bold;"),
     warn = console.debug.bind(console, '%c turfHelper' + ':', "color:orange;font-weight:bold;");
@@ -151,6 +152,15 @@ function polygonToFeaturePolygon(object) {
     return polygonFeature;
 }
 
+/**
+ * Receives an object and returns a GeoJson Feature of type Polygon
+ * @param  {google.maps.Polygon|Feature.Polygon|Geometry} object object whose area will be calculated
+ * @return {Number} object's area
+ */
+function area(object) {
+    var polygonFeature = polygonToFeaturePolygon(object);
+    return turf__area(polygonFeature);
+}
 
 /**
  * Transforma un array de gmaps.LatLng en un featurecollection geoJson

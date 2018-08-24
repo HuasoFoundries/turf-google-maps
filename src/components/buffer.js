@@ -4,7 +4,9 @@ import {
 import {
     Wicket
 } from './wicket_helper.js';
-import turf_buffer from '@turf/buffer';
+import {
+    buffer as turf_buffer
+} from '../turf.js';
 
 
 import {
@@ -22,8 +24,9 @@ import {
  * @param  {String} units       'meters' or 'miles' etc
  * @return {Feature|Feature.<Geometry>}  A GeoJson Feature or its geometry, according to output parameter
  */
-export function createbuffer(object, output, distance, units, comment, steps) {
-    units = units || 'meters';
+export function createbuffer(object, output, radius, options) {
+    options.units = options.units || 'meters';
+
     output = (output || 'feature').toLowerCase();
 
 
@@ -45,7 +48,7 @@ export function createbuffer(object, output, distance, units, comment, steps) {
     }
 
 
-    var buffered = turf_buffer(Feature, distance, units, steps);
+    var buffered = turf_buffer(Feature, radius, options);
 
     if (buffered.type === 'FeatureCollection') {
         buffered = buffered.features[0];

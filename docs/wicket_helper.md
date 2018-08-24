@@ -21,27 +21,6 @@
      You should have received a copy of the GNU General Public License
      along with this program.  If not, see &lt;http&#x3A;//www.gnu.org/licenses/>.
 
-## Wkt.isArray
-
-Determines whether or not the passed Object is an Array.
-
-**Parameters**
-
--   `obj`  {Object}    The Object in question
-
-Returns **[Boolean](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Boolean)** 
-
-## Wkt.trim
-
-Removes given character String(s) from a String.
-
-**Parameters**
-
--   `str`  {String}    The String to search
--   `sub`  {String}    The String character(s) to trim
-
-Returns **[String](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String)** The trimmed string
-
 ## Wkt.Wkt
 
 An object for reading WKT strings and writing geographic features
@@ -387,3 +366,24 @@ Creates the framework's equivalent multipolygon geometry object.
 -   `config`  {Object}    An optional properties hash the object should use
 
 Returns **[Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)** Array containing multiple google.maps.Polygon
+
+## Wkt.isArray
+
+Determines whether or not the passed Object is an Array.
+
+**Parameters**
+
+-   `obj`  {Object}    The Object in question
+
+Returns **[Boolean](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Boolean)** 
+
+## Wkt.trim
+
+Removes given character String(s) from a String.
+
+**Parameters**
+
+-   `str`  {String}    The String to search
+-   `sub`  {String}    The String character(s) to trim
+
+Returns **[String](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String)** The trimmed string

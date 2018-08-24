@@ -3,7 +3,11 @@ import {
 }
 from 'lodash-es/isEqual.js';
 
-import turf_helpers from '@turf/helpers';
+import {
+	point as turf_point,
+	featureCollection as turf_featurecollection
+} from '../turf.js';
+
 
 var turf_point = turf_helpers.point,
 	turf_featurecollection = turf_helpers.featureCollection;

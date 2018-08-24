@@ -412,7 +412,11 @@
         assert.equal(typeof turfHelper.simplifyPointArray, 'function', 'turfHelper.simplifyPointArray should be of type function');
     });
     QUnit.test('turfHelper.simplifyPointArray simplifies points correctly with the given tolerance', function (assert) {
-        var result = turfHelper.simplifyPointArray(turfHelper.toCoords(points), 0.5);
+
+        var result = turfHelper.simplifyPointArray(turfHelper.toCoords(points), {
+            tolerance: 0.5
+        });
+
         assert.deepEqual(result, turfHelper.toCoords(simplified), 'simplifies points correctly with the given tolerance');
     });
 
@@ -437,7 +441,9 @@
             };
 
 
-            var result = turfHelper.simplifyFeature(gmPolygon, 'feature', 0.5);
+            var result = turfHelper.simplifyFeature(gmPolygon, 'feature', {
+                tolerance: 0.5
+            });
 
             var simplified_result_geom = result.geometry.coordinates[0].map(function (point) {
                 return [Math.round(point[0] * 1000000000) / 1000000000, Math.round(point[1] * 1000000000) / 1000000000];
@@ -479,7 +485,9 @@
             };
 
 
-            var result = turfHelper.simplifyFeature(gmPolyline, 'feature', 0.5);
+            var result = turfHelper.simplifyFeature(gmPolyline, 'feature', {
+                tolerance: 0.5
+            });
 
             var simplified_result_geom = result.geometry.coordinates.map(function (point) {
                 return [Math.round(point[0] * 1000000000) / 1000000000, Math.round(point[1] * 1000000000) / 1000000000];

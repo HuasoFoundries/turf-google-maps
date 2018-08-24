@@ -1,0 +1,16 @@
+{
+    "presets": [
+        ["env",
+            {
+                modules: false,
+                "targets": {
+                    "browsers": ["last 2 versions", "safari > 8", "not ie < 11"]
+                }
+            }
+        ]
+    ],
+    "plugins": [
+        "external-helpers",
+        "babel-plugin-transform-es2015-arrow-functions"
+    ]
+}

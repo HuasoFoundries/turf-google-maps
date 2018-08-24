@@ -11,7 +11,8 @@ version:
 
 install: 
 	npm install
-	$$(npm bin)/jspm install
+	npm i -D jspm@beta
+	jspm install
 
 test:
 	$$(npm bin)/karma start
@@ -20,21 +21,16 @@ docs:
 	./generate_docs.js
 
 build_unminified:
-	$$(npm bin)/jspm build src/ig_turfhelper.js dist/ig_turfhelper.js      --global-name turfHelper --global-deps '{"gmaps": "gmaps"}' --skip-source-maps
-
-build_esm:
-	$$(npm bin)/jspm build src/ig_turfhelper.js dist/ig_turfhelper.esm.js --format esm --global-deps '{"gmaps": "gmaps"}' --skip-source-maps
-
+	$$(npm bin)/rollup -c
 
 build_minified:
-	$$(npm bin)/jspm build src/ig_turfhelper.js dist/ig_turfhelper.min.js  --global-name turfHelper --global-deps '{"gmaps": "gmaps"}' -m
+	$$(npm bin)/jspm build dist/ig_turfhelper.js dist/ig_turfhelper.min.js  --global-name turfHelper --global-deps '{"gmaps": "gmaps"}' -m
+
 
 build_utils:
-	$$(npm bin)/jspm build src/components/utils.js dist/utils.min.js  --global-name turfUtils --global-deps '{"gmaps": "gmaps"}' -m
+	UTILS=true $$(npm bin)/rollup -c
 
-build:  build_to_test test build_minified build_utils
-	
-build_to_test:  build_unminified test
+build:  build_unminified  build_minified test
 	
 
 
@@ -50,7 +46,8 @@ ifeq (${VERSION},$(v))
 endif
 	@echo "Current version is " ${VERSION}
 	@echo "Next version is " $(v)
-	sed -i s/"$(VERSION)"/"$(v)"/g package.json
+	sed -i s/'"version": "$(VERSION)"'/'"version": "$(v)"'/g package.json
+
 
 
 tag_and_push:
@@ -61,6 +58,6 @@ tag_and_push:
 		git push --tags
 
 
-tag:  build docs update_version tag_and_push		
+tag:  update_version build docs  tag_and_push		
 release: update_version  tag_and_push		
 	
