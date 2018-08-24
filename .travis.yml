@@ -2,7 +2,7 @@ language: node_js
 node_js:
   - "6.1"
 install:
-  - make install
+  - make install && npm i -D jspm@beta
 script:
   - make build
 after_success:

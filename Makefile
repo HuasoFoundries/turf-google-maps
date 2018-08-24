@@ -20,8 +20,6 @@ version:
 install: 
 	npm install
 
-yarn:
-	yarn --ignore-engines
 
 update_eslint:
 	@echo  -e "Current eslint is $(GREEN)$(current_eslint)$(WHITE), current babel-eslint is $(GREEN)$(current_babel_eslint)$(WHITE)" ;\
