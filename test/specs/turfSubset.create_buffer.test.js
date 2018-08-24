@@ -1,13 +1,13 @@
 (function (QUnit) {
 
 
-    QUnit.module("turfHelper Create Buffer");
+    QUnit.module("turfSubset  Create Buffer");
 
 
-    QUnit.test('turfHelper.createbuffer should be of type function', function (assert) {
-        assert.equal(typeof turfHelper.createbuffer, 'function', 'turfHelper.createbuffer should be of type function');
+    QUnit.test('turfSubset.createbuffer should be of type function', function (assert) {
+        assert.equal(typeof turfSubset.createbuffer, 'function', 'turfSubset.createbuffer should be of type function');
     });
-    QUnit.test('turfHelper.createbuffer should create a correct buffer from a  google.maps.Polygon', function (assert) {
+    QUnit.test('turfSubset.createbuffer should create a correct buffer from a  google.maps.Polygon', function (assert) {
         var done = assert.async();
 
         var runtest = function (gmaps) {
@@ -228,7 +228,10 @@
                 "type": "Feature"
             };
 
-            var result = turfHelper.createbuffer(gmPolygon, 'feature', 500, 'meters', 12);
+            var result = turfSubset.createbuffer(gmPolygon, 'feature', 500, {
+                units: 'meters',
+                steps: 12
+            });
 
             var simplified_result_geom = result.geometry.coordinates[0].map(function (point) {
                 return [Math.round(point[0] * 1000000000) / 1000000000, Math.round(point[1] * 1000000000) / 1000000000];
@@ -238,13 +241,13 @@
             ];
 
 
-            assert.deepEqual(result, actual, 'turfHelper.createbuffer should create a correct buffer from a  google.maps.Polygon');
+            assert.deepEqual(result, actual, 'turfSubset.createbuffer should create a correct buffer from a  google.maps.Polygon');
             done();
         };
         if (window.gmaps.then) {
             window.gmaps.then(function (gmaps) {
                 runtest(gmaps);
-            })
+            });
         } else {
             runtest(window.gmaps);
         }

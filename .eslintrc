@@ -28,7 +28,9 @@
         "Promise": false,
         "Modernizr": false,
         "Clipboard": false,
-        "turfHelper":false
+        "turfHelper":false,
+        "turfUtils":false,
+        "turfSubset":false
     },
 
     "parserOptions":

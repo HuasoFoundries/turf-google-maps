@@ -2,11 +2,11 @@
 
 ## union
 
-Overlaps two Feature.<Polygon>
+Takes two or more polygons and returns a combined polygon or multipolygon
 
 **Parameters**
 
 -   `poly1` **([google.maps.Polygon](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/Polygon.md) \| [Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[google.maps.LatLng](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/LatLng.md)> | Feature.Polygon)** object to transform into a Feature.Polygon
--   `poly2`  
+-   `poly2` **([google.maps.Polygon](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/Polygon.md) \| [Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[google.maps.LatLng](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/LatLng.md)> | Feature.Polygon)** object to transform into a Feature.Polygon
 
 Returns **([Feature](http://geojson.org/geojson-spec.html#feature-objects)&lt;[Polygon](http://geojson.org/geojson-spec.html#polygon)> | [Feature](http://geojson.org/geojson-spec.html#feature-objects)&lt;[MultiPolygon](http://geojson.org/geojson-spec.html#multipolygon)>)** result of the union. If inputs are disjoint, returns a Feature.Multipolygon

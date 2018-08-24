@@ -3,7 +3,12 @@
   "version": "0.9.5",
   "description": "A bridge to use Turf along with google Maps API",
   "scripts": {
-    "test": "karma start"
+    "test": "karma start",
+    "test:minified": "MINIFY=true karma start",
+    "minify": "npm run minify:utils && npm run minify:ig_subset && npm run minify:turfhelper",
+    "minify:utils": "uglifyjs  dist/utils.js --source-map --mangle --compress -o dist/utils.min.js",
+    "minify:ig_subset": "uglifyjs  dist/ig_subset.js --source-map --mangle --compress -o dist/ig_subset.min.js",
+    "minify:turfhelper": "uglifyjs  dist/ig_turfhelper.js --source-map --mangle --compress -o dist/ig_turfhelper.min.js"
   },
   "repository": {
     "type": "git",
@@ -48,24 +53,23 @@
     "@turf/unkink-polygon": "^5.1.5",
     "babel-cli": "^6.26.0",
     "babel-core": "^6.26.0",
-    "babel-eslint": "^8.0.2",
+    "babel-eslint": "^8.2.6",
     "babel-plugin-external-helpers": "^6.22.0",
     "babel-plugin-transform-es2015-arrow-functions": "^6.22.0",
     "babel-preset-env": "^1.6.1",
     "chalk": "^2.3.0",
     "documentation": "^5.2.2",
-    "eslint": "^4.11.0",
+    "eslint": "^5.4.0",
     "karma": "^1",
     "karma-mocha-reporter": "^2.2.3",
     "karma-phantomjs-launcher": "^1",
     "karma-qunit": "^1.2.1",
     "karma-systemjs": "^0.16.0",
-    "lodash": "^4",
     "lodash-es": "^4.17.4",
     "phantomjs-prebuilt": "^2",
     "progress": "^2.0.0",
     "qunitjs": "^1",
-    "rollup": "^0.58.2",
+    "rollup": "^0.64.1",
     "rollup-plugin-alias": "^1.4.0",
     "rollup-plugin-babel": "^3.0.2",
     "rollup-plugin-cleanup": "^2.0.0",
@@ -73,7 +77,8 @@
     "rollup-plugin-node-resolve": "^3.3.0",
     "rollup-plugin-replace": "^2.0.0",
     "rollup-plugin-uglify": "^2.0.1",
-    "slash": "^1.0.0"
+    "slash": "^1.0.0",
+    "uglify-js": "^3.4.8"
   },
   "jspm": {
     "name": "turf-google-maps",

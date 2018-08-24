@@ -3,15 +3,15 @@ import commonjs from "rollup-plugin-commonjs";
 import alias from 'rollup-plugin-alias';
 import babel from 'rollup-plugin-babel';
 import replace from 'rollup-plugin-replace';
-import uglify from 'rollup-plugin-uglify';
 import cleanup from 'rollup-plugin-cleanup';
 import pkgConfig from "./package.json";
 
+var version = process.env.NEW_VERSION ? `v${process.env.NEW_VERSION}` : pkgConfig.version;
 var banner =
 	`
 /*
  * turf-google-maps
- * version ${pkgConfig.version}
+ * version ${version}
  * MIT Licensed
  * Felipe Figueroa (amenadiel@gmail.com)
  * https://github.com/HuasoFoundries/turf-google-maps
@@ -64,39 +64,35 @@ var input = "src/ig_turfhelper.js",
 	];
 
 
-if (process.env.MINIFY) {
-	input = "dist/ig_turfhelper.js";
-	output = [{
-		file: "dist/ig_turfhelper.min.js",
-		format: "umd",
-		name: 'turfHelper',
-		sourcemap: true,
-		exports: 'named',
-		banner
-	}];
-	plugins = uglify({
-		mangle: false
-	});
-}
 if (process.env.UTILS) {
 	input = "src/components/utils.js";
 	output = [{
-		file: "dist/utils.min.js",
+		file: "dist/utils.js",
 		format: "umd",
 		name: 'turfUtils',
-		sourcemap: true,
 		exports: 'named',
 		extend: false,
 		banner
 	}];
-	plugins.push(uglify());
+
+}
+
+if (process.env.SUBSET) {
+	input = "src/ig_subset.js";
+	output = [{
+		file: "dist/ig_subset.js",
+		format: "umd",
+		name: 'turfSubset',
+		exports: 'named',
+		extend: false,
+		banner
+	}];
+
 }
 
 export default {
 
 	input: input,
-
-
 	plugins: plugins,
 	output: output
 

@@ -33,7 +33,7 @@ import {
 
 
 var debug = console.debug.bind(console, '%c turfHelper' + ':', "color:#00CC00;font-weight:bold;"),
-    warn = console.debug.bind(console, '%c turfHelper' + ':', "color:orange;font-weight:bold;");
+    warn = console.warn.bind(console, '%c turfHelper' + ':', "color:orange;font-weight:bold;");
 
 
 /**

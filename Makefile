@@ -11,8 +11,9 @@ GREEN=\u001B[32m
 
 
 default: build
-.PHONY: test build build_unminified build_minified build_utils docs
-
+.PHONY: update_eslint check_version docs tag
+.PHONY: test test_unminified test_minified
+.PHONY: build  build_unminified build_subset minify
 
 version:
 	@echo $(VERSION)
@@ -27,25 +28,31 @@ update_eslint:
 	npm install --save-dev eslint babel-eslint
 
 
-test:
-	$$(npm bin)/karma start
-	MINIFY=true $$(npm bin)/karma start
+test: test_unminified test_minified
+
+test_unminified:
+	npm run test
+
+test_minified:	
+	npm run test:minified
 
 docs:
 	./generate_docs.js
 
+minify:
+	npm run minify
+
+build:  build_unminified build_subset build_utils 
+
 build_unminified:
-	$$(npm bin)/rollup -c
-
-build_minified:
-	MINIFY=true  $$(npm bin)/rollup -c
-
+	NEW_VERSION=${v} $$(npm bin)/rollup -c
 
 build_utils:
-	UTILS=true $$(npm bin)/rollup -c
+	NEW_VERSION=${v} UTILS=true $$(npm bin)/rollup -c
 
-build:  build_unminified  build_minified test
-	
+build_subset:
+	NEW_VERSION=${v} SUBSET=true $$(npm bin)/rollup -c
+
 
 
 update_version:
@@ -110,6 +117,6 @@ tag_and_push:
 		git push --tags
 
 
-tag:  build_unminified test check_version build_unminified build_minified  docs tag_and_push	
+tag:  build test_unminified minify test_minified docs tag_and_push	
 release: check_version  tag_and_push		
 	

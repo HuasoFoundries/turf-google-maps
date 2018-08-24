@@ -20,7 +20,4 @@
     });
 
 
-    QUnit.test('google.maps should be of type object', function (assert) {
-        assert.equal(typeof google.maps, 'object', 'google.maps should be of type object');
-    });
 }(QUnit));

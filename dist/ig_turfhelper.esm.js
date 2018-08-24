@@ -1,7 +1,7 @@
 
 /*
  * turf-google-maps
- * version 0.9.2
+ * version v0.9.6
  * MIT Licensed
  * Felipe Figueroa (amenadiel@gmail.com)
  * https://github.com/HuasoFoundries/turf-google-maps
@@ -931,7 +931,7 @@ Wkt.Wkt.prototype.deconstruct = function (obj, multiFlag) {
     }
     console.warn('The passed object does not have any recognizable properties.');
 };
-function Wicket$1() {
+function Wicket() {
     return new Wkt.Wkt();
 }
 
@@ -1055,10 +1055,9 @@ function getRawTag(value) {
       tag = value[symToStringTag];
   try {
     value[symToStringTag] = undefined;
-    var unmasked = true;
   } catch (e) {}
   var result = nativeObjectToString.call(value);
-  if (unmasked) {
+  {
     if (isOwn) {
       value[symToStringTag] = tag;
     } else {
@@ -1670,8 +1669,8 @@ function getAllKeys(object) {
 }
 
 var COMPARE_PARTIAL_FLAG$2 = 1;
-var objectProto$10 = Object.prototype;
-var hasOwnProperty$7 = objectProto$10.hasOwnProperty;
+var objectProto$a = Object.prototype;
+var hasOwnProperty$7 = objectProto$a.hasOwnProperty;
 function equalObjects(object, other, bitmask, customizer, equalFunc, stack) {
   var isPartial = bitmask & COMPARE_PARTIAL_FLAG$2,
       objProps = getAllKeys(object),
@@ -1769,8 +1768,8 @@ var COMPARE_PARTIAL_FLAG$3 = 1;
 var argsTag$2 = '[object Arguments]',
     arrayTag$1 = '[object Array]',
     objectTag$2 = '[object Object]';
-var objectProto$11 = Object.prototype;
-var hasOwnProperty$8 = objectProto$11.hasOwnProperty;
+var objectProto$b = Object.prototype;
+var hasOwnProperty$8 = objectProto$b.hasOwnProperty;
 function baseIsEqualDeep(object, other, bitmask, customizer, equalFunc, stack) {
   var objIsArr = isArray(object),
       othIsArr = isArray(other),
@@ -2468,7 +2467,7 @@ function isObject$2(input) {
 }
 
 var debug = console.debug.bind(console, '%c turfHelper' + ':', "color:#00CC00;font-weight:bold;"),
-    warn = console.debug.bind(console, '%c turfHelper' + ':', "color:orange;font-weight:bold;");
+    warn = console.warn.bind(console, '%c turfHelper' + ':', "color:orange;font-weight:bold;");
 function arrayToFeaturePolygon(LatLngArray) {
     var vertices = toCoords(LatLngArray, true);
     return {
@@ -2543,6 +2542,10 @@ function arrayToFeaturePoints(latLngArray) {
         FeatureCollection.features.push(Feature);
     });
     return FeatureCollection;
+}
+function area$1(object) {
+    var polygonFeature = polygonToFeaturePolygon(object);
+    return area(polygonFeature);
 }
 
 function tin(points, z) {
@@ -4147,12 +4150,10 @@ function removeDuplicates(points) {
     return featureCollection$1(cleaned);
 }
 
-function concave$1(latLngArray, maxEdge, units) {
+function concave$1(latLngArray, options) {
+  options = options || {};
   var FeatureCollection = arrayToFeaturePoints(latLngArray);
-  return concave(FeatureCollection, {
-    maxEdge: maxEdge,
-    units: units
-  });
+  return concave(FeatureCollection, options);
 }
 
 function feature$4(geometry, properties, options) {
@@ -4583,17 +4584,20 @@ function checkValidity(ring) {
     return !(ring.length === 3 && ring[2][0] === ring[0][0] && ring[2][1] === ring[0][1]);
 }
 
-function simplifyPointArray(coordArray, tolerance, highQuality) {
-	tolerance = tolerance || 0.00001;
-	highQuality = highQuality || false;
+function simplifyPointArray(coordArray, options) {
+	options = options || {};
+	options.tolerance = options.tolerance || 0.00001;
 	var Feature = lineString$1(toCoords(coordArray));
-	var simplifiedgeom = simplify(Feature, tolerance, highQuality);
+	var simplifiedgeom = simplify(Feature, options);
 	return simplifiedgeom.geometry.coordinates;
-}function simplifyFeature(object, output, tolerance, highQuality) {
+}
+function simplifyFeature(object, output, options) {
+	options = options || {};
+	options.tolerance = options.tolerance || 0.00001;
 	output = (output || 'feature').toLowerCase();
 	var Feature;
 	if (object instanceof google.maps.Polyline || object instanceof google.maps.Polygon) {
-		var geometry = Wicket$1().fromObject(object).toJson();
+		var geometry = Wicket().fromObject(object).toJson();
 		Feature = {
 			type: "Feature",
 			properties: {},
@@ -4608,7 +4612,7 @@ function simplifyPointArray(coordArray, tolerance, highQuality) {
 		Feature.geometry.type = 'Polygon';
 		Feature.geometry.coordinates = Feature.geometry.coordinates[0];
 	}
-	var simplifiedgeom = simplify(Feature, tolerance, highQuality);
+	var simplifiedgeom = simplify(Feature, options);
 	if (simplifiedgeom && simplifiedgeom.geometry) {
 		Feature = simplifiedgeom;
 	} else {
@@ -4617,7 +4621,7 @@ function simplifyPointArray(coordArray, tolerance, highQuality) {
 	if (output === 'geometry') {
 		return Feature.geometry;
 	} else if (output === 'object') {
-		return Wicket$1().fromJson(Feature.geometry).toObject();
+		return Wicket().fromJson(Feature.geometry).toObject();
 	} else {
 		return Feature;
 	}
@@ -4680,10 +4684,11 @@ function along(line, distance$$1, options) {
     return point$1(coords[coords.length - 1]);
 }
 
-function along$1(object, distance, units) {
+function along$1(object, distance, options) {
 	var Feature;
+	options = options || {};
 	if (object instanceof google.maps.Polyline) {
-		var geometry = Wicket$1().fromObject(object).toJson();
+		var geometry = Wicket().fromObject(object).toJson();
 		Feature = {
 			type: "Feature",
 			properties: {},
@@ -4695,7 +4700,7 @@ function along$1(object, distance, units) {
 		var arrayCoords = toCoords(object);
 		Feature = lineString$1(arrayCoords);
 	}
-	return along(Feature, distance, units);
+	return along(Feature, distance, options);
 }
 
 function extend (target, source) {
@@ -18237,8 +18242,7 @@ extend(SnapIfNeededOverlayOp.prototype, {
 		var savedException = null;
 		try {
 			result = OverlayOp.overlayOp(this._geom[0], this._geom[1], opCode);
-			var isValid = true;
-			if (isValid) isSuccess = true;
+			isSuccess = true;
 		} catch (ex) {
 			if (ex instanceof RuntimeException) {
 				savedException = ex;
@@ -31732,12 +31736,13 @@ function defineProjection(geojson) {
     return geoTransverseMercator().center(coords).rotate(rotate).scale(earthRadius$1);
 }
 
-function createbuffer(object, output, distance, units, comment, steps) {
-    units = units || 'meters';
+function createbuffer(object, output, radius, options) {
+    options = options || {};
+    options.units = options.units || 'meters';
     output = (output || 'feature').toLowerCase();
     var Feature;
     if (object instanceof google.maps.Polyline || object instanceof google.maps.Polygon || object instanceof google.maps.Marker || object instanceof google.maps.LatLng) {
-        var geometry = Wicket$1().fromObject(object).toJson();
+        var geometry = Wicket().fromObject(object).toJson();
         Feature = {
             type: "Feature",
             properties: {},
@@ -31748,17 +31753,14 @@ function createbuffer(object, output, distance, units, comment, steps) {
     } else {
         Feature = polygonToFeaturePolygon(object);
     }
-    var buffered = buffer$1(Feature, distance, {
-        units: units,
-        steps: steps
-    });
+    var buffered = buffer$1(Feature, radius, options);
     if (buffered.type === 'FeatureCollection') {
         buffered = buffered.features[0];
     }
     if (output === 'geometry') {
         return buffered.geometry;
     } else if (output === 'object') {
-        return Wicket$1().fromJson(buffered.geometry).toObject();
+        return Wicket().fromJson(buffered.geometry).toObject();
     } else {
         return buffered;
     }
@@ -31925,20 +31927,20 @@ function lineIntersects(line1StartX, line1StartY, line1EndX, line1EndY, line2Sta
 }
 
 function kinks$1(object) {
-  var Feature;
-  if (object instanceof google.maps.Polyline || object instanceof google.maps.Polygon) {
-    var geometry = Wicket().fromObject(object).toJson();
-    Feature = {
-      type: "Feature",
-      properties: {},
-      geometry: geometry
-    };
-  } else if (object.type && object.type === 'Feature' && object.geometry) {
-    Feature = object;
-  } else {
-    Feature = polygonToFeaturePolygon(object);
-  }
-  return kinks(Feature);
+    var Feature;
+    if (object instanceof google.maps.Polyline || object instanceof google.maps.Polygon) {
+        var geometry = Wicket().fromObject(object).toJson();
+        Feature = {
+            type: "Feature",
+            properties: {},
+            geometry: geometry
+        };
+    } else if (object.type && object.type === 'Feature' && object.geometry) {
+        Feature = object;
+    } else {
+        Feature = polygonToFeaturePolygon(object);
+    }
+    return kinks(Feature);
 }
 
 function feature$6(geometry, properties, options) {
@@ -34117,6 +34119,7 @@ function traverseRings(ring1, ring2) {
 }
 
 var ig_turfhelper = {
+    area: area$1,
     along: along$1,
     arrayToFeaturePoints: arrayToFeaturePoints,
     createbuffer: createbuffer,
@@ -34135,4 +34138,4 @@ var ig_turfhelper = {
 };
 
 export default ig_turfhelper;
-export { along$1 as along, arrayToFeaturePoints, createbuffer, pointInPolygon, polygonToFeaturePolygon, polylineToFeatureLinestring, simplifyFeature, simplifyPointArray, toLatLngs, toCoords, trimPaths, kinks$1 as kinks, unkink, union$1 as union, concave$1 as concave };
+export { area$1 as area, along$1 as along, arrayToFeaturePoints, createbuffer, pointInPolygon, polygonToFeaturePolygon, polylineToFeatureLinestring, simplifyFeature, simplifyPointArray, toLatLngs, toCoords, trimPaths, kinks$1 as kinks, unkink, union$1 as union, concave$1 as concave };
