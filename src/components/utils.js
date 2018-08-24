@@ -24,7 +24,6 @@ import {
 }
 from 'lodash-es/reduce.js';
 
-import turf_area from '@turf/area';
 
 import {
     area as turf__area,
