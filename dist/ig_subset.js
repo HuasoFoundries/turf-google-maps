@@ -10,7 +10,7 @@
 (function (global, factory) {
   typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
   typeof define === 'function' && define.amd ? define(['exports'], factory) :
-  (factory((global.turfHelper = {})));
+  (factory((global.turfSubset = {})));
 }(this, (function (exports) { 'use strict';
 
   var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) {
@@ -2387,25 +2387,6 @@
           coordinates: coordinates
       }, properties, bbox, id);
   }
-  function polygon$1(coordinates, properties, bbox, id) {
-      if (!coordinates) throw new Error('No coordinates passed');
-      for (var i = 0; i < coordinates.length; i++) {
-          var ring = coordinates[i];
-          if (ring.length < 4) {
-              throw new Error('Each LinearRing of a Polygon must have 4 or more Positions.');
-          }
-          for (var j = 0; j < ring[ring.length - 1].length; j++) {
-              if (i === 0 && j === 0 && !isNumber$1(ring[0][0]) || !isNumber$1(ring[0][1])) throw new Error('Coordinates must contain numbers');
-              if (ring[ring.length - 1][j] !== ring[0][j]) {
-                  throw new Error('First and last Position are not equivalent.');
-              }
-          }
-      }
-      return feature$1({
-          type: 'Polygon',
-          coordinates: coordinates
-      }, properties, bbox, id);
-  }
   function lineString$1(coordinates, properties, bbox, id) {
       if (!coordinates) throw new Error('No coordinates passed');
       if (coordinates.length < 2) throw new Error('Coordinates must be an array of two or more positions');
@@ -2425,21 +2406,6 @@
       if (bbox) fc.bbox = bbox;
       fc.features = features;
       return fc;
-  }
-  function multiLineString$1(coordinates, properties, bbox, id) {
-      if (!coordinates) throw new Error('No coordinates passed');
-      return feature$1({
-          type: 'MultiLineString',
-          coordinates: coordinates
-      }, properties, bbox, id);
-  }
-  function geometryCollection$1(geometries, properties, bbox, id) {
-      if (!geometries) throw new Error('geometries is required');
-      if (!Array.isArray(geometries)) throw new Error('geometries must be an Array');
-      return feature$1({
-          type: 'GeometryCollection',
-          geometries: geometries
-      }, properties, bbox, id);
   }
   function radiansToLength$1(radians, units) {
       if (radians === undefined || radians === null) throw new Error('radians is required');
@@ -2500,15 +2466,6 @@
       };
       return Feature;
   }
-  function polylineToFeatureLinestring(objeto) {
-      var vertices;
-      if (objeto instanceof google.maps.Polyline) {
-          vertices = toCoords(objeto.getPath().getArray());
-      } else {
-          vertices = toCoords(objeto);
-      }
-      return lineString$1(vertices);
-  }
   function polygonToFeaturePolygon(object) {
       var ring, polygonFeature;
       if (object.type === 'Feature') {
@@ -2532,177 +2489,143 @@
       polygonFeature.properties = {};
       return polygonFeature;
   }
-  function arrayToFeaturePoints(latLngArray) {
-      var FeatureCollection = {
-          "type": "FeatureCollection",
-          "features": []
-      };
-      latLngArray.forEach(function (latLng) {
-          var Feature = {
-              type: "Feature",
-              geometry: {
-                  type: "Point",
-                  coordinates: toCoords([latLng])[0]
-              }
-          };
-          FeatureCollection.features.push(Feature);
-      });
-      return FeatureCollection;
+
+  function feature$2(geometry, properties, options) {
+      options = options || {};
+      if (!isObject$3(options)) throw new Error('options is invalid');
+      var bbox = options.bbox;
+      var id = options.id;
+      if (geometry === undefined) throw new Error('geometry is required');
+      if (properties && properties.constructor !== Object) throw new Error('properties must be an Object');
+      if (bbox) validateBBox$1(bbox);
+      if (id) validateId$1(id);
+      var feat = { type: 'Feature' };
+      if (id) feat.id = id;
+      if (bbox) feat.bbox = bbox;
+      feat.properties = properties || {};
+      feat.geometry = geometry;
+      return feat;
   }
-  function area$1(object) {
-      var polygonFeature = polygonToFeaturePolygon(object);
-      return area(polygonFeature);
+  function isNumber$2(num) {
+      return !isNaN(num) && num !== null && !Array.isArray(num);
+  }
+  function isObject$3(input) {
+      return !!input && input.constructor === Object;
+  }
+  function validateBBox$1(bbox) {
+      if (!bbox) throw new Error('bbox is required');
+      if (!Array.isArray(bbox)) throw new Error('bbox must be an Array');
+      if (bbox.length !== 4 && bbox.length !== 6) throw new Error('bbox must be an Array of 4 or 6 numbers');
+      bbox.forEach(function (num) {
+          if (!isNumber$2(num)) throw new Error('bbox must only contain numbers');
+      });
+  }
+  function validateId$1(id) {
+      if (!id) throw new Error('id is required');
+      if (['string', 'number'].indexOf(typeof id === 'undefined' ? 'undefined' : _typeof(id)) === -1) throw new Error('id must be a number or a string');
   }
 
-  function tin(points, z) {
-      if (points.type !== 'FeatureCollection') throw new Error('points must be a FeatureCollection');
-      var isPointZ = false;
-      return featureCollection$1(triangulate(points.features.map(function (p) {
-          var point = {
-              x: p.geometry.coordinates[0],
-              y: p.geometry.coordinates[1]
-          };
-          if (z) {
-              point.z = p.properties[z];
-          } else if (p.geometry.coordinates.length === 3) {
-              isPointZ = true;
-              point.z = p.geometry.coordinates[2];
-          }
-          return point;
-      })).map(function (triangle) {
-          var a = [triangle.a.x, triangle.a.y];
-          var b = [triangle.b.x, triangle.b.y];
-          var c = [triangle.c.x, triangle.c.y];
-          var properties = {};
-          if (isPointZ) {
-              a.push(triangle.a.z);
-              b.push(triangle.b.z);
-              c.push(triangle.c.z);
-          } else {
-              properties = {
-                  a: triangle.a.z,
-                  b: triangle.b.z,
-                  c: triangle.c.z
-              };
-          }
-          return polygon$1([[a, b, c, a]], properties);
-      }));
+  function getCoords(coords) {
+      if (!coords) throw new Error('coords is required');
+      if (coords.type === 'Feature' && coords.geometry !== null) return coords.geometry.coordinates;
+      if (coords.coordinates) return coords.coordinates;
+      if (Array.isArray(coords)) return coords;
+      throw new Error('coords must be GeoJSON Feature, Geometry Object or an Array');
   }
-  function Triangle(a, b, c) {
-      this.a = a;
-      this.b = b;
-      this.c = c;
-      var A = b.x - a.x,
-          B = b.y - a.y,
-          C = c.x - a.x,
-          D = c.y - a.y,
-          E = A * (a.x + b.x) + B * (a.y + b.y),
-          F = C * (a.x + c.x) + D * (a.y + c.y),
-          G = 2 * (A * (c.y - b.y) - B * (c.x - b.x)),
-          dx,
-          dy;
-      this.x = (D * E - B * F) / G;
-      this.y = (A * F - C * E) / G;
-      dx = this.x - a.x;
-      dy = this.y - a.y;
-      this.r = dx * dx + dy * dy;
+  function getType(geojson, name) {
+      if (!geojson) throw new Error((name || 'geojson') + ' is required');
+      if (geojson.geometry && geojson.geometry.type) return geojson.geometry.type;
+      if (geojson.type) return geojson.type;
+      throw new Error((name || 'geojson') + ' is invalid');
   }
-  function byX(a, b) {
-      return b.x - a.x;
-  }
-  function dedup(edges) {
-      var j = edges.length,
-          a,
-          b,
-          i,
-          m,
-          n;
-      outer: while (j) {
-          b = edges[--j];
-          a = edges[--j];
-          i = j;
-          while (i) {
-              n = edges[--i];
-              m = edges[--i];
-              if (a === m && b === n || a === n && b === m) {
-                  edges.splice(j, 2);
-                  edges.splice(i, 2);
-                  j -= 2;
-                  continue outer;
-              }
+
+  function cleanCoords(geojson, options) {
+      var mutate = (typeof options === 'undefined' ? 'undefined' : _typeof(options)) === 'object' ? options.mutate : options;
+      if (!geojson) throw new Error('geojson is required');
+      var type = getType(geojson);
+      var newCoords = [];
+      switch (type) {
+          case 'LineString':
+              newCoords = cleanLine(geojson);
+              break;
+          case 'MultiLineString':
+          case 'Polygon':
+              getCoords(geojson).forEach(function (line) {
+                  newCoords.push(cleanLine(line));
+              });
+              break;
+          case 'MultiPolygon':
+              getCoords(geojson).forEach(function (polygons) {
+                  var polyPoints = [];
+                  polygons.forEach(function (ring) {
+                      polyPoints.push(cleanLine(ring));
+                  });
+                  newCoords.push(polyPoints);
+              });
+              break;
+          case 'Point':
+              return geojson;
+          case 'MultiPoint':
+              var existing = {};
+              getCoords(geojson).forEach(function (coord) {
+                  var key = coord.join('-');
+                  if (!existing.hasOwnProperty(key)) {
+                      newCoords.push(coord);
+                      existing[key] = true;
+                  }
+              });
+              break;
+          default:
+              throw new Error(type + ' geometry not supported');
+      }
+      if (geojson.coordinates) {
+          if (mutate === true) {
+              geojson.coordinates = newCoords;
+              return geojson;
           }
+          return { type: type, coordinates: newCoords };
+      } else {
+          if (mutate === true) {
+              geojson.geometry.coordinates = newCoords;
+              return geojson;
+          }
+          return feature$2({ type: type, coordinates: newCoords }, geojson.properties, geojson.bbox, geojson.id);
       }
   }
-  function triangulate(vertices) {
-      if (vertices.length < 3) return [];
-      vertices.sort(byX);
-      var i = vertices.length - 1,
-          xmin = vertices[i].x,
-          xmax = vertices[0].x,
-          ymin = vertices[i].y,
-          ymax = ymin,
-          epsilon = 1e-12;
-      var a, b, c, A, B, G;
-      while (i--) {
-          if (vertices[i].y < ymin) ymin = vertices[i].y;
-          if (vertices[i].y > ymax) ymax = vertices[i].y;
-      }
-      var dx = xmax - xmin,
-          dy = ymax - ymin,
-          dmax = dx > dy ? dx : dy,
-          xmid = (xmax + xmin) * 0.5,
-          ymid = (ymax + ymin) * 0.5,
-          open = [new Triangle({
-          x: xmid - 20 * dmax,
-          y: ymid - dmax,
-          __sentinel: true
-      }, {
-          x: xmid,
-          y: ymid + 20 * dmax,
-          __sentinel: true
-      }, {
-          x: xmid + 20 * dmax,
-          y: ymid - dmax,
-          __sentinel: true
-      })],
-          closed = [],
-          edges = [],
-          j;
-      i = vertices.length;
-      while (i--) {
-          edges.length = 0;
-          j = open.length;
-          while (j--) {
-              dx = vertices[i].x - open[j].x;
-              if (dx > 0 && dx * dx > open[j].r) {
-                  closed.push(open[j]);
-                  open.splice(j, 1);
-                  continue;
-              }
-              dy = vertices[i].y - open[j].y;
-              if (dx * dx + dy * dy > open[j].r) continue;
-              edges.push(open[j].a, open[j].b, open[j].b, open[j].c, open[j].c, open[j].a);
-              open.splice(j, 1);
-          }
-          dedup(edges);
-          j = edges.length;
-          while (j) {
-              b = edges[--j];
-              a = edges[--j];
-              c = vertices[i];
-              A = b.x - a.x;
-              B = b.y - a.y;
-              G = 2 * (A * (c.y - b.y) - B * (c.x - b.x));
-              if (Math.abs(G) > epsilon) {
-                  open.push(new Triangle(a, b, c));
-              }
+  function cleanLine(line) {
+      var points = getCoords(line);
+      if (points.length === 2 && !equals(points[0], points[1])) return points;
+      var prevPoint, point, nextPoint;
+      var newPoints = [];
+      var secondToLast = points.length - 1;
+      newPoints.push(points[0]);
+      for (var i = 1; i < secondToLast; i++) {
+          prevPoint = points[i - 1];
+          point = points[i];
+          nextPoint = points[i + 1];
+          if (!isPointOnLineSegment(prevPoint, nextPoint, point)) {
+              newPoints.push(point);
           }
       }
-      Array.prototype.push.apply(closed, open);
-      i = closed.length;
-      while (i--) {
-          if (closed[i].a.__sentinel || closed[i].b.__sentinel || closed[i].c.__sentinel) closed.splice(i, 1);
-      }return closed;
+      newPoints.push(nextPoint);
+      return newPoints;
+  }
+  function equals(pt1, pt2) {
+      return pt1[0] === pt2[0] && pt1[1] === pt2[1];
+  }
+  function isPointOnLineSegment(start, end, point) {
+      var x = point[0],
+          y = point[1];
+      var startX = start[0],
+          startY = start[1];
+      var endX = end[0],
+          endY = end[1];
+      var dxc = x - startX;
+      var dyc = y - startY;
+      var dxl = endX - startX;
+      var dyl = endY - startY;
+      var cross = dxc * dyl - dyc * dxl;
+      if (cross !== 0) return false;else if (Math.abs(dxl) >= Math.abs(dyl)) return dxl > 0 ? startX <= x && x <= endX : endX <= x && x <= startX;else return dyl > 0 ? startY <= y && y <= endY : endY <= y && y <= startY;
   }
 
   function clone(geojson) {
@@ -2746,10 +2669,15 @@
       Object.keys(properties).forEach(function (key) {
           var value = properties[key];
           if ((typeof value === 'undefined' ? 'undefined' : _typeof(value)) === 'object') {
-              if (value.length) cloned[key] = value.map(function (item) {
-                  return item;
-              });
-              cloned[key] = cloneProperties(value);
+              if (value === null) {
+                  cloned[key] = null;
+              } else if (value.length) {
+                  cloned[key] = value.map(function (item) {
+                      return item;
+                  });
+              } else {
+                  cloned[key] = cloneProperties(value);
+              }
           } else cloned[key] = value;
       });
       return cloned;
@@ -2791,1611 +2719,11 @@
       });
   }
 
-  function getCoord(obj) {
-      if (!obj) throw new Error('obj is required');
-      var coordinates = getCoords(obj);
-      if (coordinates.length > 1 && isNumber$1(coordinates[0]) && isNumber$1(coordinates[1])) {
-          return coordinates;
-      } else {
-          throw new Error('Coordinate is not a valid Point');
-      }
-  }
-  function getCoords(obj) {
-      if (!obj) throw new Error('obj is required');
-      var coordinates;
-      if (obj.length) {
-          coordinates = obj;
-      } else if (obj.coordinates) {
-          coordinates = obj.coordinates;
-      } else if (obj.geometry && obj.geometry.coordinates) {
-          coordinates = obj.geometry.coordinates;
-      }
-      if (coordinates) {
-          containsNumber(coordinates);
-          return coordinates;
-      }
-      throw new Error('No valid coordinates');
-  }
-  function containsNumber(coordinates) {
-      if (coordinates.length > 1 && isNumber$1(coordinates[0]) && isNumber$1(coordinates[1])) {
-          return true;
-      }
-      if (Array.isArray(coordinates[0]) && coordinates[0].length) {
-          return containsNumber(coordinates[0]);
-      }
-      throw new Error('coordinates must only contain numbers');
-  }
-  function getType(geojson, name) {
-      if (!geojson) throw new Error((name || 'geojson') + ' is required');
-      if (geojson.geometry && geojson.geometry.type) return geojson.geometry.type;
-      if (geojson.type) return geojson.type;
-      throw new Error((name || 'geojson') + ' is invalid');
-  }
-
-  function coordEach$1(geojson, callback, excludeWrapCoord) {
-      if (geojson === null) return;
-      var featureIndex,
-          geometryIndex,
-          j,
-          k,
-          l,
-          geometry,
-          stopG,
-          coords,
-          geometryMaybeCollection,
-          wrapShrink = 0,
-          coordIndex = 0,
-          isGeometryCollection,
-          type = geojson.type,
-          isFeatureCollection = type === 'FeatureCollection',
-          isFeature = type === 'Feature',
-          stop = isFeatureCollection ? geojson.features.length : 1;
-      for (featureIndex = 0; featureIndex < stop; featureIndex++) {
-          geometryMaybeCollection = isFeatureCollection ? geojson.features[featureIndex].geometry : isFeature ? geojson.geometry : geojson;
-          isGeometryCollection = geometryMaybeCollection ? geometryMaybeCollection.type === 'GeometryCollection' : false;
-          stopG = isGeometryCollection ? geometryMaybeCollection.geometries.length : 1;
-          for (geometryIndex = 0; geometryIndex < stopG; geometryIndex++) {
-              var featureSubIndex = 0;
-              geometry = isGeometryCollection ? geometryMaybeCollection.geometries[geometryIndex] : geometryMaybeCollection;
-              if (geometry === null) continue;
-              coords = geometry.coordinates;
-              var geomType = geometry.type;
-              wrapShrink = excludeWrapCoord && (geomType === 'Polygon' || geomType === 'MultiPolygon') ? 1 : 0;
-              switch (geomType) {
-                  case null:
-                      break;
-                  case 'Point':
-                      callback(coords, coordIndex, featureIndex, featureSubIndex);
-                      coordIndex++;
-                      featureSubIndex++;
-                      break;
-                  case 'LineString':
-                  case 'MultiPoint':
-                      for (j = 0; j < coords.length; j++) {
-                          callback(coords[j], coordIndex, featureIndex, featureSubIndex);
-                          coordIndex++;
-                          if (geomType === 'MultiPoint') featureSubIndex++;
-                      }
-                      if (geomType === 'LineString') featureSubIndex++;
-                      break;
-                  case 'Polygon':
-                  case 'MultiLineString':
-                      for (j = 0; j < coords.length; j++) {
-                          for (k = 0; k < coords[j].length - wrapShrink; k++) {
-                              callback(coords[j][k], coordIndex, featureIndex, featureSubIndex);
-                              coordIndex++;
-                          }
-                          if (geomType === 'MultiLineString') featureSubIndex++;
-                      }
-                      if (geomType === 'Polygon') featureSubIndex++;
-                      break;
-                  case 'MultiPolygon':
-                      for (j = 0; j < coords.length; j++) {
-                          for (k = 0; k < coords[j].length; k++) {
-                              for (l = 0; l < coords[j][k].length - wrapShrink; l++) {
-                                  callback(coords[j][k][l], coordIndex, featureIndex, featureSubIndex);
-                                  coordIndex++;
-                              }
-                          }featureSubIndex++;
-                      }
-                      break;
-                  case 'GeometryCollection':
-                      for (j = 0; j < geometry.geometries.length; j++) {
-                          coordEach$1(geometry.geometries[j], callback, excludeWrapCoord);
-                      }break;
-                  default:
-                      throw new Error('Unknown Geometry Type');
-              }
-          }
-      }
-  }
-  function featureEach$1(geojson, callback) {
-      if (geojson.type === 'Feature') {
-          callback(geojson, 0);
-      } else if (geojson.type === 'FeatureCollection') {
-          for (var i = 0; i < geojson.features.length; i++) {
-              callback(geojson.features[i], i);
-          }
-      }
-  }
-  function geomEach$1(geojson, callback) {
-      var i,
-          j,
-          g,
-          geometry,
-          stopG,
-          geometryMaybeCollection,
-          isGeometryCollection,
-          featureProperties,
-          featureBBox,
-          featureId,
-          featureIndex = 0,
-          isFeatureCollection = geojson.type === 'FeatureCollection',
-          isFeature = geojson.type === 'Feature',
-          stop = isFeatureCollection ? geojson.features.length : 1;
-      for (i = 0; i < stop; i++) {
-          geometryMaybeCollection = isFeatureCollection ? geojson.features[i].geometry : isFeature ? geojson.geometry : geojson;
-          featureProperties = isFeatureCollection ? geojson.features[i].properties : isFeature ? geojson.properties : {};
-          featureBBox = isFeatureCollection ? geojson.features[i].bbox : isFeature ? geojson.bbox : undefined;
-          featureId = isFeatureCollection ? geojson.features[i].id : isFeature ? geojson.id : undefined;
-          isGeometryCollection = geometryMaybeCollection ? geometryMaybeCollection.type === 'GeometryCollection' : false;
-          stopG = isGeometryCollection ? geometryMaybeCollection.geometries.length : 1;
-          for (g = 0; g < stopG; g++) {
-              geometry = isGeometryCollection ? geometryMaybeCollection.geometries[g] : geometryMaybeCollection;
-              if (geometry === null) {
-                  callback(null, featureIndex, featureProperties, featureBBox, featureId);
-                  continue;
-              }
-              switch (geometry.type) {
-                  case 'Point':
-                  case 'LineString':
-                  case 'MultiPoint':
-                  case 'Polygon':
-                  case 'MultiLineString':
-                  case 'MultiPolygon':
-                      {
-                          callback(geometry, featureIndex, featureProperties, featureBBox, featureId);
-                          break;
-                      }
-                  case 'GeometryCollection':
-                      {
-                          for (j = 0; j < geometry.geometries.length; j++) {
-                              callback(geometry.geometries[j], featureIndex, featureProperties, featureBBox, featureId);
-                          }
-                          break;
-                      }
-                  default:
-                      throw new Error('Unknown Geometry Type');
-              }
-          }
-          featureIndex++;
-      }
-  }
-  function flattenEach$1(geojson, callback) {
-      geomEach$1(geojson, function (geometry, featureIndex, properties, bbox, id) {
-          var type = geometry === null ? null : geometry.type;
-          switch (type) {
-              case null:
-              case 'Point':
-              case 'LineString':
-              case 'Polygon':
-                  callback(feature$1(geometry, properties, bbox, id), featureIndex, 0);
-                  return;
-          }
-          var geomType;
-          switch (type) {
-              case 'MultiPoint':
-                  geomType = 'Point';
-                  break;
-              case 'MultiLineString':
-                  geomType = 'LineString';
-                  break;
-              case 'MultiPolygon':
-                  geomType = 'Polygon';
-                  break;
-          }
-          geometry.coordinates.forEach(function (coordinate, featureSubIndex) {
-              var geom = {
-                  type: geomType,
-                  coordinates: coordinate
-              };
-              callback(feature$1(geom, properties), featureIndex, featureSubIndex);
-          });
-      });
-  }
-  function lineEach$1(geojson, callback) {
-      if (!geojson) throw new Error('geojson is required');
-      flattenEach$1(geojson, function (feature, featureIndex, featureSubIndex) {
-          if (feature.geometry === null) return;
-          var type = feature.geometry.type;
-          var coords = feature.geometry.coordinates;
-          switch (type) {
-              case 'LineString':
-                  callback(feature, featureIndex, featureSubIndex, 0);
-                  break;
-              case 'Polygon':
-                  for (var lineIndex = 0; lineIndex < coords.length; lineIndex++) {
-                      callback(lineString$1(coords[lineIndex], feature.properties), featureIndex, featureSubIndex, lineIndex);
-                  }
-                  break;
-          }
-      });
-  }
-  function lineReduce$1(geojson, callback, initialValue) {
-      var previousValue = initialValue;
-      lineEach$1(geojson, function (currentLine, featureIndex, featureSubIndex, lineIndex) {
-          if (featureIndex === 0 && initialValue === undefined) previousValue = currentLine;else previousValue = callback(previousValue, currentLine, featureIndex, featureSubIndex, lineIndex);
-      });
-      return previousValue;
-  }
-
-  function lineDissolve(geojson, options) {
-      options = options || {};
-      if (!isObject$2(options)) throw new Error('options is invalid');
-      var mutate = options.mutate;
-      if (getType(geojson) !== 'FeatureCollection') throw new Error('geojson must be a FeatureCollection');
-      if (!geojson.features.length) throw new Error('geojson is empty');
-      if (mutate === false || mutate === undefined) geojson = clone(geojson);
-      var result = [];
-      var lastLine = lineReduce$1(geojson, function (previousLine, currentLine) {
-          var merged = mergeLineStrings(previousLine, currentLine);
-          if (merged) return merged;
-          else {
-                  result.push(previousLine);
-                  return currentLine;
-              }
-      });
-      if (lastLine) result.push(lastLine);
-      if (!result.length) return null;
-      else if (result.length === 1) return result[0];
-          else return multiLineString$1(result.map(function (line) {
-                  return line.coordinates;
-              }));
-  }
-  function coordId(coord) {
-      return coord[0].toString() + ',' + coord[1].toString();
-  }
-  function mergeLineStrings(a, b) {
-      var coords1 = a.geometry.coordinates;
-      var coords2 = b.geometry.coordinates;
-      var s1 = coordId(coords1[0]);
-      var e1 = coordId(coords1[coords1.length - 1]);
-      var s2 = coordId(coords2[0]);
-      var e2 = coordId(coords2[coords2.length - 1]);
-      var coords;
-      if (s1 === e2) coords = coords2.concat(coords1.slice(1));else if (s2 === e1) coords = coords1.concat(coords2.slice(1));else if (s1 === s2) coords = coords1.slice(1).reverse().concat(coords2);else if (e1 === e2) coords = coords1.concat(coords2.reverse().slice(1));else return null;
-      return lineString$1(coords);
-  }
-
-  function identity$1 (x) {
-    return x;
-  }
-
-  function transform (transform) {
-    if (transform == null) return identity$1;
-    var x0,
-        y0,
-        kx = transform.scale[0],
-        ky = transform.scale[1],
-        dx = transform.translate[0],
-        dy = transform.translate[1];
-    return function (input, i) {
-      if (!i) x0 = y0 = 0;
-      var j = 2,
-          n = input.length,
-          output = new Array(n);
-      output[0] = (x0 += input[0]) * kx + dx;
-      output[1] = (y0 += input[1]) * ky + dy;
-      while (j < n) {
-        output[j] = input[j], ++j;
-      }return output;
-    };
-  }
-
-  function reverse (array, n) {
-    var t,
-        j = array.length,
-        i = j - n;
-    while (i < --j) {
-      t = array[i], array[i++] = array[j], array[j] = t;
-    }
-  }
-
-  function object(topology, o) {
-    var transformPoint = transform(topology.transform),
-        arcs = topology.arcs;
-    function arc(i, points) {
-      if (points.length) points.pop();
-      for (var a = arcs[i < 0 ? ~i : i], k = 0, n = a.length; k < n; ++k) {
-        points.push(transformPoint(a[k], k));
-      }
-      if (i < 0) reverse(points, n);
-    }
-    function point(p) {
-      return transformPoint(p);
-    }
-    function line(arcs) {
-      var points = [];
-      for (var i = 0, n = arcs.length; i < n; ++i) {
-        arc(arcs[i], points);
-      }if (points.length < 2) points.push(points[0]);
-      return points;
-    }
-    function ring(arcs) {
-      var points = line(arcs);
-      while (points.length < 4) {
-        points.push(points[0]);
-      }
-      return points;
-    }
-    function polygon(arcs) {
-      return arcs.map(ring);
-    }
-    function geometry(o) {
-      var type = o.type,
-          coordinates;
-      switch (type) {
-        case "GeometryCollection":
-          return { type: type, geometries: o.geometries.map(geometry) };
-        case "Point":
-          coordinates = point(o.coordinates);break;
-        case "MultiPoint":
-          coordinates = o.coordinates.map(point);break;
-        case "LineString":
-          coordinates = line(o.arcs);break;
-        case "MultiLineString":
-          coordinates = o.arcs.map(line);break;
-        case "Polygon":
-          coordinates = polygon(o.arcs);break;
-        case "MultiPolygon":
-          coordinates = o.arcs.map(polygon);break;
-        default:
-          return null;
-      }
-      return { type: type, coordinates: coordinates };
-    }
-    return geometry(o);
-  }
-
-  function stitch (topology, arcs) {
-    var stitchedArcs = {},
-        fragmentByStart = {},
-        fragmentByEnd = {},
-        fragments = [],
-        emptyIndex = -1;
-    arcs.forEach(function (i, j) {
-      var arc = topology.arcs[i < 0 ? ~i : i],
-          t;
-      if (arc.length < 3 && !arc[1][0] && !arc[1][1]) {
-        t = arcs[++emptyIndex], arcs[emptyIndex] = i, arcs[j] = t;
-      }
-    });
-    arcs.forEach(function (i) {
-      var e = ends(i),
-          start = e[0],
-          end = e[1],
-          f,
-          g;
-      if (f = fragmentByEnd[start]) {
-        delete fragmentByEnd[f.end];
-        f.push(i);
-        f.end = end;
-        if (g = fragmentByStart[end]) {
-          delete fragmentByStart[g.start];
-          var fg = g === f ? f : f.concat(g);
-          fragmentByStart[fg.start = f.start] = fragmentByEnd[fg.end = g.end] = fg;
-        } else {
-          fragmentByStart[f.start] = fragmentByEnd[f.end] = f;
-        }
-      } else if (f = fragmentByStart[end]) {
-        delete fragmentByStart[f.start];
-        f.unshift(i);
-        f.start = start;
-        if (g = fragmentByEnd[start]) {
-          delete fragmentByEnd[g.end];
-          var gf = g === f ? f : g.concat(f);
-          fragmentByStart[gf.start = g.start] = fragmentByEnd[gf.end = f.end] = gf;
-        } else {
-          fragmentByStart[f.start] = fragmentByEnd[f.end] = f;
-        }
-      } else {
-        f = [i];
-        fragmentByStart[f.start = start] = fragmentByEnd[f.end = end] = f;
-      }
-    });
-    function ends(i) {
-      var arc = topology.arcs[i < 0 ? ~i : i],
-          p0 = arc[0],
-          p1;
-      if (topology.transform) p1 = [0, 0], arc.forEach(function (dp) {
-        p1[0] += dp[0], p1[1] += dp[1];
-      });else p1 = arc[arc.length - 1];
-      return i < 0 ? [p1, p0] : [p0, p1];
-    }
-    function flush(fragmentByEnd, fragmentByStart) {
-      for (var k in fragmentByEnd) {
-        var f = fragmentByEnd[k];
-        delete fragmentByStart[f.start];
-        delete f.start;
-        delete f.end;
-        f.forEach(function (i) {
-          stitchedArcs[i < 0 ? ~i : i] = 1;
-        });
-        fragments.push(f);
-      }
-    }
-    flush(fragmentByEnd, fragmentByStart);
-    flush(fragmentByStart, fragmentByEnd);
-    arcs.forEach(function (i) {
-      if (!stitchedArcs[i < 0 ? ~i : i]) fragments.push([i]);
-    });
-    return fragments;
-  }
-
-  function planarRingArea(ring) {
-    var i = -1,
-        n = ring.length,
-        a,
-        b = ring[n - 1],
-        area = 0;
-    while (++i < n) {
-      a = b, b = ring[i], area += a[0] * b[1] - a[1] * b[0];
-    }return Math.abs(area);
-  }
-  function merge (topology) {
-    return object(topology, mergeArcs.apply(this, arguments));
-  }
-  function mergeArcs(topology, objects) {
-    var polygonsByArc = {},
-        polygons = [],
-        groups = [];
-    objects.forEach(geometry);
-    function geometry(o) {
-      switch (o.type) {
-        case "GeometryCollection":
-          o.geometries.forEach(geometry);break;
-        case "Polygon":
-          extract(o.arcs);break;
-        case "MultiPolygon":
-          o.arcs.forEach(extract);break;
-      }
-    }
-    function extract(polygon) {
-      polygon.forEach(function (ring) {
-        ring.forEach(function (arc) {
-          (polygonsByArc[arc = arc < 0 ? ~arc : arc] || (polygonsByArc[arc] = [])).push(polygon);
-        });
-      });
-      polygons.push(polygon);
-    }
-    function area(ring) {
-      return planarRingArea(object(topology, { type: "Polygon", arcs: [ring] }).coordinates[0]);
-    }
-    polygons.forEach(function (polygon) {
-      if (!polygon._) {
-        var group = [],
-            neighbors = [polygon];
-        polygon._ = 1;
-        groups.push(group);
-        while (polygon = neighbors.pop()) {
-          group.push(polygon);
-          polygon.forEach(function (ring) {
-            ring.forEach(function (arc) {
-              polygonsByArc[arc < 0 ? ~arc : arc].forEach(function (polygon) {
-                if (!polygon._) {
-                  polygon._ = 1;
-                  neighbors.push(polygon);
-                }
-              });
-            });
-          });
-        }
-      }
-    });
-    polygons.forEach(function (polygon) {
-      delete polygon._;
-    });
-    return {
-      type: "MultiPolygon",
-      arcs: groups.map(function (polygons) {
-        var arcs = [],
-            n;
-        polygons.forEach(function (polygon) {
-          polygon.forEach(function (ring) {
-            ring.forEach(function (arc) {
-              if (polygonsByArc[arc < 0 ? ~arc : arc].length < 2) {
-                arcs.push(arc);
-              }
-            });
-          });
-        });
-        arcs = stitch(topology, arcs);
-        if ((n = arcs.length) > 1) {
-          for (var i = 1, k = area(arcs[0]), ki, t; i < n; ++i) {
-            if ((ki = area(arcs[i])) > k) {
-              t = arcs[0], arcs[0] = arcs[i], arcs[i] = t, k = ki;
-            }
-          }
-        }
-        return arcs;
-      })
-    };
-  }
-
-  function bounds (objects) {
-    var x0 = Infinity,
-        y0 = Infinity,
-        x1 = -Infinity,
-        y1 = -Infinity;
-    function boundGeometry(geometry) {
-      if (geometry != null && boundGeometryType.hasOwnProperty(geometry.type)) boundGeometryType[geometry.type](geometry);
-    }
-    var boundGeometryType = {
-      GeometryCollection: function GeometryCollection(o) {
-        o.geometries.forEach(boundGeometry);
-      },
-      Point: function Point(o) {
-        boundPoint(o.coordinates);
-      },
-      MultiPoint: function MultiPoint(o) {
-        o.coordinates.forEach(boundPoint);
-      },
-      LineString: function LineString(o) {
-        boundLine(o.arcs);
-      },
-      MultiLineString: function MultiLineString(o) {
-        o.arcs.forEach(boundLine);
-      },
-      Polygon: function Polygon(o) {
-        o.arcs.forEach(boundLine);
-      },
-      MultiPolygon: function MultiPolygon(o) {
-        o.arcs.forEach(boundMultiLine);
-      }
-    };
-    function boundPoint(coordinates) {
-      var x = coordinates[0],
-          y = coordinates[1];
-      if (x < x0) x0 = x;
-      if (x > x1) x1 = x;
-      if (y < y0) y0 = y;
-      if (y > y1) y1 = y;
-    }
-    function boundLine(coordinates) {
-      coordinates.forEach(boundPoint);
-    }
-    function boundMultiLine(coordinates) {
-      coordinates.forEach(boundLine);
-    }
-    for (var key in objects) {
-      boundGeometry(objects[key]);
-    }
-    return x1 >= x0 && y1 >= y0 ? [x0, y0, x1, y1] : undefined;
-  }
-
-  function hashset (size, hash, equal, type, empty) {
-    if (arguments.length === 3) {
-      type = Array;
-      empty = null;
-    }
-    var store = new type(size = 1 << Math.max(4, Math.ceil(Math.log(size) / Math.LN2))),
-        mask = size - 1;
-    for (var i = 0; i < size; ++i) {
-      store[i] = empty;
-    }
-    function add(value) {
-      var index = hash(value) & mask,
-          match = store[index],
-          collisions = 0;
-      while (match != empty) {
-        if (equal(match, value)) return true;
-        if (++collisions >= size) throw new Error("full hashset");
-        match = store[index = index + 1 & mask];
-      }
-      store[index] = value;
-      return true;
-    }
-    function has(value) {
-      var index = hash(value) & mask,
-          match = store[index],
-          collisions = 0;
-      while (match != empty) {
-        if (equal(match, value)) return true;
-        if (++collisions >= size) break;
-        match = store[index = index + 1 & mask];
-      }
-      return false;
-    }
-    function values() {
-      var values = [];
-      for (var i = 0, n = store.length; i < n; ++i) {
-        var match = store[i];
-        if (match != empty) values.push(match);
-      }
-      return values;
-    }
-    return {
-      add: add,
-      has: has,
-      values: values
-    };
-  }
-
-  function hashmap (size, hash, equal, keyType, keyEmpty, valueType) {
-    if (arguments.length === 3) {
-      keyType = valueType = Array;
-      keyEmpty = null;
-    }
-    var keystore = new keyType(size = 1 << Math.max(4, Math.ceil(Math.log(size) / Math.LN2))),
-        valstore = new valueType(size),
-        mask = size - 1;
-    for (var i = 0; i < size; ++i) {
-      keystore[i] = keyEmpty;
-    }
-    function set(key, value) {
-      var index = hash(key) & mask,
-          matchKey = keystore[index],
-          collisions = 0;
-      while (matchKey != keyEmpty) {
-        if (equal(matchKey, key)) return valstore[index] = value;
-        if (++collisions >= size) throw new Error("full hashmap");
-        matchKey = keystore[index = index + 1 & mask];
-      }
-      keystore[index] = key;
-      valstore[index] = value;
-      return value;
-    }
-    function maybeSet(key, value) {
-      var index = hash(key) & mask,
-          matchKey = keystore[index],
-          collisions = 0;
-      while (matchKey != keyEmpty) {
-        if (equal(matchKey, key)) return valstore[index];
-        if (++collisions >= size) throw new Error("full hashmap");
-        matchKey = keystore[index = index + 1 & mask];
-      }
-      keystore[index] = key;
-      valstore[index] = value;
-      return value;
-    }
-    function get(key, missingValue) {
-      var index = hash(key) & mask,
-          matchKey = keystore[index],
-          collisions = 0;
-      while (matchKey != keyEmpty) {
-        if (equal(matchKey, key)) return valstore[index];
-        if (++collisions >= size) break;
-        matchKey = keystore[index = index + 1 & mask];
-      }
-      return missingValue;
-    }
-    function keys() {
-      var keys = [];
-      for (var i = 0, n = keystore.length; i < n; ++i) {
-        var matchKey = keystore[i];
-        if (matchKey != keyEmpty) keys.push(matchKey);
-      }
-      return keys;
-    }
-    return {
-      set: set,
-      maybeSet: maybeSet,
-      get: get,
-      keys: keys
-    };
-  }
-
-  function equalPoint (pointA, pointB) {
-    return pointA[0] === pointB[0] && pointA[1] === pointB[1];
-  }
-
-  var buffer = new ArrayBuffer(16),
-      floats = new Float64Array(buffer),
-      uints = new Uint32Array(buffer);
-  function hashPoint (point) {
-    floats[0] = point[0];
-    floats[1] = point[1];
-    var hash = uints[0] ^ uints[1];
-    hash = hash << 5 ^ hash >> 7 ^ uints[2] ^ uints[3];
-    return hash & 0x7fffffff;
-  }
-
-  function join (topology) {
-    var coordinates = topology.coordinates,
-        lines = topology.lines,
-        rings = topology.rings,
-        indexes = index(),
-        visitedByIndex = new Int32Array(coordinates.length),
-        leftByIndex = new Int32Array(coordinates.length),
-        rightByIndex = new Int32Array(coordinates.length),
-        junctionByIndex = new Int8Array(coordinates.length),
-        junctionCount = 0,
-    i,
-        n,
-        previousIndex,
-        currentIndex,
-        nextIndex;
-    for (i = 0, n = coordinates.length; i < n; ++i) {
-      visitedByIndex[i] = leftByIndex[i] = rightByIndex[i] = -1;
-    }
-    for (i = 0, n = lines.length; i < n; ++i) {
-      var line = lines[i],
-          lineStart = line[0],
-          lineEnd = line[1];
-      currentIndex = indexes[lineStart];
-      nextIndex = indexes[++lineStart];
-      ++junctionCount, junctionByIndex[currentIndex] = 1;
-      while (++lineStart <= lineEnd) {
-        sequence(i, previousIndex = currentIndex, currentIndex = nextIndex, nextIndex = indexes[lineStart]);
-      }
-      ++junctionCount, junctionByIndex[nextIndex] = 1;
-    }
-    for (i = 0, n = coordinates.length; i < n; ++i) {
-      visitedByIndex[i] = -1;
-    }
-    for (i = 0, n = rings.length; i < n; ++i) {
-      var ring = rings[i],
-          ringStart = ring[0] + 1,
-          ringEnd = ring[1];
-      previousIndex = indexes[ringEnd - 1];
-      currentIndex = indexes[ringStart - 1];
-      nextIndex = indexes[ringStart];
-      sequence(i, previousIndex, currentIndex, nextIndex);
-      while (++ringStart <= ringEnd) {
-        sequence(i, previousIndex = currentIndex, currentIndex = nextIndex, nextIndex = indexes[ringStart]);
-      }
-    }
-    function sequence(i, previousIndex, currentIndex, nextIndex) {
-      if (visitedByIndex[currentIndex] === i) return;
-      visitedByIndex[currentIndex] = i;
-      var leftIndex = leftByIndex[currentIndex];
-      if (leftIndex >= 0) {
-        var rightIndex = rightByIndex[currentIndex];
-        if ((leftIndex !== previousIndex || rightIndex !== nextIndex) && (leftIndex !== nextIndex || rightIndex !== previousIndex)) {
-          ++junctionCount, junctionByIndex[currentIndex] = 1;
-        }
-      } else {
-        leftByIndex[currentIndex] = previousIndex;
-        rightByIndex[currentIndex] = nextIndex;
-      }
-    }
-    function index() {
-      var indexByPoint = hashmap(coordinates.length * 1.4, hashIndex, equalIndex, Int32Array, -1, Int32Array),
-          indexes = new Int32Array(coordinates.length);
-      for (var i = 0, n = coordinates.length; i < n; ++i) {
-        indexes[i] = indexByPoint.maybeSet(i, i);
-      }
-      return indexes;
-    }
-    function hashIndex(i) {
-      return hashPoint(coordinates[i]);
-    }
-    function equalIndex(i, j) {
-      return equalPoint(coordinates[i], coordinates[j]);
-    }
-    visitedByIndex = leftByIndex = rightByIndex = null;
-    var junctionByPoint = hashset(junctionCount * 1.4, hashPoint, equalPoint),
-        j;
-    for (i = 0, n = coordinates.length; i < n; ++i) {
-      if (junctionByIndex[j = indexes[i]]) {
-        junctionByPoint.add(coordinates[j]);
-      }
-    }
-    return junctionByPoint;
-  }
-
-  function cut (topology) {
-    var junctions = join(topology),
-        coordinates = topology.coordinates,
-        lines = topology.lines,
-        rings = topology.rings,
-        next,
-        i,
-        n;
-    for (i = 0, n = lines.length; i < n; ++i) {
-      var line = lines[i],
-          lineMid = line[0],
-          lineEnd = line[1];
-      while (++lineMid < lineEnd) {
-        if (junctions.has(coordinates[lineMid])) {
-          next = { 0: lineMid, 1: line[1] };
-          line[1] = lineMid;
-          line = line.next = next;
-        }
-      }
-    }
-    for (i = 0, n = rings.length; i < n; ++i) {
-      var ring = rings[i],
-          ringStart = ring[0],
-          ringMid = ringStart,
-          ringEnd = ring[1],
-          ringFixed = junctions.has(coordinates[ringStart]);
-      while (++ringMid < ringEnd) {
-        if (junctions.has(coordinates[ringMid])) {
-          if (ringFixed) {
-            next = { 0: ringMid, 1: ring[1] };
-            ring[1] = ringMid;
-            ring = ring.next = next;
-          } else {
-            rotateArray(coordinates, ringStart, ringEnd, ringEnd - ringMid);
-            coordinates[ringEnd] = coordinates[ringStart];
-            ringFixed = true;
-            ringMid = ringStart;
-          }
-        }
-      }
-    }
-    return topology;
-  }
-  function rotateArray(array, start, end, offset) {
-    reverse$1(array, start, end);
-    reverse$1(array, start, start + offset);
-    reverse$1(array, start + offset, end);
-  }
-  function reverse$1(array, start, end) {
-    for (var mid = start + (end-- - start >> 1), t; start < mid; ++start, --end) {
-      t = array[start], array[start] = array[end], array[end] = t;
-    }
-  }
-
-  function dedup$1 (topology) {
-    var coordinates = topology.coordinates,
-        lines = topology.lines,
-        line,
-        rings = topology.rings,
-        ring,
-        arcCount = lines.length + rings.length,
-        i,
-        n;
-    delete topology.lines;
-    delete topology.rings;
-    for (i = 0, n = lines.length; i < n; ++i) {
-      line = lines[i];while (line = line.next) {
-        ++arcCount;
-      }
-    }
-    for (i = 0, n = rings.length; i < n; ++i) {
-      ring = rings[i];while (ring = ring.next) {
-        ++arcCount;
-      }
-    }
-    var arcsByEnd = hashmap(arcCount * 2 * 1.4, hashPoint, equalPoint),
-        arcs = topology.arcs = [];
-    for (i = 0, n = lines.length; i < n; ++i) {
-      line = lines[i];
-      do {
-        dedupLine(line);
-      } while (line = line.next);
-    }
-    for (i = 0, n = rings.length; i < n; ++i) {
-      ring = rings[i];
-      if (ring.next) {
-        do {
-          dedupLine(ring);
-        } while (ring = ring.next);
-      } else {
-        dedupRing(ring);
-      }
-    }
-    function dedupLine(arc) {
-      var startPoint, endPoint, startArcs, startArc, endArcs, endArc, i, n;
-      if (startArcs = arcsByEnd.get(startPoint = coordinates[arc[0]])) {
-        for (i = 0, n = startArcs.length; i < n; ++i) {
-          startArc = startArcs[i];
-          if (equalLine(startArc, arc)) {
-            arc[0] = startArc[0];
-            arc[1] = startArc[1];
-            return;
-          }
-        }
-      }
-      if (endArcs = arcsByEnd.get(endPoint = coordinates[arc[1]])) {
-        for (i = 0, n = endArcs.length; i < n; ++i) {
-          endArc = endArcs[i];
-          if (reverseEqualLine(endArc, arc)) {
-            arc[1] = endArc[0];
-            arc[0] = endArc[1];
-            return;
-          }
-        }
-      }
-      if (startArcs) startArcs.push(arc);else arcsByEnd.set(startPoint, [arc]);
-      if (endArcs) endArcs.push(arc);else arcsByEnd.set(endPoint, [arc]);
-      arcs.push(arc);
-    }
-    function dedupRing(arc) {
-      var endPoint, endArcs, endArc, i, n;
-      if (endArcs = arcsByEnd.get(endPoint = coordinates[arc[0]])) {
-        for (i = 0, n = endArcs.length; i < n; ++i) {
-          endArc = endArcs[i];
-          if (equalRing(endArc, arc)) {
-            arc[0] = endArc[0];
-            arc[1] = endArc[1];
-            return;
-          }
-          if (reverseEqualRing(endArc, arc)) {
-            arc[0] = endArc[1];
-            arc[1] = endArc[0];
-            return;
-          }
-        }
-      }
-      if (endArcs = arcsByEnd.get(endPoint = coordinates[arc[0] + findMinimumOffset(arc)])) {
-        for (i = 0, n = endArcs.length; i < n; ++i) {
-          endArc = endArcs[i];
-          if (equalRing(endArc, arc)) {
-            arc[0] = endArc[0];
-            arc[1] = endArc[1];
-            return;
-          }
-          if (reverseEqualRing(endArc, arc)) {
-            arc[0] = endArc[1];
-            arc[1] = endArc[0];
-            return;
-          }
-        }
-      }
-      if (endArcs) endArcs.push(arc);else arcsByEnd.set(endPoint, [arc]);
-      arcs.push(arc);
-    }
-    function equalLine(arcA, arcB) {
-      var ia = arcA[0],
-          ib = arcB[0],
-          ja = arcA[1],
-          jb = arcB[1];
-      if (ia - ja !== ib - jb) return false;
-      for (; ia <= ja; ++ia, ++ib) {
-        if (!equalPoint(coordinates[ia], coordinates[ib])) return false;
-      }return true;
-    }
-    function reverseEqualLine(arcA, arcB) {
-      var ia = arcA[0],
-          ib = arcB[0],
-          ja = arcA[1],
-          jb = arcB[1];
-      if (ia - ja !== ib - jb) return false;
-      for (; ia <= ja; ++ia, --jb) {
-        if (!equalPoint(coordinates[ia], coordinates[jb])) return false;
-      }return true;
-    }
-    function equalRing(arcA, arcB) {
-      var ia = arcA[0],
-          ib = arcB[0],
-          ja = arcA[1],
-          jb = arcB[1],
-          n = ja - ia;
-      if (n !== jb - ib) return false;
-      var ka = findMinimumOffset(arcA),
-          kb = findMinimumOffset(arcB);
-      for (var i = 0; i < n; ++i) {
-        if (!equalPoint(coordinates[ia + (i + ka) % n], coordinates[ib + (i + kb) % n])) return false;
-      }
-      return true;
-    }
-    function reverseEqualRing(arcA, arcB) {
-      var ia = arcA[0],
-          ib = arcB[0],
-          ja = arcA[1],
-          jb = arcB[1],
-          n = ja - ia;
-      if (n !== jb - ib) return false;
-      var ka = findMinimumOffset(arcA),
-          kb = n - findMinimumOffset(arcB);
-      for (var i = 0; i < n; ++i) {
-        if (!equalPoint(coordinates[ia + (i + ka) % n], coordinates[jb - (i + kb) % n])) return false;
-      }
-      return true;
-    }
-    function findMinimumOffset(arc) {
-      var start = arc[0],
-          end = arc[1],
-          mid = start,
-          minimum = mid,
-          minimumPoint = coordinates[mid];
-      while (++mid < end) {
-        var point = coordinates[mid];
-        if (point[0] < minimumPoint[0] || point[0] === minimumPoint[0] && point[1] < minimumPoint[1]) {
-          minimum = mid;
-          minimumPoint = point;
-        }
-      }
-      return minimum - start;
-    }
-    return topology;
-  }
-
-  function delta (arcs) {
-    var i = -1,
-        n = arcs.length;
-    while (++i < n) {
-      var arc = arcs[i],
-          j = 0,
-          k = 1,
-          m = arc.length,
-          point = arc[0],
-          x0 = point[0],
-          y0 = point[1],
-          x1,
-          y1;
-      while (++j < m) {
-        point = arc[j], x1 = point[0], y1 = point[1];
-        if (x1 !== x0 || y1 !== y0) arc[k++] = [x1 - x0, y1 - y0], x0 = x1, y0 = y1;
-      }
-      if (k === 1) arc[k++] = [0, 0];
-      arc.length = k;
-    }
-    return arcs;
-  }
-
-  function extract (objects) {
-    var index = -1,
-        lines = [],
-        rings = [],
-        coordinates = [];
-    function extractGeometry(geometry) {
-      if (geometry && extractGeometryType.hasOwnProperty(geometry.type)) extractGeometryType[geometry.type](geometry);
-    }
-    var extractGeometryType = {
-      GeometryCollection: function GeometryCollection(o) {
-        o.geometries.forEach(extractGeometry);
-      },
-      LineString: function LineString(o) {
-        o.arcs = extractLine(o.arcs);
-      },
-      MultiLineString: function MultiLineString(o) {
-        o.arcs = o.arcs.map(extractLine);
-      },
-      Polygon: function Polygon(o) {
-        o.arcs = o.arcs.map(extractRing);
-      },
-      MultiPolygon: function MultiPolygon(o) {
-        o.arcs = o.arcs.map(extractMultiRing);
-      }
-    };
-    function extractLine(line) {
-      for (var i = 0, n = line.length; i < n; ++i) {
-        coordinates[++index] = line[i];
-      }var arc = { 0: index - n + 1, 1: index };
-      lines.push(arc);
-      return arc;
-    }
-    function extractRing(ring) {
-      for (var i = 0, n = ring.length; i < n; ++i) {
-        coordinates[++index] = ring[i];
-      }var arc = { 0: index - n + 1, 1: index };
-      rings.push(arc);
-      return arc;
-    }
-    function extractMultiRing(rings) {
-      return rings.map(extractRing);
-    }
-    for (var key in objects) {
-      extractGeometry(objects[key]);
-    }
-    return {
-      type: "Topology",
-      coordinates: coordinates,
-      lines: lines,
-      rings: rings,
-      objects: objects
-    };
-  }
-
-  function geometry$2 (inputs) {
-    var outputs = {},
-        key;
-    for (key in inputs) {
-      outputs[key] = geomifyObject(inputs[key]);
-    }return outputs;
-  }
-  function geomifyObject(input) {
-    return input == null ? { type: null } : (input.type === "FeatureCollection" ? geomifyFeatureCollection : input.type === "Feature" ? geomifyFeature : geomifyGeometry)(input);
-  }
-  function geomifyFeatureCollection(input) {
-    var output = { type: "GeometryCollection", geometries: input.features.map(geomifyFeature) };
-    if (input.bbox != null) output.bbox = input.bbox;
-    return output;
-  }
-  function geomifyFeature(input) {
-    var output = geomifyGeometry(input.geometry),
-        key;
-    if (input.id != null) output.id = input.id;
-    if (input.bbox != null) output.bbox = input.bbox;
-    for (key in input.properties) {
-      output.properties = input.properties;break;
-    }
-    return output;
-  }
-  function geomifyGeometry(input) {
-    if (input == null) return { type: null };
-    var output = input.type === "GeometryCollection" ? { type: "GeometryCollection", geometries: input.geometries.map(geomifyGeometry) } : input.type === "Point" || input.type === "MultiPoint" ? { type: input.type, coordinates: input.coordinates } : { type: input.type, arcs: input.coordinates };
-    if (input.bbox != null) output.bbox = input.bbox;
-    return output;
-  }
-
-  function prequantize (objects, bbox, n) {
-    var x0 = bbox[0],
-        y0 = bbox[1],
-        x1 = bbox[2],
-        y1 = bbox[3],
-        kx = x1 - x0 ? (n - 1) / (x1 - x0) : 1,
-        ky = y1 - y0 ? (n - 1) / (y1 - y0) : 1;
-    function quantizePoint(input) {
-      return [Math.round((input[0] - x0) * kx), Math.round((input[1] - y0) * ky)];
-    }
-    function quantizePoints(input, m) {
-      var i = -1,
-          j = 0,
-          n = input.length,
-          output = new Array(n),
-      pi,
-          px,
-          py,
-          x,
-          y;
-      while (++i < n) {
-        pi = input[i];
-        x = Math.round((pi[0] - x0) * kx);
-        y = Math.round((pi[1] - y0) * ky);
-        if (x !== px || y !== py) output[j++] = [px = x, py = y];
-      }
-      output.length = j;
-      while (j < m) {
-        j = output.push([output[0][0], output[0][1]]);
-      }return output;
-    }
-    function quantizeLine(input) {
-      return quantizePoints(input, 2);
-    }
-    function quantizeRing(input) {
-      return quantizePoints(input, 4);
-    }
-    function quantizePolygon(input) {
-      return input.map(quantizeRing);
-    }
-    function quantizeGeometry(o) {
-      if (o != null && quantizeGeometryType.hasOwnProperty(o.type)) quantizeGeometryType[o.type](o);
-    }
-    var quantizeGeometryType = {
-      GeometryCollection: function GeometryCollection(o) {
-        o.geometries.forEach(quantizeGeometry);
-      },
-      Point: function Point(o) {
-        o.coordinates = quantizePoint(o.coordinates);
-      },
-      MultiPoint: function MultiPoint(o) {
-        o.coordinates = o.coordinates.map(quantizePoint);
-      },
-      LineString: function LineString(o) {
-        o.arcs = quantizeLine(o.arcs);
-      },
-      MultiLineString: function MultiLineString(o) {
-        o.arcs = o.arcs.map(quantizeLine);
-      },
-      Polygon: function Polygon(o) {
-        o.arcs = quantizePolygon(o.arcs);
-      },
-      MultiPolygon: function MultiPolygon(o) {
-        o.arcs = o.arcs.map(quantizePolygon);
-      }
-    };
-    for (var key in objects) {
-      quantizeGeometry(objects[key]);
-    }
-    return {
-      scale: [1 / kx, 1 / ky],
-      translate: [x0, y0]
-    };
-  }
-
-  function topology (objects, quantization) {
-    var bbox = bounds(objects = geometry$2(objects)),
-        transform = quantization > 0 && bbox && prequantize(objects, bbox, quantization),
-        topology = dedup$1(cut(extract(objects))),
-        coordinates = topology.coordinates,
-        indexByArc = hashmap(topology.arcs.length * 1.4, hashArc, equalArc);
-    objects = topology.objects;
-    topology.bbox = bbox;
-    topology.arcs = topology.arcs.map(function (arc, i) {
-      indexByArc.set(arc, i);
-      return coordinates.slice(arc[0], arc[1] + 1);
-    });
-    delete topology.coordinates;
-    coordinates = null;
-    function indexGeometry(geometry) {
-      if (geometry && indexGeometryType.hasOwnProperty(geometry.type)) indexGeometryType[geometry.type](geometry);
-    }
-    var indexGeometryType = {
-      GeometryCollection: function GeometryCollection(o) {
-        o.geometries.forEach(indexGeometry);
-      },
-      LineString: function LineString(o) {
-        o.arcs = indexArcs(o.arcs);
-      },
-      MultiLineString: function MultiLineString(o) {
-        o.arcs = o.arcs.map(indexArcs);
-      },
-      Polygon: function Polygon(o) {
-        o.arcs = o.arcs.map(indexArcs);
-      },
-      MultiPolygon: function MultiPolygon(o) {
-        o.arcs = o.arcs.map(indexMultiArcs);
-      }
-    };
-    function indexArcs(arc) {
-      var indexes = [];
-      do {
-        var index = indexByArc.get(arc);
-        indexes.push(arc[0] < arc[1] ? index : ~index);
-      } while (arc = arc.next);
-      return indexes;
-    }
-    function indexMultiArcs(arcs) {
-      return arcs.map(indexArcs);
-    }
-    for (var key in objects) {
-      indexGeometry(objects[key]);
-    }
-    if (transform) {
-      topology.transform = transform;
-      topology.arcs = delta(topology.arcs);
-    }
-    return topology;
-  }
-  function hashArc(arc) {
-    var i = arc[0],
-        j = arc[1],
-        t;
-    if (j < i) t = i, i = j, j = t;
-    return i + 31 * j;
-  }
-  function equalArc(arcA, arcB) {
-    var ia = arcA[0],
-        ja = arcA[1],
-        ib = arcB[0],
-        jb = arcB[1],
-        t;
-    if (ja < ia) t = ia, ia = ja, ja = t;
-    if (jb < ib) t = ib, ib = jb, jb = t;
-    return ia === ib && ja === jb;
-  }
-
-  function polygonDissolve(geojson, options) {
-      options = options || {};
-      if (!isObject$2(options)) throw new Error('options is invalid');
-      var mutate = options.mutate;
-      if (getType(geojson) !== 'FeatureCollection') throw new Error('geojson must be a FeatureCollection');
-      if (!geojson.features.length) throw new Error('geojson is empty');
-      if (mutate === false || mutate === undefined) geojson = clone(geojson);
-      var geoms = [];
-      flattenEach$1(geojson, function (feature) {
-          geoms.push(feature.geometry);
-      });
-      var topo = topology({ geoms: geometryCollection$1(geoms).geometry });
-      return merge(topo, topo.objects.geoms.geometries);
-  }
-
-  function dissolve(geojson, options) {
-      options = options || {};
-      if (!isObject$2(options)) throw new Error('options is invalid');
-      var mutate = options.mutate;
-      if (getType(geojson) !== 'FeatureCollection') throw new Error('geojson must be a FeatureCollection');
-      if (!geojson.features.length) throw new Error('geojson is empty');
-      if (mutate === false || mutate === undefined) geojson = clone(geojson);
-      var type = getHomogenousType(geojson);
-      if (!type) throw new Error('geojson must be homogenous');
-      switch (type) {
-          case 'LineString':
-              return lineDissolve(geojson, options);
-          case 'Polygon':
-              return polygonDissolve(geojson, options);
-          default:
-              throw new Error(type + ' is not supported');
-      }
-  }
-  function getHomogenousType(geojson) {
-      var types = {};
-      flattenEach$1(geojson, function (feature) {
-          types[feature.geometry.type] = true;
-      });
-      var keys = Object.keys(types);
-      if (keys.length === 1) return keys[0];
-      return null;
-  }
-
-  function distance(from, to, options) {
-    options = options || {};
-    if (!isObject$2(options)) throw new Error('options is invalid');
-    var units = options.units;
-    var coordinates1 = getCoord(from);
-    var coordinates2 = getCoord(to);
-    var dLat = degreesToRadians$1(coordinates2[1] - coordinates1[1]);
-    var dLon = degreesToRadians$1(coordinates2[0] - coordinates1[0]);
-    var lat1 = degreesToRadians$1(coordinates1[1]);
-    var lat2 = degreesToRadians$1(coordinates2[1]);
-    var a = Math.pow(Math.sin(dLat / 2), 2) + Math.pow(Math.sin(dLon / 2), 2) * Math.cos(lat1) * Math.cos(lat2);
-    return radiansToLength$1(2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)), units);
-  }
-
-  function concave(points, options) {
-      options = options || {};
-      if (!isObject$2(options)) throw new Error('options is invalid');
-      if (!points) throw new Error('points is required');
-      var maxEdge = options.maxEdge || Infinity;
-      if (!isNumber$1(maxEdge)) throw new Error('maxEdge is invalid');
-      var cleaned = removeDuplicates(points);
-      var tinPolys = tin(cleaned);
-      tinPolys.features = tinPolys.features.filter(function (triangle) {
-          var pt1 = triangle.geometry.coordinates[0][0];
-          var pt2 = triangle.geometry.coordinates[0][1];
-          var pt3 = triangle.geometry.coordinates[0][2];
-          var dist1 = distance(pt1, pt2, options);
-          var dist2 = distance(pt2, pt3, options);
-          var dist3 = distance(pt1, pt3, options);
-          return dist1 <= maxEdge && dist2 <= maxEdge && dist3 <= maxEdge;
-      });
-      if (tinPolys.features.length < 1) return null;
-      var dissolved = dissolve(tinPolys, options);
-      if (dissolved.coordinates.length === 1) {
-          dissolved.coordinates = dissolved.coordinates[0];
-          dissolved.type = 'Polygon';
-      }
-      return feature$1(dissolved);
-  }
-  function removeDuplicates(points) {
-      var cleaned = [];
-      var existing = {};
-      featureEach$1(points, function (pt) {
-          if (!pt.geometry) return;
-          var key = pt.geometry.coordinates.join('-');
-          if (!existing.hasOwnProperty(key)) {
-              cleaned.push(pt);
-              existing[key] = true;
-          }
-      });
-      return featureCollection$1(cleaned);
-  }
-
-  function concave$1(latLngArray, options) {
-    options = options || {};
-    var FeatureCollection = arrayToFeaturePoints(latLngArray);
-    return concave(FeatureCollection, options);
-  }
-
-  function feature$4(geometry, properties, options) {
-      options = options || {};
-      if (!isObject$3(options)) throw new Error('options is invalid');
-      var bbox = options.bbox;
-      var id = options.id;
-      if (geometry === undefined) throw new Error('geometry is required');
-      if (properties && properties.constructor !== Object) throw new Error('properties must be an Object');
-      if (bbox) validateBBox$1(bbox);
-      if (id) validateId$1(id);
-      var feat = { type: 'Feature' };
-      if (id) feat.id = id;
-      if (bbox) feat.bbox = bbox;
-      feat.properties = properties || {};
-      feat.geometry = geometry;
-      return feat;
-  }
-  function isNumber$2(num) {
-      return !isNaN(num) && num !== null && !Array.isArray(num);
-  }
-  function isObject$3(input) {
-      return !!input && input.constructor === Object;
-  }
-  function validateBBox$1(bbox) {
-      if (!bbox) throw new Error('bbox is required');
-      if (!Array.isArray(bbox)) throw new Error('bbox must be an Array');
-      if (bbox.length !== 4 && bbox.length !== 6) throw new Error('bbox must be an Array of 4 or 6 numbers');
-      bbox.forEach(function (num) {
-          if (!isNumber$2(num)) throw new Error('bbox must only contain numbers');
-      });
-  }
-  function validateId$1(id) {
-      if (!id) throw new Error('id is required');
-      if (['string', 'number'].indexOf(typeof id === 'undefined' ? 'undefined' : _typeof(id)) === -1) throw new Error('id must be a number or a string');
-  }
-
-  function getCoords$1(coords) {
-      if (!coords) throw new Error('coords is required');
-      if (coords.type === 'Feature' && coords.geometry !== null) return coords.geometry.coordinates;
-      if (coords.coordinates) return coords.coordinates;
-      if (Array.isArray(coords)) return coords;
-      throw new Error('coords must be GeoJSON Feature, Geometry Object or an Array');
-  }
-  function getType$1(geojson, name) {
-      if (!geojson) throw new Error((name || 'geojson') + ' is required');
-      if (geojson.geometry && geojson.geometry.type) return geojson.geometry.type;
-      if (geojson.type) return geojson.type;
-      throw new Error((name || 'geojson') + ' is invalid');
-  }
-
-  function cleanCoords(geojson, options) {
-      var mutate = (typeof options === 'undefined' ? 'undefined' : _typeof(options)) === 'object' ? options.mutate : options;
-      if (!geojson) throw new Error('geojson is required');
-      var type = getType$1(geojson);
-      var newCoords = [];
-      switch (type) {
-          case 'LineString':
-              newCoords = cleanLine(geojson);
-              break;
-          case 'MultiLineString':
-          case 'Polygon':
-              getCoords$1(geojson).forEach(function (line) {
-                  newCoords.push(cleanLine(line));
-              });
-              break;
-          case 'MultiPolygon':
-              getCoords$1(geojson).forEach(function (polygons) {
-                  var polyPoints = [];
-                  polygons.forEach(function (ring) {
-                      polyPoints.push(cleanLine(ring));
-                  });
-                  newCoords.push(polyPoints);
-              });
-              break;
-          case 'Point':
-              return geojson;
-          case 'MultiPoint':
-              var existing = {};
-              getCoords$1(geojson).forEach(function (coord) {
-                  var key = coord.join('-');
-                  if (!existing.hasOwnProperty(key)) {
-                      newCoords.push(coord);
-                      existing[key] = true;
-                  }
-              });
-              break;
-          default:
-              throw new Error(type + ' geometry not supported');
-      }
-      if (geojson.coordinates) {
-          if (mutate === true) {
-              geojson.coordinates = newCoords;
-              return geojson;
-          }
-          return { type: type, coordinates: newCoords };
-      } else {
-          if (mutate === true) {
-              geojson.geometry.coordinates = newCoords;
-              return geojson;
-          }
-          return feature$4({ type: type, coordinates: newCoords }, geojson.properties, geojson.bbox, geojson.id);
-      }
-  }
-  function cleanLine(line) {
-      var points = getCoords$1(line);
-      if (points.length === 2 && !equals(points[0], points[1])) return points;
-      var prevPoint, point, nextPoint;
-      var newPoints = [];
-      var secondToLast = points.length - 1;
-      newPoints.push(points[0]);
-      for (var i = 1; i < secondToLast; i++) {
-          prevPoint = points[i - 1];
-          point = points[i];
-          nextPoint = points[i + 1];
-          if (!isPointOnLineSegment(prevPoint, nextPoint, point)) {
-              newPoints.push(point);
-          }
-      }
-      newPoints.push(nextPoint);
-      return newPoints;
-  }
-  function equals(pt1, pt2) {
-      return pt1[0] === pt2[0] && pt1[1] === pt2[1];
-  }
-  function isPointOnLineSegment(start, end, point) {
-      var x = point[0],
-          y = point[1];
-      var startX = start[0],
-          startY = start[1];
-      var endX = end[0],
-          endY = end[1];
-      var dxc = x - startX;
-      var dyc = y - startY;
-      var dxl = endX - startX;
-      var dyl = endY - startY;
-      var cross = dxc * dyl - dyc * dxl;
-      if (cross !== 0) return false;else if (Math.abs(dxl) >= Math.abs(dyl)) return dxl > 0 ? startX <= x && x <= endX : endX <= x && x <= startX;else return dyl > 0 ? startY <= y && y <= endY : endY <= y && y <= startY;
-  }
-
-  function clone$1(geojson) {
-      if (!geojson) throw new Error('geojson is required');
-      switch (geojson.type) {
-          case 'Feature':
-              return cloneFeature$1(geojson);
-          case 'FeatureCollection':
-              return cloneFeatureCollection$1(geojson);
-          case 'Point':
-          case 'LineString':
-          case 'Polygon':
-          case 'MultiPoint':
-          case 'MultiLineString':
-          case 'MultiPolygon':
-          case 'GeometryCollection':
-              return cloneGeometry$1(geojson);
-          default:
-              throw new Error('unknown GeoJSON type');
-      }
-  }
-  function cloneFeature$1(geojson) {
-      var cloned = { type: 'Feature' };
-      Object.keys(geojson).forEach(function (key) {
-          switch (key) {
-              case 'type':
-              case 'properties':
-              case 'geometry':
-                  return;
-              default:
-                  cloned[key] = geojson[key];
-          }
-      });
-      cloned.properties = cloneProperties$1(geojson.properties);
-      cloned.geometry = cloneGeometry$1(geojson.geometry);
-      return cloned;
-  }
-  function cloneProperties$1(properties) {
-      var cloned = {};
-      if (!properties) return cloned;
-      Object.keys(properties).forEach(function (key) {
-          var value = properties[key];
-          if ((typeof value === 'undefined' ? 'undefined' : _typeof(value)) === 'object') {
-              if (value === null) {
-                  cloned[key] = null;
-              } else if (value.length) {
-                  cloned[key] = value.map(function (item) {
-                      return item;
-                  });
-              } else {
-                  cloned[key] = cloneProperties$1(value);
-              }
-          } else cloned[key] = value;
-      });
-      return cloned;
-  }
-  function cloneFeatureCollection$1(geojson) {
-      var cloned = { type: 'FeatureCollection' };
-      Object.keys(geojson).forEach(function (key) {
-          switch (key) {
-              case 'type':
-              case 'features':
-                  return;
-              default:
-                  cloned[key] = geojson[key];
-          }
-      });
-      cloned.features = geojson.features.map(function (feature) {
-          return cloneFeature$1(feature);
-      });
-      return cloned;
-  }
-  function cloneGeometry$1(geometry) {
-      var geom = { type: geometry.type };
-      if (geometry.bbox) geom.bbox = geometry.bbox;
-      if (geometry.type === 'GeometryCollection') {
-          geom.geometries = geometry.geometries.map(function (geom) {
-              return cloneGeometry$1(geom);
-          });
-          return geom;
-      }
-      geom.coordinates = deepSlice$1(geometry.coordinates);
-      return geom;
-  }
-  function deepSlice$1(coords) {
-      if (_typeof(coords[0]) !== 'object') {
-          return coords.slice();
-      }
-      return coords.map(function (coord) {
-          return deepSlice$1(coord);
-      });
-  }
-
   function isObject$4(input) {
       return !!input && input.constructor === Object;
   }
 
-  function geomEach$2(geojson, callback) {
+  function geomEach$1(geojson, callback) {
       var i,
           j,
           g,
@@ -4525,8 +2853,8 @@
       var mutate = options.mutate || false;
       if (!geojson) throw new Error('geojson is required');
       if (tolerance && tolerance < 0) throw new Error('invalid tolerance');
-      if (mutate !== true) geojson = clone$1(geojson);
-      geomEach$2(geojson, function (geom) {
+      if (mutate !== true) geojson = clone(geojson);
+      geomEach$1(geojson, function (geom) {
           simplifyGeom(geom, tolerance, highQuality);
       });
       return geojson;
@@ -4590,13 +2918,6 @@
       return !(ring.length === 3 && ring[2][0] === ring[0][0] && ring[2][1] === ring[0][1]);
   }
 
-  function simplifyPointArray(coordArray, options) {
-  	options = options || {};
-  	options.tolerance = options.tolerance || 0.00001;
-  	var Feature = lineString$1(toCoords(coordArray));
-  	var simplifiedgeom = simplify(Feature, options);
-  	return simplifiedgeom.geometry.coordinates;
-  }
   function simplifyFeature(object, output, options) {
   	options = options || {};
   	options.tolerance = options.tolerance || 0.00001;
@@ -4633,13 +2954,48 @@
   	}
   }
 
+  function getCoord$1(obj) {
+      if (!obj) throw new Error('obj is required');
+      var coordinates = getCoords$1(obj);
+      if (coordinates.length > 1 && isNumber$1(coordinates[0]) && isNumber$1(coordinates[1])) {
+          return coordinates;
+      } else {
+          throw new Error('Coordinate is not a valid Point');
+      }
+  }
+  function getCoords$1(obj) {
+      if (!obj) throw new Error('obj is required');
+      var coordinates;
+      if (obj.length) {
+          coordinates = obj;
+      } else if (obj.coordinates) {
+          coordinates = obj.coordinates;
+      } else if (obj.geometry && obj.geometry.coordinates) {
+          coordinates = obj.geometry.coordinates;
+      }
+      if (coordinates) {
+          containsNumber$1(coordinates);
+          return coordinates;
+      }
+      throw new Error('No valid coordinates');
+  }
+  function containsNumber$1(coordinates) {
+      if (coordinates.length > 1 && isNumber$1(coordinates[0]) && isNumber$1(coordinates[1])) {
+          return true;
+      }
+      if (Array.isArray(coordinates[0]) && coordinates[0].length) {
+          return containsNumber$1(coordinates[0]);
+      }
+      throw new Error('coordinates must only contain numbers');
+  }
+
   function bearing(start, end, options) {
       options = options || {};
       if (!isObject$2(options)) throw new Error('options is invalid');
       var final = options.final;
       if (final === true) return calculateFinalBearing(start, end);
-      var coordinates1 = getCoord(start);
-      var coordinates2 = getCoord(end);
+      var coordinates1 = getCoord$1(start);
+      var coordinates2 = getCoord$1(end);
       var lon1 = degreesToRadians$1(coordinates1[0]);
       var lon2 = degreesToRadians$1(coordinates2[0]);
       var lat1 = degreesToRadians$1(coordinates1[1]);
@@ -4658,7 +3014,7 @@
       options = options || {};
       if (!isObject$2(options)) throw new Error('options is invalid');
       var units = options.units;
-      var coordinates1 = getCoord(origin);
+      var coordinates1 = getCoord$1(origin);
       var longitude1 = degreesToRadians$1(coordinates1[0]);
       var latitude1 = degreesToRadians$1(coordinates1[1]);
       var bearing_rad = degreesToRadians$1(bearing);
@@ -4666,6 +3022,20 @@
       var latitude2 = Math.asin(Math.sin(latitude1) * Math.cos(radians) + Math.cos(latitude1) * Math.sin(radians) * Math.cos(bearing_rad));
       var longitude2 = longitude1 + Math.atan2(Math.sin(bearing_rad) * Math.sin(radians) * Math.cos(latitude1), Math.cos(radians) - Math.sin(latitude1) * Math.sin(latitude2));
       return point$1([radiansToDegrees$1(longitude2), radiansToDegrees$1(latitude2)]);
+  }
+
+  function distance(from, to, options) {
+    options = options || {};
+    if (!isObject$2(options)) throw new Error('options is invalid');
+    var units = options.units;
+    var coordinates1 = getCoord$1(from);
+    var coordinates2 = getCoord$1(to);
+    var dLat = degreesToRadians$1(coordinates2[1] - coordinates1[1]);
+    var dLon = degreesToRadians$1(coordinates2[0] - coordinates1[0]);
+    var lat1 = degreesToRadians$1(coordinates1[1]);
+    var lat2 = degreesToRadians$1(coordinates2[1]);
+    var a = Math.pow(Math.sin(dLat / 2), 2) + Math.pow(Math.sin(dLon / 2), 2) * Math.cos(lat1) * Math.cos(lat2);
+    return radiansToLength$1(2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)), units);
   }
 
   function along(line, distance$$1, options) {
@@ -9948,7 +8318,7 @@
     },
     extractGeometry: function extractGeometry(geometry) {
       var type = geometry.getGeometryType().toLowerCase();
-      if (!extract$1[type]) {
+      if (!extract[type]) {
         return null;
       }
       var wktType = type.toUpperCase();
@@ -9956,58 +8326,58 @@
       if (geometry.isEmpty()) {
         data = wktType + ' EMPTY';
       } else {
-        data = wktType + '(' + extract$1[type].apply(this, [geometry]) + ')';
+        data = wktType + '(' + extract[type].apply(this, [geometry]) + ')';
       }
       return data;
     }
   });
-  var extract$1 = {
+  var extract = {
     coordinate: function coordinate(_coordinate) {
       return _coordinate.x + ' ' + _coordinate.y;
     },
     point: function point(_point) {
-      return extract$1.coordinate.call(this, _point._coordinates._coordinates[0]);
+      return extract.coordinate.call(this, _point._coordinates._coordinates[0]);
     },
     multipoint: function multipoint(_multipoint) {
       var array = [];
       for (var i = 0, len = _multipoint._geometries.length; i < len; ++i) {
-        array.push('(' + extract$1.point.apply(this, [_multipoint._geometries[i]]) + ')');
+        array.push('(' + extract.point.apply(this, [_multipoint._geometries[i]]) + ')');
       }
       return array.join(',');
     },
     linestring: function linestring(_linestring) {
       var array = [];
       for (var i = 0, len = _linestring._points._coordinates.length; i < len; ++i) {
-        array.push(extract$1.coordinate.apply(this, [_linestring._points._coordinates[i]]));
+        array.push(extract.coordinate.apply(this, [_linestring._points._coordinates[i]]));
       }
       return array.join(',');
     },
     linearring: function linearring(_linearring) {
       var array = [];
       for (var i = 0, len = _linearring._points._coordinates.length; i < len; ++i) {
-        array.push(extract$1.coordinate.apply(this, [_linearring._points._coordinates[i]]));
+        array.push(extract.coordinate.apply(this, [_linearring._points._coordinates[i]]));
       }
       return array.join(',');
     },
     multilinestring: function multilinestring(_multilinestring) {
       var array = [];
       for (var i = 0, len = _multilinestring._geometries.length; i < len; ++i) {
-        array.push('(' + extract$1.linestring.apply(this, [_multilinestring._geometries[i]]) + ')');
+        array.push('(' + extract.linestring.apply(this, [_multilinestring._geometries[i]]) + ')');
       }
       return array.join(',');
     },
     polygon: function polygon(_polygon) {
       var array = [];
-      array.push('(' + extract$1.linestring.apply(this, [_polygon._shell]) + ')');
+      array.push('(' + extract.linestring.apply(this, [_polygon._shell]) + ')');
       for (var i = 0, len = _polygon._holes.length; i < len; ++i) {
-        array.push('(' + extract$1.linestring.apply(this, [_polygon._holes[i]]) + ')');
+        array.push('(' + extract.linestring.apply(this, [_polygon._holes[i]]) + ')');
       }
       return array.join(',');
     },
     multipolygon: function multipolygon(_multipolygon) {
       var array = [];
       for (var i = 0, len = _multipolygon._geometries.length; i < len; ++i) {
-        array.push('(' + extract$1.polygon.apply(this, [_multipolygon._geometries[i]]) + ')');
+        array.push('(' + extract.polygon.apply(this, [_multipolygon._geometries[i]]) + ')');
       }
       return array.join(',');
     },
@@ -19259,7 +17629,7 @@
   Angle.CLOCKWISE = CGAlgorithms.CLOCKWISE;
   Angle.NONE = CGAlgorithms.COLLINEAR;
 
-  function Triangle$1() {
+  function Triangle() {
   	this.p0 = null;
   	this.p1 = null;
   	this.p2 = null;
@@ -19270,52 +17640,52 @@
   	this.p1 = p1;
   	this.p2 = p2;
   }
-  extend(Triangle$1.prototype, {
+  extend(Triangle.prototype, {
   	area: function area() {
-  		return Triangle$1.area(this.p0, this.p1, this.p2);
+  		return Triangle.area(this.p0, this.p1, this.p2);
   	},
   	signedArea: function signedArea() {
-  		return Triangle$1.signedArea(this.p0, this.p1, this.p2);
+  		return Triangle.signedArea(this.p0, this.p1, this.p2);
   	},
   	interpolateZ: function interpolateZ(p) {
   		if (p === null) throw new IllegalArgumentException("Supplied point is null.");
-  		return Triangle$1.interpolateZ(p, this.p0, this.p1, this.p2);
+  		return Triangle.interpolateZ(p, this.p0, this.p1, this.p2);
   	},
   	longestSideLength: function longestSideLength() {
-  		return Triangle$1.longestSideLength(this.p0, this.p1, this.p2);
+  		return Triangle.longestSideLength(this.p0, this.p1, this.p2);
   	},
   	isAcute: function isAcute() {
-  		return Triangle$1.isAcute(this.p0, this.p1, this.p2);
+  		return Triangle.isAcute(this.p0, this.p1, this.p2);
   	},
   	circumcentre: function circumcentre() {
-  		return Triangle$1.circumcentre(this.p0, this.p1, this.p2);
+  		return Triangle.circumcentre(this.p0, this.p1, this.p2);
   	},
   	area3D: function area3D() {
-  		return Triangle$1.area3D(this.p0, this.p1, this.p2);
+  		return Triangle.area3D(this.p0, this.p1, this.p2);
   	},
   	centroid: function centroid() {
-  		return Triangle$1.centroid(this.p0, this.p1, this.p2);
+  		return Triangle.centroid(this.p0, this.p1, this.p2);
   	},
   	inCentre: function inCentre() {
-  		return Triangle$1.inCentre(this.p0, this.p1, this.p2);
+  		return Triangle.inCentre(this.p0, this.p1, this.p2);
   	},
   	interfaces_: function interfaces_() {
   		return [];
   	},
   	getClass: function getClass() {
-  		return Triangle$1;
+  		return Triangle;
   	}
   });
-  Triangle$1.area = function (a, b, c) {
+  Triangle.area = function (a, b, c) {
   	return Math.abs(((c.x - a.x) * (b.y - a.y) - (b.x - a.x) * (c.y - a.y)) / 2);
   };
-  Triangle$1.signedArea = function (a, b, c) {
+  Triangle.signedArea = function (a, b, c) {
   	return ((c.x - a.x) * (b.y - a.y) - (b.x - a.x) * (c.y - a.y)) / 2;
   };
-  Triangle$1.det = function (m00, m01, m10, m11) {
+  Triangle.det = function (m00, m01, m10, m11) {
   	return m00 * m11 - m01 * m10;
   };
-  Triangle$1.interpolateZ = function (p, v0, v1, v2) {
+  Triangle.interpolateZ = function (p, v0, v1, v2) {
   	var x0 = v0.x;
   	var y0 = v0.y;
   	var a = v1.x - x0;
@@ -19330,7 +17700,7 @@
   	var z = v0.z + t * (v1.z - v0.z) + u * (v2.z - v0.z);
   	return z;
   };
-  Triangle$1.longestSideLength = function (a, b, c) {
+  Triangle.longestSideLength = function (a, b, c) {
   	var lenAB = a.distance(b);
   	var lenBC = b.distance(c);
   	var lenCA = c.distance(a);
@@ -19339,34 +17709,34 @@
   	if (lenCA > maxLen) maxLen = lenCA;
   	return maxLen;
   };
-  Triangle$1.isAcute = function (a, b, c) {
+  Triangle.isAcute = function (a, b, c) {
   	if (!Angle.isAcute(a, b, c)) return false;
   	if (!Angle.isAcute(b, c, a)) return false;
   	if (!Angle.isAcute(c, a, b)) return false;
   	return true;
   };
-  Triangle$1.circumcentre = function (a, b, c) {
+  Triangle.circumcentre = function (a, b, c) {
   	var cx = c.x;
   	var cy = c.y;
   	var ax = a.x - cx;
   	var ay = a.y - cy;
   	var bx = b.x - cx;
   	var by = b.y - cy;
-  	var denom = 2 * Triangle$1.det(ax, ay, bx, by);
-  	var numx = Triangle$1.det(ay, ax * ax + ay * ay, by, bx * bx + by * by);
-  	var numy = Triangle$1.det(ax, ax * ax + ay * ay, bx, bx * bx + by * by);
+  	var denom = 2 * Triangle.det(ax, ay, bx, by);
+  	var numx = Triangle.det(ay, ax * ax + ay * ay, by, bx * bx + by * by);
+  	var numy = Triangle.det(ax, ax * ax + ay * ay, bx, bx * bx + by * by);
   	var ccx = cx - numx / denom;
   	var ccy = cy + numy / denom;
   	return new Coordinate(ccx, ccy);
   };
-  Triangle$1.perpendicularBisector = function (a, b) {
+  Triangle.perpendicularBisector = function (a, b) {
   	var dx = b.x - a.x;
   	var dy = b.y - a.y;
   	var l1 = new HCoordinate(a.x + dx / 2.0, a.y + dy / 2.0, 1.0);
   	var l2 = new HCoordinate(a.x - dy + dx / 2.0, a.y + dx + dy / 2.0, 1.0);
   	return new HCoordinate(l1, l2);
   };
-  Triangle$1.angleBisector = function (a, b, c) {
+  Triangle.angleBisector = function (a, b, c) {
   	var len0 = b.distance(a);
   	var len2 = b.distance(c);
   	var frac = len0 / (len0 + len2);
@@ -19375,7 +17745,7 @@
   	var splitPt = new Coordinate(a.x + frac * dx, a.y + frac * dy);
   	return splitPt;
   };
-  Triangle$1.area3D = function (a, b, c) {
+  Triangle.area3D = function (a, b, c) {
   	var ux = b.x - a.x;
   	var uy = b.y - a.y;
   	var uz = b.z - a.z;
@@ -19389,12 +17759,12 @@
   	var area3D = Math.sqrt(absSq) / 2;
   	return area3D;
   };
-  Triangle$1.centroid = function (a, b, c) {
+  Triangle.centroid = function (a, b, c) {
   	var x = (a.x + b.x + c.x) / 3;
   	var y = (a.y + b.y + c.y) / 3;
   	return new Coordinate(x, y);
   };
-  Triangle$1.inCentre = function (a, b, c) {
+  Triangle.inCentre = function (a, b, c) {
   	var len0 = b.distance(c);
   	var len1 = a.distance(c);
   	var len2 = a.distance(b);
@@ -19516,7 +17886,7 @@
   				this._centre = new Coordinate((this._extremalPts[0].x + this._extremalPts[1].x) / 2.0, (this._extremalPts[0].y + this._extremalPts[1].y) / 2.0);
   				break;
   			case 3:
-  				this._centre = Triangle$1.circumcentre(this._extremalPts[0], this._extremalPts[1], this._extremalPts[2]);
+  				this._centre = Triangle.circumcentre(this._extremalPts[0], this._extremalPts[1], this._extremalPts[2]);
   				break;
   		}
   	},
@@ -20666,10 +19036,10 @@
     },
     write: function write(geometry) {
       var type = geometry.getGeometryType();
-      if (!extract$2[type]) {
+      if (!extract$1[type]) {
         throw new Error('Geometry is not supported');
       }
-      return extract$2[type].apply(this, [geometry]);
+      return extract$1[type].apply(this, [geometry]);
     }
   });
   var parse$1 = {
@@ -20765,12 +19135,12 @@
       return this.geometryFactory.createGeometryCollection(geometries);
     }
   };
-  var extract$2 = {
+  var extract$1 = {
     coordinate: function coordinate(_coordinate) {
       return [_coordinate.x, _coordinate.y];
     },
     Point: function Point(point) {
-      var array = extract$2.coordinate.apply(this, [point.getCoordinate()]);
+      var array = extract$1.coordinate.apply(this, [point.getCoordinate()]);
       return {
         type: 'Point',
         coordinates: array
@@ -20780,7 +19150,7 @@
       var array = [];
       for (var i = 0; i < multipoint._geometries.length; ++i) {
         var point = multipoint._geometries[i];
-        var geoJson = extract$2.Point.apply(this, [point]);
+        var geoJson = extract$1.Point.apply(this, [point]);
         array.push(geoJson.coordinates);
       }
       return {
@@ -20793,7 +19163,7 @@
       var coordinates = linestring.getCoordinates();
       for (var i = 0; i < coordinates.length; ++i) {
         var coordinate = coordinates[i];
-        array.push(extract$2.coordinate.apply(this, [coordinate]));
+        array.push(extract$1.coordinate.apply(this, [coordinate]));
       }
       return {
         type: 'LineString',
@@ -20804,7 +19174,7 @@
       var array = [];
       for (var i = 0; i < multilinestring._geometries.length; ++i) {
         var linestring = multilinestring._geometries[i];
-        var geoJson = extract$2.LineString.apply(this, [linestring]);
+        var geoJson = extract$1.LineString.apply(this, [linestring]);
         array.push(geoJson.coordinates);
       }
       return {
@@ -20814,11 +19184,11 @@
     },
     Polygon: function Polygon(polygon) {
       var array = [];
-      var shellGeoJson = extract$2.LineString.apply(this, [polygon._shell]);
+      var shellGeoJson = extract$1.LineString.apply(this, [polygon._shell]);
       array.push(shellGeoJson.coordinates);
       for (var i = 0; i < polygon._holes.length; ++i) {
         var hole = polygon._holes[i];
-        var holeGeoJson = extract$2.LineString.apply(this, [hole]);
+        var holeGeoJson = extract$1.LineString.apply(this, [hole]);
         array.push(holeGeoJson.coordinates);
       }
       return {
@@ -20830,7 +19200,7 @@
       var array = [];
       for (var i = 0; i < multipolygon._geometries.length; ++i) {
         var polygon = multipolygon._geometries[i];
-        var geoJson = extract$2.Polygon.apply(this, [polygon]);
+        var geoJson = extract$1.Polygon.apply(this, [polygon]);
         array.push(geoJson.coordinates);
       }
       return {
@@ -20843,7 +19213,7 @@
       for (var i = 0; i < collection._geometries.length; ++i) {
         var geometry = collection._geometries[i];
         var type = geometry.getGeometryType();
-        array.push(extract$2[type].apply(this, [geometry]));
+        array.push(extract$1[type].apply(this, [geometry]));
       }
       return {
         type: 'GeometryCollection',
@@ -22385,7 +20755,7 @@
   		}
   	},
   	isTriangleErodedCompletely: function isTriangleErodedCompletely(triangleCoord, bufferDistance) {
-  		var tri = new Triangle$1(triangleCoord[0], triangleCoord[1], triangleCoord[2]);
+  		var tri = new Triangle(triangleCoord[0], triangleCoord[1], triangleCoord[2]);
   		var inCentre = tri.inCentre();
   		var distToCentre = CGAlgorithms.distancePointLine(inCentre, tri.p0, tri.p1);
   		return distToCentre < Math.abs(bufferDistance);
@@ -27610,7 +25980,7 @@
   	var nonRobustInCircle = TrianglePredicate.isInCircleNonRobust(a, b, c, p);
   	var isInCircleDD = TrianglePredicate.isInCircleDDSlow(a, b, c, p);
   	var isInCircleCC = TrianglePredicate.isInCircleCC(a, b, c, p);
-  	var circumCentre = Triangle$1.circumcentre(a, b, c);
+  	var circumCentre = Triangle.circumcentre(a, b, c);
   	System.out.println("p radius diff a = " + Math.abs(p.distance(circumCentre) - a.distance(circumCentre)) / a.distance(circumCentre));
   	if (nonRobustInCircle !== isInCircleDD || nonRobustInCircle !== isInCircleCC) {
   		System.out.println("inCircle robustness failure (double result = " + nonRobustInCircle + ", DD result = " + isInCircleDD + ", CC result = " + isInCircleCC + ")");
@@ -27632,7 +26002,7 @@
   	return isInCircle;
   };
   TrianglePredicate.isInCircleCC = function (a, b, c, p) {
-  	var cc = Triangle$1.circumcentre(a, b, c);
+  	var cc = Triangle.circumcentre(a, b, c);
   	var ccRadius = a.distance(cc);
   	var pRadiusDiff = p.distance(cc) - ccRadius;
   	return pRadiusDiff <= 0;
@@ -28554,7 +26924,7 @@
   		var a = triEdges[0].orig().getCoordinate();
   		var b = triEdges[1].orig().getCoordinate();
   		var c = triEdges[2].orig().getCoordinate();
-  		var cc = Triangle$1.circumcentre(a, b, c);
+  		var cc = Triangle.circumcentre(a, b, c);
   		var ccVertex = new Vertex(cc);
   		for (var i = 0; i < 3; i++) {
   			triEdges[i].rot().setOrig(ccVertex);
@@ -30269,9 +28639,149 @@
     return FeatureUnion;
   }
 
-  function bbox$1(geojson) {
+  function coordEach$2(geojson, callback, excludeWrapCoord) {
+      if (geojson === null) return;
+      var featureIndex,
+          geometryIndex,
+          j,
+          k,
+          l,
+          geometry,
+          stopG,
+          coords,
+          geometryMaybeCollection,
+          wrapShrink = 0,
+          coordIndex = 0,
+          isGeometryCollection,
+          type = geojson.type,
+          isFeatureCollection = type === 'FeatureCollection',
+          isFeature = type === 'Feature',
+          stop = isFeatureCollection ? geojson.features.length : 1;
+      for (featureIndex = 0; featureIndex < stop; featureIndex++) {
+          geometryMaybeCollection = isFeatureCollection ? geojson.features[featureIndex].geometry : isFeature ? geojson.geometry : geojson;
+          isGeometryCollection = geometryMaybeCollection ? geometryMaybeCollection.type === 'GeometryCollection' : false;
+          stopG = isGeometryCollection ? geometryMaybeCollection.geometries.length : 1;
+          for (geometryIndex = 0; geometryIndex < stopG; geometryIndex++) {
+              var featureSubIndex = 0;
+              geometry = isGeometryCollection ? geometryMaybeCollection.geometries[geometryIndex] : geometryMaybeCollection;
+              if (geometry === null) continue;
+              coords = geometry.coordinates;
+              var geomType = geometry.type;
+              wrapShrink = excludeWrapCoord && (geomType === 'Polygon' || geomType === 'MultiPolygon') ? 1 : 0;
+              switch (geomType) {
+                  case null:
+                      break;
+                  case 'Point':
+                      callback(coords, coordIndex, featureIndex, featureSubIndex);
+                      coordIndex++;
+                      featureSubIndex++;
+                      break;
+                  case 'LineString':
+                  case 'MultiPoint':
+                      for (j = 0; j < coords.length; j++) {
+                          callback(coords[j], coordIndex, featureIndex, featureSubIndex);
+                          coordIndex++;
+                          if (geomType === 'MultiPoint') featureSubIndex++;
+                      }
+                      if (geomType === 'LineString') featureSubIndex++;
+                      break;
+                  case 'Polygon':
+                  case 'MultiLineString':
+                      for (j = 0; j < coords.length; j++) {
+                          for (k = 0; k < coords[j].length - wrapShrink; k++) {
+                              callback(coords[j][k], coordIndex, featureIndex, featureSubIndex);
+                              coordIndex++;
+                          }
+                          if (geomType === 'MultiLineString') featureSubIndex++;
+                      }
+                      if (geomType === 'Polygon') featureSubIndex++;
+                      break;
+                  case 'MultiPolygon':
+                      for (j = 0; j < coords.length; j++) {
+                          for (k = 0; k < coords[j].length; k++) {
+                              for (l = 0; l < coords[j][k].length - wrapShrink; l++) {
+                                  callback(coords[j][k][l], coordIndex, featureIndex, featureSubIndex);
+                                  coordIndex++;
+                              }
+                          }featureSubIndex++;
+                      }
+                      break;
+                  case 'GeometryCollection':
+                      for (j = 0; j < geometry.geometries.length; j++) {
+                          coordEach$2(geometry.geometries[j], callback, excludeWrapCoord);
+                      }break;
+                  default:
+                      throw new Error('Unknown Geometry Type');
+              }
+          }
+      }
+  }
+  function featureEach$2(geojson, callback) {
+      if (geojson.type === 'Feature') {
+          callback(geojson, 0);
+      } else if (geojson.type === 'FeatureCollection') {
+          for (var i = 0; i < geojson.features.length; i++) {
+              callback(geojson.features[i], i);
+          }
+      }
+  }
+  function geomEach$2(geojson, callback) {
+      var i,
+          j,
+          g,
+          geometry,
+          stopG,
+          geometryMaybeCollection,
+          isGeometryCollection,
+          featureProperties,
+          featureBBox,
+          featureId,
+          featureIndex = 0,
+          isFeatureCollection = geojson.type === 'FeatureCollection',
+          isFeature = geojson.type === 'Feature',
+          stop = isFeatureCollection ? geojson.features.length : 1;
+      for (i = 0; i < stop; i++) {
+          geometryMaybeCollection = isFeatureCollection ? geojson.features[i].geometry : isFeature ? geojson.geometry : geojson;
+          featureProperties = isFeatureCollection ? geojson.features[i].properties : isFeature ? geojson.properties : {};
+          featureBBox = isFeatureCollection ? geojson.features[i].bbox : isFeature ? geojson.bbox : undefined;
+          featureId = isFeatureCollection ? geojson.features[i].id : isFeature ? geojson.id : undefined;
+          isGeometryCollection = geometryMaybeCollection ? geometryMaybeCollection.type === 'GeometryCollection' : false;
+          stopG = isGeometryCollection ? geometryMaybeCollection.geometries.length : 1;
+          for (g = 0; g < stopG; g++) {
+              geometry = isGeometryCollection ? geometryMaybeCollection.geometries[g] : geometryMaybeCollection;
+              if (geometry === null) {
+                  callback(null, featureIndex, featureProperties, featureBBox, featureId);
+                  continue;
+              }
+              switch (geometry.type) {
+                  case 'Point':
+                  case 'LineString':
+                  case 'MultiPoint':
+                  case 'Polygon':
+                  case 'MultiLineString':
+                  case 'MultiPolygon':
+                      {
+                          callback(geometry, featureIndex, featureProperties, featureBBox, featureId);
+                          break;
+                      }
+                  case 'GeometryCollection':
+                      {
+                          for (j = 0; j < geometry.geometries.length; j++) {
+                              callback(geometry.geometries[j], featureIndex, featureProperties, featureBBox, featureId);
+                          }
+                          break;
+                      }
+                  default:
+                      throw new Error('Unknown Geometry Type');
+              }
+          }
+          featureIndex++;
+      }
+  }
+
+  function bbox(geojson) {
       var BBox = [Infinity, Infinity, -Infinity, -Infinity];
-      coordEach$1(geojson, function (coord) {
+      coordEach$2(geojson, function (coord) {
           if (BBox[0] > coord[0]) BBox[0] = coord[0];
           if (BBox[1] > coord[1]) BBox[1] = coord[1];
           if (BBox[2] < coord[0]) BBox[2] = coord[0];
@@ -30281,10 +28791,96 @@
   }
 
   function center(geojson, properties) {
-    var ext = bbox$1(geojson);
+    var ext = bbox(geojson);
     var x = (ext[0] + ext[2]) / 2;
     var y = (ext[1] + ext[3]) / 2;
     return point$1([x, y], properties);
+  }
+
+  function clone$1(geojson) {
+      if (!geojson) throw new Error('geojson is required');
+      switch (geojson.type) {
+          case 'Feature':
+              return cloneFeature$1(geojson);
+          case 'FeatureCollection':
+              return cloneFeatureCollection$1(geojson);
+          case 'Point':
+          case 'LineString':
+          case 'Polygon':
+          case 'MultiPoint':
+          case 'MultiLineString':
+          case 'MultiPolygon':
+          case 'GeometryCollection':
+              return cloneGeometry$1(geojson);
+          default:
+              throw new Error('unknown GeoJSON type');
+      }
+  }
+  function cloneFeature$1(geojson) {
+      var cloned = { type: 'Feature' };
+      Object.keys(geojson).forEach(function (key) {
+          switch (key) {
+              case 'type':
+              case 'properties':
+              case 'geometry':
+                  return;
+              default:
+                  cloned[key] = geojson[key];
+          }
+      });
+      cloned.properties = cloneProperties$1(geojson.properties);
+      cloned.geometry = cloneGeometry$1(geojson.geometry);
+      return cloned;
+  }
+  function cloneProperties$1(properties) {
+      var cloned = {};
+      if (!properties) return cloned;
+      Object.keys(properties).forEach(function (key) {
+          var value = properties[key];
+          if ((typeof value === 'undefined' ? 'undefined' : _typeof(value)) === 'object') {
+              if (value.length) cloned[key] = value.map(function (item) {
+                  return item;
+              });
+              cloned[key] = cloneProperties$1(value);
+          } else cloned[key] = value;
+      });
+      return cloned;
+  }
+  function cloneFeatureCollection$1(geojson) {
+      var cloned = { type: 'FeatureCollection' };
+      Object.keys(geojson).forEach(function (key) {
+          switch (key) {
+              case 'type':
+              case 'features':
+                  return;
+              default:
+                  cloned[key] = geojson[key];
+          }
+      });
+      cloned.features = geojson.features.map(function (feature) {
+          return cloneFeature$1(feature);
+      });
+      return cloned;
+  }
+  function cloneGeometry$1(geometry) {
+      var geom = { type: geometry.type };
+      if (geometry.bbox) geom.bbox = geometry.bbox;
+      if (geometry.type === 'GeometryCollection') {
+          geom.geometries = geometry.geometries.map(function (geom) {
+              return cloneGeometry$1(geom);
+          });
+          return geom;
+      }
+      geom.coordinates = deepSlice$1(geometry.coordinates);
+      return geom;
+  }
+  function deepSlice$1(coords) {
+      if (_typeof(coords[0]) !== 'object') {
+          return coords.slice();
+      }
+      return coords.map(function (coord) {
+          return deepSlice$1(coord);
+      });
   }
 
   function toMercator(geojson, options) {
@@ -30300,8 +28896,8 @@
       if (!geojson) throw new Error('geojson is required');
       if (Array.isArray(geojson) && isNumber$1(geojson[0])) geojson = projection === 'mercator' ? convertToMercator(geojson) : convertToWgs84(geojson);
       else {
-              if (mutate !== true) geojson = clone(geojson);
-              coordEach$1(geojson, function (coord) {
+              if (mutate !== true) geojson = clone$1(geojson);
+              coordEach$2(geojson, function (coord) {
                   var newCoord = projection === 'mercator' ? convertToMercator(coord) : convertToWgs84(coord);
                   coord[0] = newCoord[0];
                   coord[1] = newCoord[1];
@@ -30802,7 +29398,7 @@
 
   var ascendingBisect = bisector(ascending);
 
-  function merge$1 (arrays) {
+  function merge (arrays) {
     var n = arrays.length,
         m,
         i = -1,
@@ -30894,7 +29490,7 @@
       function polygonEnd() {
         var startInside = polygonInside(),
             cleanInside = clean && startInside,
-            visible = (segments = merge$1(segments)).length;
+            visible = (segments = merge(segments)).length;
         if (cleanInside || visible) {
           stream.polygonStart();
           if (cleanInside) {
@@ -31007,7 +29603,7 @@
 
   var lengthSum = adder();
 
-  function identity$3 (x) {
+  function identity$2 (x) {
     return x;
   }
 
@@ -31064,7 +29660,7 @@
           clip.point = point;
           clip.lineStart = lineStart;
           clip.lineEnd = lineEnd;
-          segments = merge$1(segments);
+          segments = merge(segments);
           var startInside = polygonContains(polygon, rotatedStart);
           if (segments.length) {
             if (!polygonStarted) sink.polygonStart(), polygonStarted = true;
@@ -31527,7 +30123,7 @@
         y0,
         x1,
         y1,
-        postclip = identity$3,
+        postclip = identity$2,
     delta2 = 0.5,
         projectResample = resample(projectTransform, delta2),
     cache,
@@ -31550,7 +30146,7 @@
       return arguments.length ? (preclip = +_ ? clipCircle(theta = _ * radians, 6 * radians) : (theta = null, clipAntimeridian), reset()) : theta * degrees;
     };
     projection.clipExtent = function (_) {
-      return arguments.length ? (postclip = _ == null ? (x0 = y0 = x1 = y1 = null, identity$3) : clipExtent(x0 = +_[0][0], y0 = +_[0][1], x1 = +_[1][0], y1 = +_[1][1]), reset()) : x0 == null ? null : [[x0, y0], [x1, y1]];
+      return arguments.length ? (postclip = _ == null ? (x0 = y0 = x1 = y1 = null, identity$2) : clipExtent(x0 = +_[0][0], y0 = +_[0][1], x1 = +_[1][0], y1 = +_[1][1]), reset()) : x0 == null ? null : [[x0, y0], [x1, y1]];
     };
     projection.scale = function (_) {
       return arguments.length ? (k = +_, recenter()) : k;
@@ -31646,7 +30242,7 @@
     return rotate([0, 0, 90]).scale(159.155);
   }
 
-  function buffer$1(geojson, radius, options) {
+  function buffer(geojson, radius, options) {
       options = options || {};
       var units = options.units;
       var steps = options.steps || 64;
@@ -31660,16 +30256,16 @@
       var results = [];
       switch (geojson.type) {
           case 'GeometryCollection':
-              geomEach$1(geojson, function (geometry) {
+              geomEach$2(geojson, function (geometry) {
                   var buffered = bufferFeature(geometry, radius, units, steps);
                   if (buffered) results.push(buffered);
               });
               return featureCollection$1(results);
           case 'FeatureCollection':
-              featureEach$1(geojson, function (feature) {
+              featureEach$2(geojson, function (feature) {
                   var multiBuffered = bufferFeature(feature, radius, units, steps);
                   if (multiBuffered) {
-                      featureEach$1(multiBuffered, function (buffered) {
+                      featureEach$2(multiBuffered, function (buffered) {
                           if (buffered) results.push(buffered);
                       });
                   }
@@ -31683,15 +30279,15 @@
       var geometry = geojson.type === 'Feature' ? geojson.geometry : geojson;
       if (geometry.type === 'GeometryCollection') {
           var results = [];
-          geomEach$1(geojson, function (geometry) {
+          geomEach$2(geojson, function (geometry) {
               var buffered = bufferFeature(geometry, radius, units, steps);
               if (buffered) results.push(buffered);
           });
           return featureCollection$1(results);
       }
       var projected;
-      var bbox = bbox$1(geojson);
-      var needsTransverseMercator = bbox[1] > 50 && bbox[3] > 50;
+      var bbox$$1 = bbox(geojson);
+      var needsTransverseMercator = bbox$$1[1] > 50 && bbox$$1[3] > 50;
       if (needsTransverseMercator) {
           projected = {
               type: geometry.type,
@@ -31759,7 +30355,7 @@
       } else {
           Feature = polygonToFeaturePolygon(object);
       }
-      var buffered = buffer$1(Feature, radius, options);
+      var buffered = buffer(Feature, radius, options);
       if (buffered.type === 'FeatureCollection') {
           buffered = buffered.features[0];
       }
@@ -31778,8 +30374,8 @@
       var ignoreBoundary = options.ignoreBoundary;
       if (!point) throw new Error('point is required');
       if (!polygon) throw new Error('polygon is required');
-      var pt = getCoord(point);
-      var polys = getCoords(polygon);
+      var pt = getCoord$1(point);
+      var polys = getCoords$1(polygon);
       var type = polygon.geometry ? polygon.geometry.type : polygon.type;
       var bbox = polygon.bbox;
       if (bbox && inBBox(pt, bbox) === false) return false;
@@ -31949,7 +30545,7 @@
       return kinks(Feature);
   }
 
-  function feature$6(geometry, properties, options) {
+  function feature$4(geometry, properties, options) {
       options = options || {};
       if (!isObject$5(options)) throw new Error('options is invalid');
       var bbox = options.bbox;
@@ -31979,7 +30575,7 @@
               }
           }
       }
-      return feature$6({
+      return feature$4({
           type: 'Polygon',
           coordinates: coordinates
       }, properties, options);
@@ -32088,7 +30684,7 @@
               case 'Point':
               case 'LineString':
               case 'Polygon':
-                  if (callback(feature$6(geometry, properties, { bbox: bbox, id: id }), featureIndex, 0) === false) return false;
+                  if (callback(feature$4(geometry, properties, { bbox: bbox, id: id }), featureIndex, 0) === false) return false;
                   return;
           }
           var geomType;
@@ -32109,7 +30705,7 @@
                   type: geomType,
                   coordinates: coordinate
               };
-              if (callback(feature$6(geom, properties), featureIndex, multiFeatureIndex) === false) return false;
+              if (callback(feature$4(geom, properties), featureIndex, multiFeatureIndex) === false) return false;
           }
       });
   }
@@ -33038,1128 +31634,30 @@
     return unkinkPolygon(polygonFeature);
   }
 
-  function baseFilter(collection, predicate) {
-    var result = [];
-    baseEach(collection, function (value, index, collection) {
-      if (predicate(value, index, collection)) {
-        result.push(value);
-      }
-    });
-    return result;
-  }
-
-  function filter(collection, predicate) {
-    var func = isArray(collection) ? arrayFilter : baseFilter;
-    return func(collection, baseIteratee(predicate, 3));
-  }
-
-  function baseExtremum(array, iteratee, comparator) {
-    var index = -1,
-        length = array.length;
-    while (++index < length) {
-      var value = array[index],
-          current = iteratee(value);
-      if (current != null && (computed === undefined ? current === current && !isSymbol(current) : comparator(current, computed))) {
-        var computed = current,
-            result = value;
-      }
-    }
-    return result;
-  }
-
-  function baseGt(value, other) {
-    return value > other;
-  }
-
-  function max$1(array) {
-    return array && array.length ? baseExtremum(array, identity, baseGt) : undefined;
-  }
-
-  function baseLt(value, other) {
-    return value < other;
-  }
-
-  function min$1(array) {
-    return array && array.length ? baseExtremum(array, identity, baseLt) : undefined;
-  }
-
-  function quickselect$3(arr, k, left, right, compare) {
-      quickselectStep(arr, k, left || 0, right || arr.length - 1, compare || defaultCompare$1);
-  }
-  function quickselectStep(arr, k, left, right, compare) {
-      while (right > left) {
-          if (right - left > 600) {
-              var n = right - left + 1;
-              var m = k - left + 1;
-              var z = Math.log(n);
-              var s = 0.5 * Math.exp(2 * z / 3);
-              var sd = 0.5 * Math.sqrt(z * s * (n - s) / n) * (m - n / 2 < 0 ? -1 : 1);
-              var newLeft = Math.max(left, Math.floor(k - m * s / n + sd));
-              var newRight = Math.min(right, Math.floor(k + (n - m) * s / n + sd));
-              quickselectStep(arr, k, newLeft, newRight, compare);
-          }
-          var t = arr[k];
-          var i = left;
-          var j = right;
-          swap$1(arr, left, k);
-          if (compare(arr[right], t) > 0) swap$1(arr, left, right);
-          while (i < j) {
-              swap$1(arr, i, j);
-              i++;
-              j--;
-              while (compare(arr[i], t) < 0) {
-                  i++;
-              }while (compare(arr[j], t) > 0) {
-                  j--;
-              }
-          }
-          if (compare(arr[left], t) === 0) swap$1(arr, left, j);else {
-              j++;
-              swap$1(arr, j, right);
-          }
-          if (j <= k) left = j + 1;
-          if (k <= j) right = j - 1;
-      }
-  }
-  function swap$1(arr, i, j) {
-      var tmp = arr[i];
-      arr[i] = arr[j];
-      arr[j] = tmp;
-  }
-  function defaultCompare$1(a, b) {
-      return a < b ? -1 : a > b ? 1 : 0;
-  }
-
-  function rbush$1(maxEntries, format) {
-      if (!(this instanceof rbush$1)) return new rbush$1(maxEntries, format);
-      this._maxEntries = Math.max(4, maxEntries || 9);
-      this._minEntries = Math.max(2, Math.ceil(this._maxEntries * 0.4));
-      if (format) {
-          this._initFormat(format);
-      }
-      this.clear();
-  }
-  rbush$1.prototype = {
-      all: function all() {
-          return this._all(this.data, []);
-      },
-      search: function search(bbox) {
-          var node = this.data,
-              result = [],
-              toBBox = this.toBBox;
-          if (!intersects$1(bbox, node)) return result;
-          var nodesToSearch = [],
-              i,
-              len,
-              child,
-              childBBox;
-          while (node) {
-              for (i = 0, len = node.children.length; i < len; i++) {
-                  child = node.children[i];
-                  childBBox = node.leaf ? toBBox(child) : child;
-                  if (intersects$1(bbox, childBBox)) {
-                      if (node.leaf) result.push(child);else if (contains$2(bbox, childBBox)) this._all(child, result);else nodesToSearch.push(child);
-                  }
-              }
-              node = nodesToSearch.pop();
-          }
-          return result;
-      },
-      collides: function collides(bbox) {
-          var node = this.data,
-              toBBox = this.toBBox;
-          if (!intersects$1(bbox, node)) return false;
-          var nodesToSearch = [],
-              i,
-              len,
-              child,
-              childBBox;
-          while (node) {
-              for (i = 0, len = node.children.length; i < len; i++) {
-                  child = node.children[i];
-                  childBBox = node.leaf ? toBBox(child) : child;
-                  if (intersects$1(bbox, childBBox)) {
-                      if (node.leaf || contains$2(bbox, childBBox)) return true;
-                      nodesToSearch.push(child);
-                  }
-              }
-              node = nodesToSearch.pop();
-          }
-          return false;
-      },
-      load: function load(data) {
-          if (!(data && data.length)) return this;
-          if (data.length < this._minEntries) {
-              for (var i = 0, len = data.length; i < len; i++) {
-                  this.insert(data[i]);
-              }
-              return this;
-          }
-          var node = this._build(data.slice(), 0, data.length - 1, 0);
-          if (!this.data.children.length) {
-              this.data = node;
-          } else if (this.data.height === node.height) {
-              this._splitRoot(this.data, node);
-          } else {
-              if (this.data.height < node.height) {
-                  var tmpNode = this.data;
-                  this.data = node;
-                  node = tmpNode;
-              }
-              this._insert(node, this.data.height - node.height - 1, true);
-          }
-          return this;
-      },
-      insert: function insert(item) {
-          if (item) this._insert(item, this.data.height - 1);
-          return this;
-      },
-      clear: function clear() {
-          this.data = createNode$1([]);
-          return this;
-      },
-      remove: function remove(item, equalsFn) {
-          if (!item) return this;
-          var node = this.data,
-              bbox = this.toBBox(item),
-              path = [],
-              indexes = [],
-              i,
-              parent,
-              index,
-              goingUp;
-          while (node || path.length) {
-              if (!node) {
-                  node = path.pop();
-                  parent = path[path.length - 1];
-                  i = indexes.pop();
-                  goingUp = true;
-              }
-              if (node.leaf) {
-                  index = findItem$1(item, node.children, equalsFn);
-                  if (index !== -1) {
-                      node.children.splice(index, 1);
-                      path.push(node);
-                      this._condense(path);
-                      return this;
-                  }
-              }
-              if (!goingUp && !node.leaf && contains$2(node, bbox)) {
-                  path.push(node);
-                  indexes.push(i);
-                  i = 0;
-                  parent = node;
-                  node = node.children[0];
-              } else if (parent) {
-                  i++;
-                  node = parent.children[i];
-                  goingUp = false;
-              } else node = null;
-          }
-          return this;
-      },
-      toBBox: function toBBox(item) {
-          return item;
-      },
-      compareMinX: compareNodeMinX$1,
-      compareMinY: compareNodeMinY$1,
-      toJSON: function toJSON() {
-          return this.data;
-      },
-      fromJSON: function fromJSON(data) {
-          this.data = data;
-          return this;
-      },
-      _all: function _all(node, result) {
-          var nodesToSearch = [];
-          while (node) {
-              if (node.leaf) result.push.apply(result, node.children);else nodesToSearch.push.apply(nodesToSearch, node.children);
-              node = nodesToSearch.pop();
-          }
-          return result;
-      },
-      _build: function _build(items, left, right, height) {
-          var N = right - left + 1,
-              M = this._maxEntries,
-              node;
-          if (N <= M) {
-              node = createNode$1(items.slice(left, right + 1));
-              calcBBox$1(node, this.toBBox);
-              return node;
-          }
-          if (!height) {
-              height = Math.ceil(Math.log(N) / Math.log(M));
-              M = Math.ceil(N / Math.pow(M, height - 1));
-          }
-          node = createNode$1([]);
-          node.leaf = false;
-          node.height = height;
-          var N2 = Math.ceil(N / M),
-              N1 = N2 * Math.ceil(Math.sqrt(M)),
-              i,
-              j,
-              right2,
-              right3;
-          multiSelect$1(items, left, right, N1, this.compareMinX);
-          for (i = left; i <= right; i += N1) {
-              right2 = Math.min(i + N1 - 1, right);
-              multiSelect$1(items, i, right2, N2, this.compareMinY);
-              for (j = i; j <= right2; j += N2) {
-                  right3 = Math.min(j + N2 - 1, right2);
-                  node.children.push(this._build(items, j, right3, height - 1));
-              }
-          }
-          calcBBox$1(node, this.toBBox);
-          return node;
-      },
-      _chooseSubtree: function _chooseSubtree(bbox, node, level, path) {
-          var i, len, child, targetNode, area, enlargement, minArea, minEnlargement;
-          while (true) {
-              path.push(node);
-              if (node.leaf || path.length - 1 === level) break;
-              minArea = minEnlargement = Infinity;
-              for (i = 0, len = node.children.length; i < len; i++) {
-                  child = node.children[i];
-                  area = bboxArea$1(child);
-                  enlargement = enlargedArea$1(bbox, child) - area;
-                  if (enlargement < minEnlargement) {
-                      minEnlargement = enlargement;
-                      minArea = area < minArea ? area : minArea;
-                      targetNode = child;
-                  } else if (enlargement === minEnlargement) {
-                      if (area < minArea) {
-                          minArea = area;
-                          targetNode = child;
-                      }
-                  }
-              }
-              node = targetNode || node.children[0];
-          }
-          return node;
-      },
-      _insert: function _insert(item, level, isNode) {
-          var toBBox = this.toBBox,
-              bbox = isNode ? item : toBBox(item),
-              insertPath = [];
-          var node = this._chooseSubtree(bbox, this.data, level, insertPath);
-          node.children.push(item);
-          extend$2(node, bbox);
-          while (level >= 0) {
-              if (insertPath[level].children.length > this._maxEntries) {
-                  this._split(insertPath, level);
-                  level--;
-              } else break;
-          }
-          this._adjustParentBBoxes(bbox, insertPath, level);
-      },
-      _split: function _split(insertPath, level) {
-          var node = insertPath[level],
-              M = node.children.length,
-              m = this._minEntries;
-          this._chooseSplitAxis(node, m, M);
-          var splitIndex = this._chooseSplitIndex(node, m, M);
-          var newNode = createNode$1(node.children.splice(splitIndex, node.children.length - splitIndex));
-          newNode.height = node.height;
-          newNode.leaf = node.leaf;
-          calcBBox$1(node, this.toBBox);
-          calcBBox$1(newNode, this.toBBox);
-          if (level) insertPath[level - 1].children.push(newNode);else this._splitRoot(node, newNode);
-      },
-      _splitRoot: function _splitRoot(node, newNode) {
-          this.data = createNode$1([node, newNode]);
-          this.data.height = node.height + 1;
-          this.data.leaf = false;
-          calcBBox$1(this.data, this.toBBox);
-      },
-      _chooseSplitIndex: function _chooseSplitIndex(node, m, M) {
-          var i, bbox1, bbox2, overlap, area, minOverlap, minArea, index;
-          minOverlap = minArea = Infinity;
-          for (i = m; i <= M - m; i++) {
-              bbox1 = distBBox$1(node, 0, i, this.toBBox);
-              bbox2 = distBBox$1(node, i, M, this.toBBox);
-              overlap = intersectionArea$1(bbox1, bbox2);
-              area = bboxArea$1(bbox1) + bboxArea$1(bbox2);
-              if (overlap < minOverlap) {
-                  minOverlap = overlap;
-                  index = i;
-                  minArea = area < minArea ? area : minArea;
-              } else if (overlap === minOverlap) {
-                  if (area < minArea) {
-                      minArea = area;
-                      index = i;
-                  }
-              }
-          }
-          return index;
-      },
-      _chooseSplitAxis: function _chooseSplitAxis(node, m, M) {
-          var compareMinX = node.leaf ? this.compareMinX : compareNodeMinX$1,
-              compareMinY = node.leaf ? this.compareMinY : compareNodeMinY$1,
-              xMargin = this._allDistMargin(node, m, M, compareMinX),
-              yMargin = this._allDistMargin(node, m, M, compareMinY);
-          if (xMargin < yMargin) node.children.sort(compareMinX);
-      },
-      _allDistMargin: function _allDistMargin(node, m, M, compare) {
-          node.children.sort(compare);
-          var toBBox = this.toBBox,
-              leftBBox = distBBox$1(node, 0, m, toBBox),
-              rightBBox = distBBox$1(node, M - m, M, toBBox),
-              margin = bboxMargin$1(leftBBox) + bboxMargin$1(rightBBox),
-              i,
-              child;
-          for (i = m; i < M - m; i++) {
-              child = node.children[i];
-              extend$2(leftBBox, node.leaf ? toBBox(child) : child);
-              margin += bboxMargin$1(leftBBox);
-          }
-          for (i = M - m - 1; i >= m; i--) {
-              child = node.children[i];
-              extend$2(rightBBox, node.leaf ? toBBox(child) : child);
-              margin += bboxMargin$1(rightBBox);
-          }
-          return margin;
-      },
-      _adjustParentBBoxes: function _adjustParentBBoxes(bbox, path, level) {
-          for (var i = level; i >= 0; i--) {
-              extend$2(path[i], bbox);
-          }
-      },
-      _condense: function _condense(path) {
-          for (var i = path.length - 1, siblings; i >= 0; i--) {
-              if (path[i].children.length === 0) {
-                  if (i > 0) {
-                      siblings = path[i - 1].children;
-                      siblings.splice(siblings.indexOf(path[i]), 1);
-                  } else this.clear();
-              } else calcBBox$1(path[i], this.toBBox);
-          }
-      },
-      _initFormat: function _initFormat(format) {
-          var compareArr = ['return a', ' - b', ';'];
-          this.compareMinX = new Function('a', 'b', compareArr.join(format[0]));
-          this.compareMinY = new Function('a', 'b', compareArr.join(format[1]));
-          this.toBBox = new Function('a', 'return {minX: a' + format[0] + ', minY: a' + format[1] + ', maxX: a' + format[2] + ', maxY: a' + format[3] + '};');
-      }
-  };
-  function findItem$1(item, items, equalsFn) {
-      if (!equalsFn) return items.indexOf(item);
-      for (var i = 0; i < items.length; i++) {
-          if (equalsFn(item, items[i])) return i;
-      }
-      return -1;
-  }
-  function calcBBox$1(node, toBBox) {
-      distBBox$1(node, 0, node.children.length, toBBox, node);
-  }
-  function distBBox$1(node, k, p, toBBox, destNode) {
-      if (!destNode) destNode = createNode$1(null);
-      destNode.minX = Infinity;
-      destNode.minY = Infinity;
-      destNode.maxX = -Infinity;
-      destNode.maxY = -Infinity;
-      for (var i = k, child; i < p; i++) {
-          child = node.children[i];
-          extend$2(destNode, node.leaf ? toBBox(child) : child);
-      }
-      return destNode;
-  }
-  function extend$2(a, b) {
-      a.minX = Math.min(a.minX, b.minX);
-      a.minY = Math.min(a.minY, b.minY);
-      a.maxX = Math.max(a.maxX, b.maxX);
-      a.maxY = Math.max(a.maxY, b.maxY);
-      return a;
-  }
-  function compareNodeMinX$1(a, b) {
-      return a.minX - b.minX;
-  }
-  function compareNodeMinY$1(a, b) {
-      return a.minY - b.minY;
-  }
-  function bboxArea$1(a) {
-      return (a.maxX - a.minX) * (a.maxY - a.minY);
-  }
-  function bboxMargin$1(a) {
-      return a.maxX - a.minX + (a.maxY - a.minY);
-  }
-  function enlargedArea$1(a, b) {
-      return (Math.max(b.maxX, a.maxX) - Math.min(b.minX, a.minX)) * (Math.max(b.maxY, a.maxY) - Math.min(b.minY, a.minY));
-  }
-  function intersectionArea$1(a, b) {
-      var minX = Math.max(a.minX, b.minX),
-          minY = Math.max(a.minY, b.minY),
-          maxX = Math.min(a.maxX, b.maxX),
-          maxY = Math.min(a.maxY, b.maxY);
-      return Math.max(0, maxX - minX) * Math.max(0, maxY - minY);
-  }
-  function contains$2(a, b) {
-      return a.minX <= b.minX && a.minY <= b.minY && b.maxX <= a.maxX && b.maxY <= a.maxY;
-  }
-  function intersects$1(a, b) {
-      return b.minX <= a.maxX && b.minY <= a.maxY && b.maxX >= a.minX && b.maxY >= a.minY;
-  }
-  function createNode$1(children) {
-      return {
-          children: children,
-          height: 1,
-          leaf: true,
-          minX: Infinity,
-          minY: Infinity,
-          maxX: -Infinity,
-          maxY: -Infinity
-      };
-  }
-  function multiSelect$1(arr, left, right, n, compare) {
-      var stack = [left, right],
-          mid;
-      while (stack.length) {
-          right = stack.pop();
-          left = stack.pop();
-          if (right - left <= n) continue;
-          mid = left + Math.ceil((right - left) / n / 2) * n;
-          quickselect$3(arr, mid, left, right, compare);
-          stack.push(left, mid, mid, right);
-      }
-  }
-
-  function geojsonRbush(maxEntries) {
-      var tree = rbush$1(maxEntries);
-      tree.insert = function (feature) {
-          if (Array.isArray(feature)) {
-              var bbox = feature;
-              feature = bboxPolygon(bbox);
-              feature.bbox = bbox;
-          } else {
-              feature.bbox = feature.bbox ? feature.bbox : turfBBox(feature);
-          }
-          return rbush$1.prototype.insert.call(this, feature);
-      };
-      tree.load = function (features) {
-          var load = [];
-          if (Array.isArray(features)) {
-              features.forEach(function (bbox) {
-                  var feature = bboxPolygon(bbox);
-                  feature.bbox = bbox;
-                  load.push(feature);
-              });
-          } else {
-              featureEach$1(features, function (feature) {
-                  feature.bbox = feature.bbox ? feature.bbox : turfBBox(feature);
-                  load.push(feature);
-              });
-          }
-          return rbush$1.prototype.load.call(this, load);
-      };
-      tree.remove = function (feature) {
-          if (Array.isArray(feature)) {
-              var bbox = feature;
-              feature = bboxPolygon(bbox);
-              feature.bbox = bbox;
-          }
-          return rbush$1.prototype.remove.call(this, feature);
-      };
-      tree.clear = function () {
-          return rbush$1.prototype.clear.call(this);
-      };
-      tree.search = function (geojson) {
-          var features = rbush$1.prototype.search.call(this, this.toBBox(geojson));
-          return {
-              type: 'FeatureCollection',
-              features: features
-          };
-      };
-      tree.collides = function (geojson) {
-          return rbush$1.prototype.collides.call(this, this.toBBox(geojson));
-      };
-      tree.all = function () {
-          var features = rbush$1.prototype.all.call(this);
-          return {
-              type: 'FeatureCollection',
-              features: features
-          };
-      };
-      tree.toJSON = function () {
-          return rbush$1.prototype.toJSON.call(this);
-      };
-      tree.fromJSON = function (json) {
-          return rbush$1.prototype.fromJSON.call(this, json);
-      };
-      tree.toBBox = function (geojson) {
-          var bbox;
-          if (geojson.bbox) bbox = geojson.bbox;else if (Array.isArray(geojson) && geojson.length === 4) bbox = geojson;else bbox = turfBBox(geojson);
-          return {
-              minX: bbox[0],
-              minY: bbox[1],
-              maxX: bbox[2],
-              maxY: bbox[3]
-          };
-      };
-      return tree;
-  }
-  function bboxPolygon(bbox) {
-      var lowLeft = [bbox[0], bbox[1]];
-      var topLeft = [bbox[0], bbox[3]];
-      var topRight = [bbox[2], bbox[3]];
-      var lowRight = [bbox[2], bbox[1]];
-      var coordinates = [[lowLeft, lowRight, topRight, topLeft, lowLeft]];
-      return {
-          type: 'Feature',
-          bbox: bbox,
-          properties: {},
-          geometry: {
-              type: 'Polygon',
-              coordinates: coordinates
-          }
-      };
-  }
-  function turfBBox(geojson) {
-      var bbox = [Infinity, Infinity, -Infinity, -Infinity];
-      coordEach$1(geojson, function (coord) {
-          if (bbox[0] > coord[0]) bbox[0] = coord[0];
-          if (bbox[1] > coord[1]) bbox[1] = coord[1];
-          if (bbox[2] < coord[0]) bbox[2] = coord[0];
-          if (bbox[3] < coord[1]) bbox[3] = coord[1];
-      });
-      return bbox;
-  }
-
-  function feature$7(geometry, properties, options) {
-      options = options || {};
-      if (!isObject$6(options)) throw new Error('options is invalid');
-      var bbox = options.bbox;
-      var id = options.id;
-      if (geometry === undefined) throw new Error('geometry is required');
-      if (properties && properties.constructor !== Object) throw new Error('properties must be an Object');
-      if (bbox) validateBBox$4(bbox);
-      if (id) validateId$4(id);
-      var feat = { type: 'Feature' };
-      if (id) feat.id = id;
-      if (bbox) feat.bbox = bbox;
-      feat.properties = properties || {};
-      feat.geometry = geometry;
-      return feat;
-  }
-  function lineString$5(coordinates, properties, options) {
-      if (!coordinates) throw new Error('coordinates is required');
-      if (coordinates.length < 2) throw new Error('coordinates must be an array of two or more positions');
-      if (!isNumber$5(coordinates[0][1]) || !isNumber$5(coordinates[0][1])) throw new Error('coordinates must contain numbers');
-      return feature$7({
-          type: 'LineString',
-          coordinates: coordinates
-      }, properties, options);
-  }
-  function featureCollection$5(features, options) {
-      options = options || {};
-      if (!isObject$6(options)) throw new Error('options is invalid');
-      var bbox = options.bbox;
-      var id = options.id;
-      if (!features) throw new Error('No features passed');
-      if (!Array.isArray(features)) throw new Error('features must be an Array');
-      if (bbox) validateBBox$4(bbox);
-      if (id) validateId$4(id);
-      var fc = { type: 'FeatureCollection' };
-      if (id) fc.id = id;
-      if (bbox) fc.bbox = bbox;
-      fc.features = features;
-      return fc;
-  }
-  function isNumber$5(num) {
-      return !isNaN(num) && num !== null && !Array.isArray(num);
-  }
-  function isObject$6(input) {
-      return !!input && input.constructor === Object;
-  }
-  function validateBBox$4(bbox) {
-      if (!bbox) throw new Error('bbox is required');
-      if (!Array.isArray(bbox)) throw new Error('bbox must be an Array');
-      if (bbox.length !== 4 && bbox.length !== 6) throw new Error('bbox must be an Array of 4 or 6 numbers');
-      bbox.forEach(function (num) {
-          if (!isNumber$5(num)) throw new Error('bbox must only contain numbers');
-      });
-  }
-  function validateId$4(id) {
-      if (!id) throw new Error('id is required');
-      if (['string', 'number'].indexOf(typeof id === 'undefined' ? 'undefined' : _typeof(id)) === -1) throw new Error('id must be a number or a string');
-  }
-
-  function getCoords$3(coords) {
-      if (!coords) throw new Error('coords is required');
-      if (coords.type === 'Feature' && coords.geometry !== null) return coords.geometry.coordinates;
-      if (coords.coordinates) return coords.coordinates;
-      if (Array.isArray(coords)) return coords;
-      throw new Error('coords must be GeoJSON Feature, Geometry Object or an Array');
-  }
-
-  function geomEach$4(geojson, callback) {
-      var i,
-          j,
-          g,
-          geometry,
-          stopG,
-          geometryMaybeCollection,
-          isGeometryCollection,
-          featureProperties,
-          featureBBox,
-          featureId,
-          featureIndex = 0,
-          isFeatureCollection = geojson.type === 'FeatureCollection',
-          isFeature = geojson.type === 'Feature',
-          stop = isFeatureCollection ? geojson.features.length : 1;
-      for (i = 0; i < stop; i++) {
-          geometryMaybeCollection = isFeatureCollection ? geojson.features[i].geometry : isFeature ? geojson.geometry : geojson;
-          featureProperties = isFeatureCollection ? geojson.features[i].properties : isFeature ? geojson.properties : {};
-          featureBBox = isFeatureCollection ? geojson.features[i].bbox : isFeature ? geojson.bbox : undefined;
-          featureId = isFeatureCollection ? geojson.features[i].id : isFeature ? geojson.id : undefined;
-          isGeometryCollection = geometryMaybeCollection ? geometryMaybeCollection.type === 'GeometryCollection' : false;
-          stopG = isGeometryCollection ? geometryMaybeCollection.geometries.length : 1;
-          for (g = 0; g < stopG; g++) {
-              geometry = isGeometryCollection ? geometryMaybeCollection.geometries[g] : geometryMaybeCollection;
-              if (geometry === null) {
-                  if (callback(null, featureIndex, featureProperties, featureBBox, featureId) === false) return false;
-                  continue;
-              }
-              switch (geometry.type) {
-                  case 'Point':
-                  case 'LineString':
-                  case 'MultiPoint':
-                  case 'Polygon':
-                  case 'MultiLineString':
-                  case 'MultiPolygon':
-                      {
-                          if (callback(geometry, featureIndex, featureProperties, featureBBox, featureId) === false) return false;
-                          break;
-                      }
-                  case 'GeometryCollection':
-                      {
-                          for (j = 0; j < geometry.geometries.length; j++) {
-                              if (callback(geometry.geometries[j], featureIndex, featureProperties, featureBBox, featureId) === false) return false;
-                          }
-                          break;
-                      }
-                  default:
-                      throw new Error('Unknown Geometry Type');
-              }
-          }
-          featureIndex++;
-      }
-  }
-  function flattenEach$4(geojson, callback) {
-      geomEach$4(geojson, function (geometry, featureIndex, properties, bbox, id) {
-          var type = geometry === null ? null : geometry.type;
-          switch (type) {
-              case null:
-              case 'Point':
-              case 'LineString':
-              case 'Polygon':
-                  if (callback(feature$7(geometry, properties, { bbox: bbox, id: id }), featureIndex, 0) === false) return false;
-                  return;
-          }
-          var geomType;
-          switch (type) {
-              case 'MultiPoint':
-                  geomType = 'Point';
-                  break;
-              case 'MultiLineString':
-                  geomType = 'LineString';
-                  break;
-              case 'MultiPolygon':
-                  geomType = 'Polygon';
-                  break;
-          }
-          for (var multiFeatureIndex = 0; multiFeatureIndex < geometry.coordinates.length; multiFeatureIndex++) {
-              var coordinate = geometry.coordinates[multiFeatureIndex];
-              var geom = {
-                  type: geomType,
-                  coordinates: coordinate
-              };
-              if (callback(feature$7(geom, properties), featureIndex, multiFeatureIndex) === false) return false;
-          }
-      });
-  }
-
-  function lineSegment(geojson) {
-      if (!geojson) throw new Error('geojson is required');
-      var results = [];
-      flattenEach$4(geojson, function (feature) {
-          lineSegmentFeature(feature, results);
-      });
-      return featureCollection$5(results);
-  }
-  function lineSegmentFeature(geojson, results) {
-      var coords = [];
-      var geometry = geojson.geometry;
-      switch (geometry.type) {
-          case 'Polygon':
-              coords = getCoords$3(geometry);
-              break;
-          case 'LineString':
-              coords = [getCoords$3(geometry)];
-      }
-      coords.forEach(function (coord) {
-          var segments = createSegments(coord, geojson.properties);
-          segments.forEach(function (segment) {
-              segment.id = results.length;
-              results.push(segment);
-          });
-      });
-  }
-  function createSegments(coords, properties) {
-      var segments = [];
-      coords.reduce(function (previousCoords, currentCoords) {
-          var segment = lineString$5([previousCoords, currentCoords], properties);
-          segment.bbox = bbox$2(previousCoords, currentCoords);
-          segments.push(segment);
-          return currentCoords;
-      });
-      return segments;
-  }
-  function bbox$2(coords1, coords2) {
-      var x1 = coords1[0];
-      var y1 = coords1[1];
-      var x2 = coords2[0];
-      var y2 = coords2[1];
-      var west = x1 < x2 ? x1 : x2;
-      var south = y1 < y2 ? y1 : y2;
-      var east = x1 > x2 ? x1 : x2;
-      var north = y1 > y2 ? y1 : y2;
-      return [west, south, east, north];
-  }
-
-  function feature$8(geometry, properties, options) {
-      options = options || {};
-      if (!isObject$7(options)) throw new Error('options is invalid');
-      var bbox = options.bbox;
-      var id = options.id;
-      if (geometry === undefined) throw new Error('geometry is required');
-      if (properties && properties.constructor !== Object) throw new Error('properties must be an Object');
-      if (bbox) validateBBox$5(bbox);
-      if (id) validateId$5(id);
-      var feat = { type: 'Feature' };
-      if (id) feat.id = id;
-      if (bbox) feat.bbox = bbox;
-      feat.properties = properties || {};
-      feat.geometry = geometry;
-      return feat;
-  }
-  function point$6(coordinates, properties, options) {
-      if (!coordinates) throw new Error('coordinates is required');
-      if (!Array.isArray(coordinates)) throw new Error('coordinates must be an Array');
-      if (coordinates.length < 2) throw new Error('coordinates must be at least 2 numbers long');
-      if (!isNumber$6(coordinates[0]) || !isNumber$6(coordinates[1])) throw new Error('coordinates must contain numbers');
-      return feature$8({
-          type: 'Point',
-          coordinates: coordinates
-      }, properties, options);
-  }
-  function featureCollection$6(features, options) {
-      options = options || {};
-      if (!isObject$7(options)) throw new Error('options is invalid');
-      var bbox = options.bbox;
-      var id = options.id;
-      if (!features) throw new Error('No features passed');
-      if (!Array.isArray(features)) throw new Error('features must be an Array');
-      if (bbox) validateBBox$5(bbox);
-      if (id) validateId$5(id);
-      var fc = { type: 'FeatureCollection' };
-      if (id) fc.id = id;
-      if (bbox) fc.bbox = bbox;
-      fc.features = features;
-      return fc;
-  }
-  function isNumber$6(num) {
-      return !isNaN(num) && num !== null && !Array.isArray(num);
-  }
-  function isObject$7(input) {
-      return !!input && input.constructor === Object;
-  }
-  function validateBBox$5(bbox) {
-      if (!bbox) throw new Error('bbox is required');
-      if (!Array.isArray(bbox)) throw new Error('bbox must be an Array');
-      if (bbox.length !== 4 && bbox.length !== 6) throw new Error('bbox must be an Array of 4 or 6 numbers');
-      bbox.forEach(function (num) {
-          if (!isNumber$6(num)) throw new Error('bbox must only contain numbers');
-      });
-  }
-  function validateId$5(id) {
-      if (!id) throw new Error('id is required');
-      if (['string', 'number'].indexOf(typeof id === 'undefined' ? 'undefined' : _typeof(id)) === -1) throw new Error('id must be a number or a string');
-  }
-
-  function getCoords$4(coords) {
-      if (!coords) throw new Error('coords is required');
-      if (coords.type === 'Feature' && coords.geometry !== null) return coords.geometry.coordinates;
-      if (coords.coordinates) return coords.coordinates;
-      if (Array.isArray(coords)) return coords;
-      throw new Error('coords must be GeoJSON Feature, Geometry Object or an Array');
-  }
-
-  function featureEach$5(geojson, callback) {
-      if (geojson.type === 'Feature') {
-          callback(geojson, 0);
-      } else if (geojson.type === 'FeatureCollection') {
-          for (var i = 0; i < geojson.features.length; i++) {
-              if (callback(geojson.features[i], i) === false) break;
-          }
-      }
-  }
-
-  function lineIntersect(line1, line2) {
-      var unique = {};
-      var results = [];
-      if (line1.type === 'LineString') line1 = feature$8(line1);
-      if (line2.type === 'LineString') line2 = feature$8(line2);
-      if (line1.type === 'Feature' && line2.type === 'Feature' && line1.geometry.type === 'LineString' && line2.geometry.type === 'LineString' && line1.geometry.coordinates.length === 2 && line2.geometry.coordinates.length === 2) {
-          var intersect = intersects$2(line1, line2);
-          if (intersect) results.push(intersect);
-          return featureCollection$6(results);
-      }
-      var tree = geojsonRbush();
-      tree.load(lineSegment(line2));
-      featureEach$5(lineSegment(line1), function (segment) {
-          featureEach$5(tree.search(segment), function (match) {
-              var intersect = intersects$2(segment, match);
-              if (intersect) {
-                  var key = getCoords$4(intersect).join(',');
-                  if (!unique[key]) {
-                      unique[key] = true;
-                      results.push(intersect);
-                  }
-              }
-          });
-      });
-      return featureCollection$6(results);
-  }
-  function intersects$2(line1, line2) {
-      var coords1 = getCoords$4(line1);
-      var coords2 = getCoords$4(line2);
-      if (coords1.length !== 2) {
-          throw new Error('<intersects> line1 must only contain 2 coordinates');
-      }
-      if (coords2.length !== 2) {
-          throw new Error('<intersects> line2 must only contain 2 coordinates');
-      }
-      var x1 = coords1[0][0];
-      var y1 = coords1[0][1];
-      var x2 = coords1[1][0];
-      var y2 = coords1[1][1];
-      var x3 = coords2[0][0];
-      var y3 = coords2[0][1];
-      var x4 = coords2[1][0];
-      var y4 = coords2[1][1];
-      var denom = (y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1);
-      var numeA = (x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3);
-      var numeB = (x2 - x1) * (y1 - y3) - (y2 - y1) * (x1 - x3);
-      if (denom === 0) {
-          if (numeA === 0 && numeB === 0) {
-              return null;
-          }
-          return null;
-      }
-      var uA = numeA / denom;
-      var uB = numeB / denom;
-      if (uA >= 0 && uA <= 1 && uB >= 0 && uB <= 1) {
-          var x = x1 + uA * (x2 - x1);
-          var y = y1 + uA * (y2 - y1);
-          return point$6([x, y]);
-      }
-      return null;
-  }
-
-  function nearestPointOnLine(lines, pt, options) {
-      options = options || {};
-      if (!isObject$2(options)) throw new Error('options is invalid');
-      var type = lines.geometry ? lines.geometry.type : lines.type;
-      if (type !== 'LineString' && type !== 'MultiLineString') {
-          throw new Error('lines must be LineString or MultiLineString');
-      }
-      var closestPt = point$1([Infinity, Infinity], {
-          dist: Infinity
-      });
-      var length = 0.0;
-      flattenEach$1(lines, function (line) {
-          var coords = getCoords(line);
-          for (var i = 0; i < coords.length - 1; i++) {
-              var start = point$1(coords[i]);
-              start.properties.dist = distance(pt, start, options);
-              var stop = point$1(coords[i + 1]);
-              stop.properties.dist = distance(pt, stop, options);
-              var sectionLength = distance(start, stop, options);
-              var heightDistance = Math.max(start.properties.dist, stop.properties.dist);
-              var direction = bearing(start, stop);
-              var perpendicularPt1 = destination(pt, heightDistance, direction + 90, options);
-              var perpendicularPt2 = destination(pt, heightDistance, direction - 90, options);
-              var intersect = lineIntersect(lineString$1([perpendicularPt1.geometry.coordinates, perpendicularPt2.geometry.coordinates]), lineString$1([start.geometry.coordinates, stop.geometry.coordinates]));
-              var intersectPt = null;
-              if (intersect.features.length > 0) {
-                  intersectPt = intersect.features[0];
-                  intersectPt.properties.dist = distance(pt, intersectPt, options);
-                  intersectPt.properties.location = length + distance(start, intersectPt, options);
-              }
-              if (start.properties.dist < closestPt.properties.dist) {
-                  closestPt = start;
-                  closestPt.properties.index = i;
-                  closestPt.properties.location = length;
-              }
-              if (stop.properties.dist < closestPt.properties.dist) {
-                  closestPt = stop;
-                  closestPt.properties.index = i + 1;
-                  closestPt.properties.location = length + sectionLength;
-              }
-              if (intersectPt && intersectPt.properties.dist < closestPt.properties.dist) {
-                  closestPt = intersectPt;
-                  closestPt.properties.index = i;
-              }
-              length += sectionLength;
-          }
-      });
-      return closestPt;
-  }
-
-  function lineSlice(startPt, stopPt, line) {
-      var coords;
-      if (line.type === 'Feature') {
-          coords = line.geometry.coordinates;
-      } else if (line.type === 'LineString') {
-          coords = line.coordinates;
-      } else {
-          throw new Error('input must be a LineString Feature or Geometry');
-      }
-      var startVertex = nearestPointOnLine(line, startPt);
-      var stopVertex = nearestPointOnLine(line, stopPt);
-      var ends;
-      if (startVertex.properties.index <= stopVertex.properties.index) {
-          ends = [startVertex, stopVertex];
-      } else {
-          ends = [stopVertex, startVertex];
-      }
-      var clipCoords = [ends[0].geometry.coordinates];
-      for (var i = ends[0].properties.index + 1; i < ends[1].properties.index + 1; i++) {
-          clipCoords.push(coords[i]);
-      }
-      clipCoords.push(ends[1].geometry.coordinates);
-      return lineString$1(clipCoords, line.properties);
-  }
-
-  function isEqual(value, other) {
-    return baseIsEqual(value, other);
-  }
-
-  function diffCoords(coord1, coord2) {
-  	var vector = [Math.abs(coord1[0] - coord2[0]), Math.abs(coord1[1] - coord2[1])];
-  	return Math.sqrt(Math.pow(vector[0], 2) + Math.pow(vector[1], 2));
-  }
-  function findLineIntersection(line1Start, line1End, line2Start, line2End) {
-  	var line1 = lineString$1([line1Start, line1End]),
-  	    line2 = lineString$1([line2Start, line2End]),
-  	    intersectionFC = lineIntersect(line1, line2);
-  	if (intersectionFC.features.length) {
-  		var intersection = intersectionFC.features[0].geometry.coordinates;
-  		intersection[0] = Math.round(intersection[0] * 100000000) / 100000000;
-  		intersection[1] = Math.round(intersection[1] * 100000000) / 100000000;
-  		return intersection;
-  	} else {
-  		return false;
-  	}
-  }
-  function traverseRings(ring1, ring2) {
-  	var intersections = featureCollection$1([]);
-  	var samering = false;
-  	if (isEqual(ring1, ring2)) {
-  		samering = true;
-  	}
-  	for (var i = 0; i < ring1.length - 1; i++) {
-  		var startK = samering ? i : 0;
-  		for (var k = startK; k < ring2.length - 1; k++) {
-  			if (ring1 === ring2 && (Math.abs(i - k) === 1 || Math.abs(i - k) === ring1.length - 2)) {
-  				continue;
-  			}
-  			var intersection = findLineIntersection(ring1[i], ring1[i + 1], ring2[k], ring2[k + 1]);
-  			if (!intersection) {
-  				continue;
-  			}
-  			if ((diffCoords(intersection, ring1[0]) < 0.000005 || diffCoords(intersection, ring1[ring1.length - 1]) < 0.000005) && (diffCoords(intersection, ring2[0]) < 0.000005 || diffCoords(intersection, ring2[ring2.length - 1]) < 0.000005)) {
-  				continue;
-  			}
-  			var FeatureIntersection = point$1([intersection[0], intersection[1]]);
-  			FeatureIntersection.properties = {
-  				position1: i,
-  				position2: k
-  			};
-  			intersections.features.push(FeatureIntersection);
-  		}
-  	}
-  	return intersections;
-  }function trimPaths(arrayLatLng1, arrayLatLng2) {
-  	var ring1 = toCoords(arrayLatLng1);
-  	var ring2 = toCoords(arrayLatLng2);
-  	var intersections = traverseRings(ring1, ring2);
-  	if (intersections.features.length > 0) {
-  		var line1 = lineString$1(ring1);
-  		var line2 = lineString$1(ring2);
-  		var line1Start = point$1(ring1[0]);
-  		var line2End = point$1(ring2.slice(-1)[0]);
-  		var sliced1, sliced2;
-  		var first_segment_with_kinks = min$1(intersections.features, function (kink) {
-  			return kink.properties.position1;
-  		});
-  		var kinks_in_first_segment = filter(intersections.features, function (kink) {
-  			return kink.properties.position1 === first_segment_with_kinks.properties.position1;
-  		});
-  		var chosenIntersection = max$1(kinks_in_first_segment, function (kink) {
-  			return kink.properties.position2;
-  		});
-  		var intersectLatLng = toLatLngs([chosenIntersection.geometry.coordinates])[0];
-  		if (chosenIntersection.properties.position1 === 0) {
-  			sliced1 = line1;
-  		} else {
-  			sliced1 = lineSlice(line1Start, chosenIntersection, line1);
-  		}
-  		if (chosenIntersection.properties.position2 >= ring2.length - 1) {
-  			sliced2 = line2;
-  		} else {
-  			sliced2 = lineSlice(chosenIntersection, line2End, line2);
-  		}
-  		return [toLatLngs(sliced1.geometry.coordinates), toLatLngs(sliced2.geometry.coordinates), intersectLatLng];
-  	}
-  	return [];
-  }
-
-  var ig_turfhelper = {
-      area: area$1,
+  var ig_subset = {
       along: along$1,
-      arrayToFeaturePoints: arrayToFeaturePoints,
       createbuffer: createbuffer,
-      pointInPolygon: pointInPolygon,
-      polygonToFeaturePolygon: polygonToFeaturePolygon,
-      polylineToFeatureLinestring: polylineToFeatureLinestring,
-      simplifyFeature: simplifyFeature,
-      simplifyPointArray: simplifyPointArray,
-      toLatLngs: toLatLngs,
-      toCoords: toCoords,
-      trimPaths: trimPaths,
-      union: union$1,
       kinks: kinks$1,
+      polygonToFeaturePolygon: polygonToFeaturePolygon,
+      simplifyFeature: simplifyFeature,
+      toCoords: toCoords,
+      toLatLngs: toLatLngs,
+      union: union$1,
       unkink: unkink,
-      concave: concave$1
+      pointInPolygon: pointInPolygon
   };
 
-  exports.area = area$1;
   exports.along = along$1;
-  exports.arrayToFeaturePoints = arrayToFeaturePoints;
   exports.createbuffer = createbuffer;
-  exports.pointInPolygon = pointInPolygon;
-  exports.polygonToFeaturePolygon = polygonToFeaturePolygon;
-  exports.polylineToFeatureLinestring = polylineToFeatureLinestring;
-  exports.simplifyFeature = simplifyFeature;
-  exports.simplifyPointArray = simplifyPointArray;
-  exports.toLatLngs = toLatLngs;
-  exports.toCoords = toCoords;
-  exports.trimPaths = trimPaths;
   exports.kinks = kinks$1;
-  exports.unkink = unkink;
+  exports.polygonToFeaturePolygon = polygonToFeaturePolygon;
+  exports.simplifyFeature = simplifyFeature;
+  exports.toCoords = toCoords;
+  exports.toLatLngs = toLatLngs;
   exports.union = union$1;
-  exports.concave = concave$1;
-  exports.default = ig_turfhelper;
+  exports.unkink = unkink;
+  exports.pointInPolygon = pointInPolygon;
+  exports.default = ig_subset;
 
   Object.defineProperty(exports, '__esModule', { value: true });
 
