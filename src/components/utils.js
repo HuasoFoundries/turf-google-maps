@@ -113,7 +113,13 @@ function polylineToFeatureLinestring(objeto) {
     return turf_linestring(vertices);
 }
 
-
+var validTypes = ['Point',
+    'MultiPoint',
+    'LineString',
+    'MultiLineString',
+    'Polygon',
+    'MultiPolygon'
+];
 /**
  * Receives an object and returns a {@link Feature.<Polygon>}
  * @param  {google.maps.Polygon|Array.<google.maps.LatLng>|Feature.Polygon|Geometry} object object to transform into a Feature.Polygon
@@ -136,16 +142,16 @@ function polygonToFeaturePolygon(object) {
         ring = toCoords(object, true);
         polygonFeature = arrayToFeaturePolygon(ring);
 
-    } else if (object.geometry) {
+    } else if (object.coordinates && validTypes.indexOf(object.type) !== -1) {
 
         polygonFeature = {
             type: "Feature",
             properties: {},
-            geometry: object.geometry
+            geometry: object
         };
 
     } else {
-        throw new Error('object is not a Feature, google.maps.Polygon nor an array of google.maps.LatLng');
+        throw new Error('object is not a Feature, Geometry, google.maps.Polygon nor an array of google.maps.LatLng');
     }
 
     polygonFeature.properties = {};

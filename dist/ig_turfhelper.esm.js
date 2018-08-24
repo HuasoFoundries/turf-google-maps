@@ -1,7 +1,7 @@
 
 /*
  * turf-google-maps
- * version v0.9.7
+ * version v0.9.8
  * MIT Licensed
  * Felipe Figueroa (amenadiel@gmail.com)
  * https://github.com/HuasoFoundries/turf-google-maps
@@ -2503,6 +2503,7 @@ function polylineToFeatureLinestring(objeto) {
     }
     return lineString$1(vertices);
 }
+var validTypes = ['Point', 'MultiPoint', 'LineString', 'MultiLineString', 'Polygon', 'MultiPolygon'];
 function polygonToFeaturePolygon(object) {
     var ring, polygonFeature;
     if (object.type === 'Feature') {
@@ -2514,14 +2515,14 @@ function polygonToFeaturePolygon(object) {
     } else if (!!(object && object.constructor === Array)) {
         ring = toCoords(object, true);
         polygonFeature = arrayToFeaturePolygon(ring);
-    } else if (object.geometry) {
+    } else if (object.coordinates && validTypes.indexOf(object.type) !== -1) {
         polygonFeature = {
             type: "Feature",
             properties: {},
-            geometry: object.geometry
+            geometry: object
         };
     } else {
-        throw new Error('object is not a Feature, google.maps.Polygon nor an array of google.maps.LatLng');
+        throw new Error('object is not a Feature, Geometry, google.maps.Polygon nor an array of google.maps.LatLng');
     }
     polygonFeature.properties = {};
     return polygonFeature;

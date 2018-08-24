@@ -6,12 +6,12 @@ import replace from 'rollup-plugin-replace';
 import cleanup from 'rollup-plugin-cleanup';
 import pkgConfig from "./package.json";
 
-var version = process.env.NEW_VERSION ? `v${process.env.NEW_VERSION}` : pkgConfig.version;
+var version = process.env.NEW_VERSION ? process.env.NEW_VERSION : pkgConfig.version;
 var banner =
 	`
 /*
  * turf-google-maps
- * version ${version}
+ * version v${version}
  * MIT Licensed
  * Felipe Figueroa (amenadiel@gmail.com)
  * https://github.com/HuasoFoundries/turf-google-maps
