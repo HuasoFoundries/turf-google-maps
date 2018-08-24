@@ -110,6 +110,6 @@ tag_and_push:
 		git push --tags
 
 
-tag:  build docs release	
+tag:  build_unminified test check_version build_unminified build_minified  docs tag_and_push	
 release: check_version  tag_and_push		
 	
