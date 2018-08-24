@@ -34,6 +34,7 @@
   },
   "homepage": "https://github.com/HuasoFoundries/turf-google-maps#readme",
   "main": "dist/ig_turfhelper.js",
+  "browser": "dist/ig_turfhelper.min.js",
   "module": "dist/ig_turfhelper.esm.js",
   "jsnext:main": "dist/ig_turfhelper.esm.js",
   "dependencies": {},
@@ -82,8 +83,8 @@
   },
   "jspm": {
     "name": "turf-google-maps",
-    "main": "dist/ig_turfhelper.esm.js",
-    "format": "esm",
+    "main": "dist/ig_turfhelper.min.js",
+    "format": "amd",
     "dependencies": {},
     "devDependencies": {
       "plugin-babel": "npm:systemjs-plugin-babel@^0.0.25"
