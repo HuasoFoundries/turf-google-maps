@@ -30,7 +30,8 @@
         "Clipboard": false,
         "turfHelper":false,
         "turfUtils":false,
-        "turfSubset":false
+        "turfSubset":false,
+        "testAssets":true
     },
 
     "parserOptions":

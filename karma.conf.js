@@ -19,6 +19,7 @@ module.exports = function (config) {
 
 		// list of files / patterns to load in the browser
 		files: [
+			'test/assets/*.assets.js',
 			'test/vendor/object-assign-polyfill.js',
 			'test/vendor/prototype-bind-polyfill.js',
 			'test/vendor/jsts-polyfills.js',
