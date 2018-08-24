@@ -1,7 +1,7 @@
 (function (QUnit) {
 
 
-    QUnit.module("turfHelper Polygon to Feature Polygon");
+    QUnit.module("turfHelper area");
 
 
     QUnit.test('turfHelper.area should be of type function', function (assert) {
