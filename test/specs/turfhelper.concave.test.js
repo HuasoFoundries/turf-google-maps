@@ -79,9 +79,9 @@
         if (window.gmaps.then) {
             window.gmaps.then(function (gmaps) {
                 runtest(gmaps);
-            })
+            });
         } else {
             runtest(window.gmaps);
         }
     });
-})(QUnit);
+}(QUnit));
