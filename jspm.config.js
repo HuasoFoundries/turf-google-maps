@@ -69,11 +69,6 @@ SystemJS.config({
                     "@turf/invariant": "npm:@turf/invariant@3.13.0"
                 }
             },
-            "npm:@mapbox/geojson-area@0.2.2": {
-                "map": {
-                    "wgs84": "npm:wgs84@0.0.0"
-                }
-            },
             "npm:rbush@2.0.1": {
                 "map": {
                     "quickselect": "npm:quickselect@1.0.0"
@@ -543,8 +538,21 @@ SystemJS.config({
         "github:*/*.json"
     ],
     map: {
+        "@turf/area": "npm:@turf/area@4.7.3",
         "fs": "npm:jspm-nodelibs-fs@0.2.1",
         "plugin-babel": "npm:systemjs-plugin-babel@0.0.25"
     },
-    packages: {}
+    packages: {
+        "npm:@mapbox/geojson-area@0.2.2": {
+            "map": {
+                "wgs84": "npm:wgs84@0.0.0"
+            }
+        },
+        "npm:@turf/area@4.7.3": {
+            "map": {
+                "@mapbox/geojson-area": "npm:@mapbox/geojson-area@0.2.2",
+                "@turf/meta": "npm:@turf/meta@4.7.4"
+            }
+        }
+    }
 });

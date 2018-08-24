@@ -15,7 +15,8 @@
 import {
     polylineToFeatureLinestring,
     polygonToFeaturePolygon,
-    arrayToFeaturePoints
+    arrayToFeaturePoints,
+    area
 } from './components/utils.js';
 
 import {
@@ -63,6 +64,7 @@ import {
  * @type {Object}
  */
 export {
+    area,
     along,
     arrayToFeaturePoints,
     createbuffer,
@@ -81,6 +83,7 @@ export {
 };
 
 export default {
+    area: area,
     along: along,
     arrayToFeaturePoints: arrayToFeaturePoints,
     createbuffer: createbuffer,
