@@ -65,4 +65,4 @@
         assert.deepEqual(result, unkinked_hourglass, 'turfHelper.unkink should return a FeatureCollection of Polygons without kinks');
     });
 
-})(QUnit);
+}(QUnit));

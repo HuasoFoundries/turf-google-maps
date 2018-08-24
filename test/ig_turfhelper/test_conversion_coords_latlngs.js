@@ -52,4 +52,4 @@
         assert.deepEqual(result, coordinates, 'turfHelper.toCoords should should convert an array of google.maps.LatLngLiteral to an array of coordinates');
     });
 
-})(QUnit);
+}(QUnit));

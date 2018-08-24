@@ -1,3 +1,12 @@
+
+/*
+ * turf-google-maps
+ * version 0.9.2
+ * MIT Licensed
+ * Felipe Figueroa (amenadiel@gmail.com)
+ * https://github.com/HuasoFoundries/turf-google-maps
+ */
+ 
 (function (global, factory) {
   typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
   typeof define === 'function' && define.amd ? define(['exports'], factory) :

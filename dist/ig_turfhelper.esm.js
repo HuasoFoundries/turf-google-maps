@@ -1,3 +1,12 @@
+
+/*
+ * turf-google-maps
+ * version 0.9.2
+ * MIT Licensed
+ * Felipe Figueroa (amenadiel@gmail.com)
+ * https://github.com/HuasoFoundries/turf-google-maps
+ */
+ 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) {
   return typeof obj;
 } : function (obj) {

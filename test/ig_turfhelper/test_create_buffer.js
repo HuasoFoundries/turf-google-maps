@@ -249,4 +249,4 @@
             runtest(window.gmaps);
         }
     });
-})(QUnit);
+}(QUnit));
