@@ -1,6 +1,6 @@
 {
   "name": "turf-google-maps",
-  "version": "0.8.1",
+  "version": "0.9.3",
   "description": "A bridge to use Turf along with google Maps API",
   "scripts": {
     "test": "karma start"
