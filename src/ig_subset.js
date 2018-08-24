@@ -9,28 +9,24 @@
  *
  * This in turn allows to perform Turf operations that google.maps doesn't natively support
  *
- * @name turfHelper
- * @module turfHelper
+ * @name igSubset
+ * @memberof turfHelper
+ * @module igSubset
  */
-import {
-    polylineToFeatureLinestring,
-    polygonToFeaturePolygon,
-    arrayToFeaturePoints,
-    area
-} from './components/utils.js';
+
 
 import {
-    concave
-} from './components/concave.js';
+    polygonToFeaturePolygon
+} from './components/utils.js';
 
 import {
     toLatLngs,
     toCoords
 } from './components/coords_to_latlng.js';
 
+
 import {
-    simplifyFeature,
-    simplifyPointArray
+    simplifyFeature
 } from './components/simplify_things.js';
 
 import {
@@ -54,49 +50,33 @@ import {
     unkink
 } from './components/unkink.js';
 
-import {
-
-    trimPaths
-} from './components/trimpaths.js';
 
 /**
- * @alias module:turfHelper
+ * @alias module:igSubset
  * @type {Object}
  */
 export {
-    area,
     along,
-    arrayToFeaturePoints,
     createbuffer,
-    pointInPolygon,
-    polygonToFeaturePolygon,
-    polylineToFeatureLinestring,
-    simplifyFeature,
-    simplifyPointArray,
-    toLatLngs,
-    toCoords,
-    trimPaths,
     kinks,
-    unkink,
+    polygonToFeaturePolygon,
+    simplifyFeature,
+    toCoords,
+    toLatLngs,
     union,
-    concave
+    unkink,
+    pointInPolygon
 };
 
 export default {
-    area,
     along,
-    arrayToFeaturePoints,
     createbuffer,
-    pointInPolygon,
-    polygonToFeaturePolygon,
-    polylineToFeatureLinestring,
-    simplifyFeature,
-    simplifyPointArray,
-    toLatLngs,
-    toCoords,
-    trimPaths,
-    union,
     kinks,
+    polygonToFeaturePolygon,
+    simplifyFeature,
+    toCoords,
+    toLatLngs,
+    union,
     unkink,
-    concave,
+    pointInPolygon
 };

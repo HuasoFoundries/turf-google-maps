@@ -8,17 +8,22 @@ import {
 	default as _min
 } from 'lodash-es/min.js';
 
+import turk_kinks from '@turf/kinks';
+
+import turf_line_slice from '@turf/line-slice';
+
+import turf_line_intersect from '@turf/line-intersect';
+
 import {
-	lineSlice as turf_line_slice,
-	lineIntersect as turf_line_intersect,
 	point as turf_point,
 	lineString as turf_linestring,
 	featureCollection as turf_featurecollection
-} from '../turf.js';
+} from '@turf/helpers';
 
 
 import {
-	debug
+	debug,
+	polylineToFeatureLinestring
 } from './utils.js';
 
 import {
@@ -34,6 +39,7 @@ from 'lodash-es/isEqual.js';
 
 /**
  * Takes two coordinates and returns the distance between them, in degrees
+ * (it is an ugly approach but still valid when applied to really close coordinates)
  * @param  {Array<number>} coord1 An array indicating a coordinate [lng, lat]
  * @param  {Array<number>} coord2 An array indicating a coordinate [lng, lat]
  * @return {number}        the distance between the points, in degrees 
@@ -44,93 +50,37 @@ function diffCoords(coord1, coord2) {
 }
 
 /**
- * Determina si dos lineas se intersectan
+ * Finds out if two segments intersect each other
  * @param  {Array.<number>} line1Start [description]
  * @param  {Array.<number>} line1End   [description]
  * @param  {Array.<number>} line2Start [description]
  * @param  {Array.<number>} line2End   [description]
- * @param {boolean} useOldMethod if true, use old method instead of turf_line_intersect 
  * @return {Array}             [description]
  */
-function lineIntersects(line1Start, line1End, line2Start, line2End, useOldMethod) {
+function findLineIntersection(line1Start, line1End, line2Start, line2End) {
 
-	if (!useOldMethod) {
-		var line1 = turf_linestring([line1Start, line1End]),
-			line2 = turf_linestring([line2Start, line2End]),
-			intersectionFC = turf_line_intersect(line1, line2);
+	var line1 = turf_linestring([line1Start, line1End]),
+		line2 = turf_linestring([line2Start, line2End]),
+		intersectionFC = turf_line_intersect(line1, line2);
 
-		if (intersectionFC.features.length) {
-			var intersection = intersectionFC.features[0].geometry.coordinates;
-			intersection[0] = Math.round(intersection[0] * 100000000) / 100000000;
-			intersection[1] = Math.round(intersection[1] * 100000000) / 100000000;
-			return intersection;
-		} else {
-			return false;
-		}
-	}
-	var line1StartX = line1Start[0],
-		line1StartY = line1Start[1],
-		line1EndX = line1End[0],
-		line1EndY = line1End[1],
-		line2StartX = line2Start[0],
-		line2StartY = line2Start[1],
-		line2EndX = line2End[0],
-		line2EndY = line2End[1];
-	// if the lines intersect, the result contains the x and y of the intersection
-	// (treating the lines as infinite) and booleans for whether line segment 1 or line segment 2 contain the point
-	var denominator, a, b, numerator1, numerator2,
-		result = {
-			x: null,
-			y: null,
-			onLine1: false,
-			onLine2: false
-		};
-	denominator = ((line2EndY - line2StartY) * (line1EndX - line1StartX)) - ((line2EndX - line2StartX) * (line1EndY - line1StartY));
-	if (denominator === 0) {
-		if (result.x !== null && result.y !== null) {
-			return result;
-		} else {
-			return false;
-		}
-	}
-	a = line1StartY - line2StartY;
-	b = line1StartX - line2StartX;
-	numerator1 = ((line2EndX - line2StartX) * a) - ((line2EndY - line2StartY) * b);
-	numerator2 = ((line1EndX - line1StartX) * a) - ((line1EndY - line1StartY) * b);
-	a = numerator1 / denominator;
-	b = numerator2 / denominator;
-
-	// if we cast these lines infinitely in both directions, they intersect here:
-	result.x = line1StartX + (a * (line1EndX - line1StartX));
-	result.y = line1StartY + (a * (line1EndY - line1StartY));
-
-	// if line1 is a segment and line2 is infinite, they intersect if:
-	if (a >= 0 && a <= 1) {
-		result.onLine1 = true;
-	}
-	// if line2 is a segment and line1 is infinite, they intersect if:
-	if (b >= 0 && b <= 1) {
-		result.onLine2 = true;
-	}
-	// if line1 and line2 are segments, they intersect if both of the above are true
-	if (result.onLine1 && result.onLine2) {
-		result.x = Math.round(result.x * 100000000) / 100000000;
-		result.y = Math.round(result.y * 100000000) / 100000000;
-
-		return [result.x, result.y];
+	if (intersectionFC.features.length) {
+		var intersection = intersectionFC.features[0].geometry.coordinates;
+		intersection[0] = Math.round(intersection[0] * 100000000) / 100000000;
+		intersection[1] = Math.round(intersection[1] * 100000000) / 100000000;
+		return intersection;
 	} else {
 		return false;
 	}
 }
 
 /**
- * Takes two rings and finds their instersection points. If the rings are the same, the second ring is iterated skipping points already checked in the first one
+ * Takes two rings and finds their instersection points. 
+ * If the rings are the same, the second ring is iterated skipping points already checked in the first one
  * @param  {Array.Array<number>} ring1 Array of coordinates [lng, lat]
  * @param  {Array.Array<number>} ring1 Array of coordinates [lng, lat]
- * @param {boolean} useOldMethod if true, use old method instead of turf_line_intersect 
  * @return {Object}       an object containing
  */
-function traverseRings(ring1, ring2, useOldMethod) {
+function traverseRings(ring1, ring2) {
 	var intersections = turf_featurecollection([]);
 
 	var samering = false,
@@ -147,27 +97,22 @@ function traverseRings(ring1, ring2, useOldMethod) {
 			}
 
 
-			var intersection = lineIntersects(
+			var intersection = findLineIntersection(
 				ring1[i],
 				ring1[i + 1],
 				ring2[k],
-				ring2[k + 1],
-				useOldMethod
+				ring2[k + 1]
 			);
 			if (!intersection) {
 				continue;
 			}
 
-			// si son lineas consecutivas no quiero detectar el límite entre ambas
+			// if they are consecutive segments, I don't want to detect the point where they meet each other
 			if ((diffCoords(intersection, ring1[0]) < 0.000005 || diffCoords(intersection, ring1[ring1.length - 1]) < 0.000005) &&
 				(diffCoords(intersection, ring2[0]) < 0.000005 || diffCoords(intersection, ring2[ring2.length - 1]) < 0.000005)) {
 				continue;
 			}
 
-			//debug('intersection at',
-			// intersection,
-			//diffCoords(intersection, ring2[0]),
-			//diffCoords(intersection, ring1[ring1.length - 1]));
 			var FeatureIntersection = turf_point([intersection[0], intersection[1]]);
 			FeatureIntersection.properties = {
 				position1: i,
@@ -182,30 +127,18 @@ function traverseRings(ring1, ring2, useOldMethod) {
 
 
 /**
- * [polylineToFeatureLinestring description]
- * @param  {Array.<google.maps.LatLng>} polyline [description]
- * @return {Feature.Polyline}          [description]
- */
-function polylineToFeatureLinestring(polyline) {
-	var vertices = toCoords(polyline.getPath().getArray());
-	return turf_linestring(vertices);
-}
-
-
-/**
  * Finds the {@link Point|points} where two {@link LineString|linestrings} intersect each other
  * @param  {Array.<google.maps.LatLng>} arrayLatLng1 array de posiciones {@link google.maps.LatLng}
  * @param  {Array.<google.maps.LatLng>} arrayLatLng2 array de posiciones {@link google.maps.LatLng}
- * @param {boolean} useOldMethod if true,use old method instead of turf_line_intersect 
  * @return {Array}        an array with [line1 trimmed at intersection,line2 trimmed at intersection,intersection ] 
  */
-function trimPaths(arrayLatLng1, arrayLatLng2, useOldMethod) {
+function trimPaths(arrayLatLng1, arrayLatLng2) {
 
 	var ring1 = toCoords(arrayLatLng1); // googleGeom1.geometry.coordinates;
 	var ring2 = toCoords(arrayLatLng2); // googleGeom2.geometry.coordinates;
 
 
-	var intersections = traverseRings(ring1, ring2, useOldMethod);
+	var intersections = traverseRings(ring1, ring2);
 
 	if (intersections.features.length > 0) {
 
