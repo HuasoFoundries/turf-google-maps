@@ -11,6 +11,7 @@ version:
 
 install: 
 	npm install
+	npm i -D jspm@beta
 	jspm install
 
 test:
