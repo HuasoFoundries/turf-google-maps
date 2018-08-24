@@ -27,7 +27,7 @@ from 'lodash-es/reduce.js';
 import turf_area from '@turf/area';
 
 import {
-    area as turf_area,
+    area as turf__area,
     lineString as turf_linestring
 } from '../turf.js';
 
@@ -160,7 +160,7 @@ function polygonToFeaturePolygon(object) {
  */
 function area(object) {
     var polygonFeature = polygonToFeaturePolygon(object);
-    return turf_area(polygonFeature);
+    return turf__area(polygonFeature);
 }
 
 /**
