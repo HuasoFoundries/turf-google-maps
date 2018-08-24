@@ -6,11 +6,11 @@ Calculates a buffer for input features for a given radius. Units supported are m
 
 **Parameters**
 
--   `object` **([google.maps.Polygon](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/Polygon.md) \| [google.maps.Polyline](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/Polyline.md) \| [google.maps.Marker](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/Marker.md) \| [google.maps.LatLng](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/LatLng.md) \| [Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[google.maps.LatLng](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/LatLng.md)> | [Feature](http://geojson.org/geojson-spec.html#feature-objects)&lt;([Polygon](http://geojson.org/geojson-spec.html#polygon) | Linestring | [Point](http://geojson.org/geojson-spec.html#point))>)** input object
+-   `object` **([google.maps.Polygon](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/Polygon.md) \| [google.maps.Polyline](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/Polyline.md) \| [google.maps.Marker](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/Marker.md) \| [google.maps.LatLng](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/LatLng.md) \| [Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[google.maps.LatLng](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/LatLng.md)> | [Feature](http://geojson.org/geojson-spec.html#feature-objects)&lt;([Polygon](http://geojson.org/geojson-spec.html#polygon) | Linestring | [Point](http://geojson.org/geojson-spec.html#point))>)** input object to be buffered
 -   `output` **[String](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String)** either 'geometry','object' (google.maps) or 'feature', case insensitive, defaults to 'feature'
--   `radius`  
--   `options`  
--   `distance` **[Number](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number)** [description]
--   `units` **[String](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String)** 'meters' or 'miles' etc
+-   `radius` **[Number](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number)** distance to draw the buffer (negative values are allowed)
+-   `options` **[Object](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object)** options to pass to the buffer creation function
+    -   `options.units` **[String](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String)** units in which the radius is expressed: 'kilometers', 'meters', 'miles'
+    -   `options.steps` **[number](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number)** steps of the buffer. Higher steps result in smoother curves but more vertices
 
 Returns **([Feature](http://geojson.org/geojson-spec.html#feature-objects) \| [Feature](http://geojson.org/geojson-spec.html#feature-objects)&lt;[Geometry](http://geojson.org/geojson-spec.html#geometry)>)** A GeoJson Feature or its geometry, according to output parameter

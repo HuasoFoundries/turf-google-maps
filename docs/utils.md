@@ -2,7 +2,7 @@
 
 ## arrayToFeaturePolygon
 
-Transforma un array de gmaps.LatLng en un Feature.Polygon
+Transforms an array of [google.maps.LatLng](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/LatLng.md) into a [Feature.&lt;Polygon>](Feature.<Polygon>)
 
 **Parameters**
 
@@ -32,7 +32,7 @@ Returns **[Feature](http://geojson.org/geojson-spec.html#feature-objects)&lt;[Po
 
 ## polylineToFeatureLinestring
 
-[polylineToFeatureLinestring description]
+Converts a [google.maps.Polyline](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/Polyline.md) into a  [Feature.&lt;LineString>](Feature.<LineString>)
 
 **Parameters**
 
@@ -42,7 +42,7 @@ Returns **[Feature](http://geojson.org/geojson-spec.html#feature-objects)&lt;[Li
 
 ## polygonToFeaturePolygon
 
-Receives an object and returns a GeoJson Feature of type Polygon
+Receives an object and returns a [Feature.&lt;Polygon>](Feature.<Polygon>)
 
 **Parameters**
 
@@ -50,19 +50,9 @@ Receives an object and returns a GeoJson Feature of type Polygon
 
 Returns **Feature.Polygon** [description]
 
-## area
-
-Receives an object and returns a GeoJson Feature of type Polygon
-
-**Parameters**
-
--   `object` **([google.maps.Polygon](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/Polygon.md) | Feature.Polygon | [Geometry](http://geojson.org/geojson-spec.html#geometry))** object whose area will be calculated
-
-Returns **[Number](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number)** object's area
-
 ## arrayToFeaturePoints
 
-Transforma un array de gmaps.LatLng en un featurecollection geoJson
+Converts an array of google.maps.LatLng into a FeatureCollection
 donde cada Feature es un punto del array de entrada
 
 **Parameters**
@@ -73,10 +63,20 @@ Returns **[FeatureCollection](http://geojson.org/geojson-spec.html#feature-colle
 
 ## polygonToFeaturePolygonCollection
 
-Convierte un gmaps.Polygon en un FeatureCollection de puntos
+Converts a google.maps.Polygon into a FeatureCollection of points
 
 **Parameters**
 
 -   `polygon` **[google.maps.Polygon](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/Polygon.md)** [description]
 
 Returns **[FeatureCollection](http://geojson.org/geojson-spec.html#feature-collection-objects)&lt;[Point](http://geojson.org/geojson-spec.html#point)>** [description]
+
+## area
+
+Receives an object and returns a GeoJson Feature of type Polygon
+
+**Parameters**
+
+-   `object` **([google.maps.Polygon](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/Polygon.md) | Feature.Polygon | [Geometry](http://geojson.org/geojson-spec.html#geometry))** object whose area will be calculated
+
+Returns **[Number](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number)** object's area
