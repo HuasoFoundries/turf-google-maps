@@ -2,13 +2,35 @@
 
 ## along
 
-Takes a linestring and returns a [point](http://geojson.org/geojson-spec.html#point) at a specified distance along the line.
+Takes a linestring and returns a [point][1] at a specified distance along the line.
 
-**Parameters**
+### Parameters
 
--   `object` **([google.maps.Polyline](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/Polyline.md) \| [Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[google.maps.LatLng](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/LatLng.md)> | [Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[google.maps.LatLngLiteral](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/LatLngLiteral.md)> | [Feature](http://geojson.org/geojson-spec.html#feature-objects)&lt;[LineString](http://geojson.org/geojson-spec.html#linestring)>)** input object
--   `distance` **[Number](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number)** distance along the line
--   `options` **[Object](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object)** optional parameters
-    -   `options.units` **[string](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String)** can be degrees, radians, miles, or kilometers. Defaults to kilometers
+-   `object` **([google.maps.Polyline][2] \| [Array][3]&lt;[google.maps.LatLng][4]> | [Array][3]&lt;[google.maps.LatLngLiteral][5]> | [Feature][6]&lt;[LineString][7]>)** input object
+-   `distance` **[Number][8]** distance along the line
+-   `options` **[Object][9]** optional parameters
+    -   `options.units` **[string][10]** can be degrees, radians, miles, or kilometers. Defaults to kilometers
 
-Returns **[Feature](http://geojson.org/geojson-spec.html#feature-objects)&lt;[Point](http://geojson.org/geojson-spec.html#point)>** Point distance units along the line
+Returns **[Feature][6]&lt;[Point][11]>** Point distance units along the line
+
+[1]: http://geojson.org/geojson-spec.html#point
+
+[2]: https://github.com/amenadiel/google-maps-documentation/blob/master/docs/Polyline.md
+
+[3]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array
+
+[4]: https://github.com/amenadiel/google-maps-documentation/blob/master/docs/LatLng.md
+
+[5]: https://github.com/amenadiel/google-maps-documentation/blob/master/docs/LatLngLiteral.md
+
+[6]: http://geojson.org/geojson-spec.html#feature-objects
+
+[7]: http://geojson.org/geojson-spec.html#linestring
+
+[8]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number
+
+[9]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object
+
+[10]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String
+
+[11]: http://geojson.org/geojson-spec.html#point

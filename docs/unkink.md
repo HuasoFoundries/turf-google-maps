@@ -4,8 +4,20 @@
 
 Takes a kinked polygon and returns a feature collection of polygons that have no kinks.
 
-**Parameters**
+### Parameters
 
--   `object` **([google.maps.Polygon](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/Polygon.md) \| [Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[google.maps.LatLng](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/LatLng.md)> | [Feature](http://geojson.org/geojson-spec.html#feature-objects)&lt;[Polygon](http://geojson.org/geojson-spec.html#polygon)>)** array of points, a google.maps.Polygon or Feature<Polygon>
+-   `object` **([google.maps.Polygon][1] \| [Array][2]&lt;[google.maps.LatLng][3]> | [Feature][4]&lt;[Polygon][5]>)** array of points, a google.maps.Polygon or Feature<Polygon>
 
-Returns **[FeatureCollection](http://geojson.org/geojson-spec.html#feature-collection-objects)&lt;[Polygon](http://geojson.org/geojson-spec.html#polygon)>** Unkinked polygons
+Returns **[FeatureCollection][6]&lt;[Polygon][5]>** Unkinked polygons
+
+[1]: https://github.com/amenadiel/google-maps-documentation/blob/master/docs/Polygon.md
+
+[2]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array
+
+[3]: https://github.com/amenadiel/google-maps-documentation/blob/master/docs/LatLng.md
+
+[4]: http://geojson.org/geojson-spec.html#feature-objects
+
+[5]: http://geojson.org/geojson-spec.html#polygon
+
+[6]: http://geojson.org/geojson-spec.html#feature-collection-objects

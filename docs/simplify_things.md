@@ -4,27 +4,53 @@
 
 Simplifies an array of coordinates
 
-**Parameters**
+### Parameters
 
--   `coordArray` **([Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[google.maps.LatLng](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/LatLng.md)> | [Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[google.maps.LatLngLiteral](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/LatLngLiteral.md)>)** Array of coordinates
--   `options` **[object](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object)** options to pass to the simplification function
+-   `coordArray` **([Array][1]&lt;[google.maps.LatLng][2]> | [Array][1]&lt;[google.maps.LatLngLiteral][3]>)** Array of coordinates
+-   `options` **[object][4]** options to pass to the simplification function
     -   `options.tolerance` **mumber** simplification tolerance
-    -   `options.highQuality` **[boolean](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Boolean)** higher quality simplification (but slower)
-    -   `options.mutate` **[boolean](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Boolean)** allows GeoJSON input to be mutated (much faster)
+    -   `options.highQuality` **[boolean][5]** higher quality simplification (but slower)
+    -   `options.mutate` **[boolean][5]** allows GeoJSON input to be mutated (much faster)
 
-Returns **Array.Array&lt;[Number](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number)>** Array of coordinates [lng,lat]
+Returns **Array.Array&lt;[Number][6]>** Array of coordinates [lng,lat]
 
 ## simplifyFeature
 
 Simplified a Feature, google.maps.Polygon or google.maps.Polyline
 
-**Parameters**
+### Parameters
 
--   `object` **([google.maps.Polygon](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/Polygon.md) \| [google.maps.Polyline](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/Polyline.md) \| [Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[google.maps.LatLng](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/LatLng.md)> | [Feature](http://geojson.org/geojson-spec.html#feature-objects)&lt;[Polygon](http://geojson.org/geojson-spec.html#polygon)> | [Feature](http://geojson.org/geojson-spec.html#feature-objects)&lt;[LineString](http://geojson.org/geojson-spec.html#linestring)>)** feature to be simplified
--   `output` **[string](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String)** either 'feature', 'geometry' or 'object' (google maps). Case insensitive. Defaults to feature
--   `options` **[object](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object)** options to pass to the simplification function
+-   `object` **([google.maps.Polygon][7] \| [google.maps.Polyline][8] \| [Array][1]&lt;[google.maps.LatLng][2]> | [Feature][9]&lt;[Polygon][10]> | [Feature][9]&lt;[LineString][11]>)** feature to be simplified
+-   `output` **[string][12]** either 'feature', 'geometry' or 'object' (google maps). Case insensitive. Defaults to feature
+-   `options` **[object][4]** options to pass to the simplification function
     -   `options.tolerance` **mumber** simplification tolerance
-    -   `options.highQuality` **[boolean](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Boolean)** higher quality simplification (but slower)
-    -   `options.mutate` **[boolean](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Boolean)** allows GeoJSON input to be mutated (much faster)
+    -   `options.highQuality` **[boolean][5]** higher quality simplification (but slower)
+    -   `options.mutate` **[boolean][5]** allows GeoJSON input to be mutated (much faster)
 
-Returns **([Feature](http://geojson.org/geojson-spec.html#feature-objects) \| [Geometry](http://geojson.org/geojson-spec.html#geometry) \| [google.maps.Polygon](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/Polygon.md) \| [google.maps.Polyline](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/Polyline.md))** simplified Feature or Geometry
+Returns **([Feature][9] \| [Geometry][13] \| [google.maps.Polygon][7] \| [google.maps.Polyline][8])** simplified Feature or Geometry
+
+[1]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array
+
+[2]: https://github.com/amenadiel/google-maps-documentation/blob/master/docs/LatLng.md
+
+[3]: https://github.com/amenadiel/google-maps-documentation/blob/master/docs/LatLngLiteral.md
+
+[4]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object
+
+[5]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean
+
+[6]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number
+
+[7]: https://github.com/amenadiel/google-maps-documentation/blob/master/docs/Polygon.md
+
+[8]: https://github.com/amenadiel/google-maps-documentation/blob/master/docs/Polyline.md
+
+[9]: http://geojson.org/geojson-spec.html#feature-objects
+
+[10]: http://geojson.org/geojson-spec.html#polygon
+
+[11]: http://geojson.org/geojson-spec.html#linestring
+
+[12]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String
+
+[13]: http://geojson.org/geojson-spec.html#geometry

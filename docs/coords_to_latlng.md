@@ -4,20 +4,34 @@
 
 Transforma un array de LatLng en un array de coordenadas [lng,lat]
 
-**Parameters**
+### Parameters
 
 -   `coordinates`  
--   `arrayLatLng` **[Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[Position](http://geojson.org/geojson-spec.html#positions)>** [description]
+-   `arrayLatLng` **[Array][1]&lt;[Position][2]>** [description]
 
-Returns **[Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[google.maps.LatLngLiteral](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/LatLngLiteral.md)>** array of [google.maps.LatLngLiteral](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/LatLngLiteral.md)
+Returns **[Array][1]&lt;[google.maps.LatLngLiteral][3]>** array of [google.maps.LatLngLiteral][4]
 
 ## toCoords
 
 Transforms an array of coordinates to an array of [Lng, Lat]
 
-**Parameters**
+### Parameters
 
--   `arrayLatLng` **([Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[google.maps.LatLng](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/LatLng.md)> | [Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[google.maps.LatLngLiteral](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/LatLngLiteral.md)>)** Array of [google.maps.LatLng](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/LatLng.md) or [google.maps.LatLngLiteral](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/LatLngLiteral.md)
+-   `arrayLatLng` **([Array][1]&lt;[google.maps.LatLng][5]> | [Array][1]&lt;[google.maps.LatLngLiteral][3]>)** Array of [google.maps.LatLng][6] or [google.maps.LatLngLiteral][4]
 -   `closeRing` **bool** optionally, ensure the passed coordinate array forms a closed ring (optional, default `false`)
 
-Returns **[Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[Position](http://geojson.org/geojson-spec.html#positions)>** an array of [Position](http://geojson.org/geojson-spec.html#positions)
+Returns **[Array][1]&lt;[Position][2]>** an array of [Position][7]
+
+[1]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array
+
+[2]: http://geojson.org/geojson-spec.html#positions
+
+[3]: https://github.com/amenadiel/google-maps-documentation/blob/master/docs/LatLngLiteral.md
+
+[4]: https://github.com/amenadiel/google-maps-documentation/blob/master/docs/LatLngLiteral.md
+
+[5]: https://github.com/amenadiel/google-maps-documentation/blob/master/docs/LatLng.md
+
+[6]: https://github.com/amenadiel/google-maps-documentation/blob/master/docs/LatLng.md
+
+[7]: http://geojson.org/geojson-spec.html#positions

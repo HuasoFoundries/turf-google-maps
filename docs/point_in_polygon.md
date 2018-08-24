@@ -2,11 +2,21 @@
 
 ## pointInPolygon
 
-Filters an array of points returning those who falls inside a given [Polygon](http://geojson.org/geojson-spec.html#polygon)
+Filters an array of points returning those who falls inside a given [Polygon][1]
 
-**Parameters**
+### Parameters
 
--   `sourceArray` **[Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[google.maps.Marker](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/Marker.md)>** array of [google.maps.Marker](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/Marker.md)
--   `geojsonPolygon` **([Polygon](http://geojson.org/geojson-spec.html#polygon) | Multipolygon)** the polygon thay may contain the points
+-   `sourceArray` **[Array][2]&lt;[google.maps.Marker][3]>** array of [google.maps.Marker][4]
+-   `geojsonPolygon` **([Polygon][5] | Multipolygon)** the polygon thay may contain the points
 
-Returns **{pointsInside: [Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[google.maps.Marker](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/Marker.md)>, pointsOutside: [Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[google.maps.Marker](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/Marker.md)>}** an object with the points that fall inside and outside the polygon
+Returns **{pointsInside: [Array][2]&lt;[google.maps.Marker][3]>, pointsOutside: [Array][2]&lt;[google.maps.Marker][3]>}** an object with the points that fall inside and outside the polygon
+
+[1]: http://geojson.org/geojson-spec.html#polygon
+
+[2]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array
+
+[3]: https://github.com/amenadiel/google-maps-documentation/blob/master/docs/Marker.md
+
+[4]: https://github.com/amenadiel/google-maps-documentation/blob/master/docs/Marker.md
+
+[5]: http://geojson.org/geojson-spec.html#polygon

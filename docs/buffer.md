@@ -4,13 +4,37 @@
 
 Calculates a buffer for input features for a given radius. Units supported are miles, kilometers, and degrees.
 
-**Parameters**
+### Parameters
 
--   `object` **([google.maps.Polygon](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/Polygon.md) \| [google.maps.Polyline](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/Polyline.md) \| [google.maps.Marker](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/Marker.md) \| [google.maps.LatLng](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/LatLng.md) \| [Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[google.maps.LatLng](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/LatLng.md)> | [Feature](http://geojson.org/geojson-spec.html#feature-objects)&lt;([Polygon](http://geojson.org/geojson-spec.html#polygon) | Linestring | [Point](http://geojson.org/geojson-spec.html#point))>)** input object to be buffered
--   `output` **[String](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String)** either 'geometry','object' (google.maps) or 'feature', case insensitive, defaults to 'feature'
--   `radius` **[Number](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number)** distance to draw the buffer (negative values are allowed)
--   `options` **[Object](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object)** options to pass to the buffer creation function
-    -   `options.units` **[String](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String)** units in which the radius is expressed: 'kilometers', 'meters', 'miles'
-    -   `options.steps` **[number](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number)** steps of the buffer. Higher steps result in smoother curves but more vertices
+-   `object` **([google.maps.Polygon][1] \| [google.maps.Polyline][2] \| [google.maps.Marker][3] \| [google.maps.LatLng][4] \| [Array][5]&lt;[google.maps.LatLng][4]> | [Feature][6]&lt;([Polygon][7] | Linestring | [Point][8])>)** input object to be buffered
+-   `output` **[String][9]** either 'geometry','object' (google.maps) or 'feature', case insensitive, defaults to 'feature'
+-   `radius` **[Number][10]** distance to draw the buffer (negative values are allowed)
+-   `options` **[Object][11]** options to pass to the buffer creation function
+    -   `options.units` **[String][9]** units in which the radius is expressed: 'kilometers', 'meters', 'miles'
+    -   `options.steps` **[number][10]** steps of the buffer. Higher steps result in smoother curves but more vertices
 
-Returns **([Feature](http://geojson.org/geojson-spec.html#feature-objects) \| [Feature](http://geojson.org/geojson-spec.html#feature-objects)&lt;[Geometry](http://geojson.org/geojson-spec.html#geometry)>)** A GeoJson Feature or its geometry, according to output parameter
+Returns **([Feature][6] \| [Feature][6]&lt;[Geometry][12]>)** A GeoJson Feature or its geometry, according to output parameter
+
+[1]: https://github.com/amenadiel/google-maps-documentation/blob/master/docs/Polygon.md
+
+[2]: https://github.com/amenadiel/google-maps-documentation/blob/master/docs/Polyline.md
+
+[3]: https://github.com/amenadiel/google-maps-documentation/blob/master/docs/Marker.md
+
+[4]: https://github.com/amenadiel/google-maps-documentation/blob/master/docs/LatLng.md
+
+[5]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array
+
+[6]: http://geojson.org/geojson-spec.html#feature-objects
+
+[7]: http://geojson.org/geojson-spec.html#polygon
+
+[8]: http://geojson.org/geojson-spec.html#point
+
+[9]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String
+
+[10]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number
+
+[11]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object
+
+[12]: http://geojson.org/geojson-spec.html#geometry

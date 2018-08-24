@@ -2,10 +2,28 @@
 
 ## kinks
 
-Takes an array of points, google.maps.Polygon or Feature<Polygon> and returns [points](http://geojson.org/geojson-spec.html#point) at all self-intersections.
+Takes an array of points, google.maps.Polygon or Feature<Polygon> and returns [points][1] at all self-intersections.
 
-**Parameters**
+### Parameters
 
--   `object` **([google.maps.Polyline](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/Polyline.md) \| [google.maps.Polygon](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/Polygon.md) \| [Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[google.maps.LatLng](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/LatLng.md)> | [Feature](http://geojson.org/geojson-spec.html#feature-objects)&lt;[Polygon](http://geojson.org/geojson-spec.html#polygon)>)** array of points, google.maps.Polygon or Feature<Polygon>
+-   `object` **([google.maps.Polyline][2] \| [google.maps.Polygon][3] \| [Array][4]&lt;[google.maps.LatLng][5]> | [Feature][6]&lt;[Polygon][7]>)** array of points, google.maps.Polygon or Feature<Polygon>
 
-Returns **[FeatureCollection](http://geojson.org/geojson-spec.html#feature-collection-objects)&lt;[Point](http://geojson.org/geojson-spec.html#point)>** self-intersections
+Returns **[FeatureCollection][8]&lt;[Point][9]>** self-intersections
+
+[1]: http://geojson.org/geojson-spec.html#point
+
+[2]: https://github.com/amenadiel/google-maps-documentation/blob/master/docs/Polyline.md
+
+[3]: https://github.com/amenadiel/google-maps-documentation/blob/master/docs/Polygon.md
+
+[4]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array
+
+[5]: https://github.com/amenadiel/google-maps-documentation/blob/master/docs/LatLng.md
+
+[6]: http://geojson.org/geojson-spec.html#feature-objects
+
+[7]: http://geojson.org/geojson-spec.html#polygon
+
+[8]: http://geojson.org/geojson-spec.html#feature-collection-objects
+
+[9]: http://geojson.org/geojson-spec.html#point

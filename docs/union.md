@@ -4,9 +4,21 @@
 
 Takes two or more polygons and returns a combined polygon or multipolygon
 
-**Parameters**
+### Parameters
 
--   `poly1` **([google.maps.Polygon](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/Polygon.md) \| [Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[google.maps.LatLng](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/LatLng.md)> | Feature.Polygon)** object to transform into a Feature.Polygon
--   `poly2` **([google.maps.Polygon](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/Polygon.md) \| [Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[google.maps.LatLng](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/LatLng.md)> | Feature.Polygon)** object to transform into a Feature.Polygon
+-   `poly1` **([google.maps.Polygon][1] \| [Array][2]&lt;[google.maps.LatLng][3]> | Feature.Polygon)** object to transform into a Feature.Polygon
+-   `poly2` **([google.maps.Polygon][1] \| [Array][2]&lt;[google.maps.LatLng][3]> | Feature.Polygon)** object to transform into a Feature.Polygon
 
-Returns **([Feature](http://geojson.org/geojson-spec.html#feature-objects)&lt;[Polygon](http://geojson.org/geojson-spec.html#polygon)> | [Feature](http://geojson.org/geojson-spec.html#feature-objects)&lt;[MultiPolygon](http://geojson.org/geojson-spec.html#multipolygon)>)** result of the union. If inputs are disjoint, returns a Feature.Multipolygon
+Returns **([Feature][4]&lt;[Polygon][5]> | [Feature][4]&lt;[MultiPolygon][6]>)** result of the union. If inputs are disjoint, returns a Feature.Multipolygon
+
+[1]: https://github.com/amenadiel/google-maps-documentation/blob/master/docs/Polygon.md
+
+[2]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array
+
+[3]: https://github.com/amenadiel/google-maps-documentation/blob/master/docs/LatLng.md
+
+[4]: http://geojson.org/geojson-spec.html#feature-objects
+
+[5]: http://geojson.org/geojson-spec.html#polygon
+
+[6]: http://geojson.org/geojson-spec.html#multipolygon

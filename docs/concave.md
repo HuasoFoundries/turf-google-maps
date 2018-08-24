@@ -4,11 +4,27 @@
 
 Takes a set of points and returns a concave hull polygon. Internally, this uses turf-tin to generate geometries.
 
-**Parameters**
+### Parameters
 
--   `latLngArray` **([Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[google.maps.LatLng](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/LatLng.md)> | [Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[google.maps.LatLngLiteral](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/LatLngLiteral.md)> | google.maps.MVCArray)** array of google positions
--   `options` **[Object](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object)** options to pass to the concave function
-    -   `options.maxEdge` **[number](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number)** the size of an edge necessary for part of the hull to become concave (in chosen units)
-    -   `options.units` **[string](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String)** degrees, radians, miles, or kilometers. Defaults to kilometers
+-   `latLngArray` **([Array][1]&lt;[google.maps.LatLng][2]> | [Array][1]&lt;[google.maps.LatLngLiteral][3]> | google.maps.MVCArray)** array of google positions
+-   `options` **[Object][4]** options to pass to the concave function
+    -   `options.maxEdge` **[number][5]** the size of an edge necessary for part of the hull to become concave (in chosen units)
+    -   `options.units` **[string][6]** degrees, radians, miles, or kilometers. Defaults to kilometers
 
-Returns **[Feature](http://geojson.org/geojson-spec.html#feature-objects)&lt;[Polygon](http://geojson.org/geojson-spec.html#polygon)>** a concave hull
+Returns **[Feature][7]&lt;[Polygon][8]>** a concave hull
+
+[1]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array
+
+[2]: https://github.com/amenadiel/google-maps-documentation/blob/master/docs/LatLng.md
+
+[3]: https://github.com/amenadiel/google-maps-documentation/blob/master/docs/LatLngLiteral.md
+
+[4]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object
+
+[5]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number
+
+[6]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String
+
+[7]: http://geojson.org/geojson-spec.html#feature-objects
+
+[8]: http://geojson.org/geojson-spec.html#polygon

@@ -2,51 +2,51 @@
 
 ## arrayToFeaturePolygon
 
-Transforms an array of [google.maps.LatLng](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/LatLng.md) into a [Feature.&lt;Polygon>](Feature.<Polygon>)
+Transforms an array of [google.maps.LatLng][1] into a [Feature.&lt;Polygon>][2]
 
-**Parameters**
+### Parameters
 
--   `LatLngArray` **[Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[google.maps.LatLng](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/LatLng.md)>** [description]
+-   `LatLngArray` **[Array][3]&lt;[google.maps.LatLng][4]>** [description]
 
-Returns **[Feature](http://geojson.org/geojson-spec.html#feature-objects)&lt;[Polygon](http://geojson.org/geojson-spec.html#polygon)>** [description]
+Returns **[Feature][5]&lt;[Polygon][6]>** [description]
 
 ## latlngToFeaturePoint
 
-Transforms a [google.maps.LatLng](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/LatLng.md) or [google.maps.LatLngLiteral](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/LatLngLiteral.md) into a [Feature.&lt;Point>](Feature.<Point>)
+Transforms a [google.maps.LatLng][1] or [google.maps.LatLngLiteral][7] into a [Feature.&lt;Point>][8]
 
-**Parameters**
+### Parameters
 
--   `LatLng` **([google.maps.LatLng](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/LatLng.md) \| [google.maps.LatLngLiteral](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/LatLngLiteral.md) \| [Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[Number](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number)>)** a coordinate to transform
+-   `LatLng` **([google.maps.LatLng][4] \| [google.maps.LatLngLiteral][9] \| [Array][3]&lt;[Number][10]>)** a coordinate to transform
 
-Returns **[Feature](http://geojson.org/geojson-spec.html#feature-objects)&lt;[Point](http://geojson.org/geojson-spec.html#point)>** a Point type Feature
+Returns **[Feature][5]&lt;[Point][11]>** a Point type Feature
 
 ## markerToFeaturePoint
 
-Transforms a [google.maps.Marker](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/Marker.md) to a [Feature&lt;Point>](Feature<Point>)
+Transforms a [google.maps.Marker][12] to a [Feature&lt;Point>][13]
 
-**Parameters**
+### Parameters
 
--   `marker` **[google.maps.Marker](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/Marker.md)** marker object to transform
+-   `marker` **[google.maps.Marker][14]** marker object to transform
 
-Returns **[Feature](http://geojson.org/geojson-spec.html#feature-objects)&lt;[Point](http://geojson.org/geojson-spec.html#point)>** output Feature
+Returns **[Feature][5]&lt;[Point][11]>** output Feature
 
 ## polylineToFeatureLinestring
 
-Converts a [google.maps.Polyline](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/Polyline.md) into a  [Feature.&lt;LineString>](Feature.<LineString>)
+Converts a [google.maps.Polyline][15] into a  [Feature.&lt;LineString>][16]
 
-**Parameters**
+### Parameters
 
--   `objeto` **([Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[google.maps.LatLng](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/LatLng.md)> | [google.maps.Polyline](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/Polyline.md))** array of positions or a google.maps.Polyline
+-   `objeto` **([Array][3]&lt;[google.maps.LatLng][4]> | [google.maps.Polyline][17])** array of positions or a google.maps.Polyline
 
-Returns **[Feature](http://geojson.org/geojson-spec.html#feature-objects)&lt;[LineString](http://geojson.org/geojson-spec.html#linestring)>** [description]
+Returns **[Feature][5]&lt;[LineString][18]>** [description]
 
 ## polygonToFeaturePolygon
 
-Receives an object and returns a [Feature.&lt;Polygon>](Feature.<Polygon>)
+Receives an object and returns a [Feature.&lt;Polygon>][2]
 
-**Parameters**
+### Parameters
 
--   `object` **([google.maps.Polygon](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/Polygon.md) \| [Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[google.maps.LatLng](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/LatLng.md)> | Feature.Polygon | [Geometry](http://geojson.org/geojson-spec.html#geometry))** object to transform into a Feature.Polygon
+-   `object` **([google.maps.Polygon][19] \| [Array][3]&lt;[google.maps.LatLng][4]> | Feature.Polygon | [Geometry][20])** object to transform into a Feature.Polygon
 
 Returns **Feature.Polygon** [description]
 
@@ -55,28 +55,70 @@ Returns **Feature.Polygon** [description]
 Converts an array of google.maps.LatLng into a FeatureCollection
 donde cada Feature es un punto del array de entrada
 
-**Parameters**
+### Parameters
 
--   `latLngArray` **([Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[google.maps.LatLng](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/LatLng.md)> | google.maps.MVCArray)** array de posiciones [google.maps.LatLng](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/LatLng.md)
+-   `latLngArray` **([Array][3]&lt;[google.maps.LatLng][4]> | google.maps.MVCArray)** array de posiciones [google.maps.LatLng][1]
 
-Returns **[FeatureCollection](http://geojson.org/geojson-spec.html#feature-collection-objects)** geojson FeatureCollection
+Returns **[FeatureCollection][21]** geojson FeatureCollection
 
 ## polygonToFeaturePolygonCollection
 
 Converts a google.maps.Polygon into a FeatureCollection of points
 
-**Parameters**
+### Parameters
 
--   `polygon` **[google.maps.Polygon](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/Polygon.md)** [description]
+-   `polygon` **[google.maps.Polygon][19]** [description]
 
-Returns **[FeatureCollection](http://geojson.org/geojson-spec.html#feature-collection-objects)&lt;[Point](http://geojson.org/geojson-spec.html#point)>** [description]
+Returns **[FeatureCollection][21]&lt;[Point][11]>** [description]
 
 ## area
 
 Receives an object and returns a GeoJson Feature of type Polygon
 
-**Parameters**
+### Parameters
 
--   `object` **([google.maps.Polygon](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/Polygon.md) | Feature.Polygon | [Geometry](http://geojson.org/geojson-spec.html#geometry))** object whose area will be calculated
+-   `object` **([google.maps.Polygon][19] | Feature.Polygon | [Geometry][20])** object whose area will be calculated
 
-Returns **[Number](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number)** object's area
+Returns **[Number][10]** object's area
+
+[1]: https://github.com/amenadiel/google-maps-documentation/blob/master/docs/LatLng.md
+
+[2]: Feature.<Polygon>
+
+[3]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array
+
+[4]: https://github.com/amenadiel/google-maps-documentation/blob/master/docs/LatLng.md
+
+[5]: http://geojson.org/geojson-spec.html#feature-objects
+
+[6]: http://geojson.org/geojson-spec.html#polygon
+
+[7]: https://github.com/amenadiel/google-maps-documentation/blob/master/docs/LatLngLiteral.md
+
+[8]: Feature.<Point>
+
+[9]: https://github.com/amenadiel/google-maps-documentation/blob/master/docs/LatLngLiteral.md
+
+[10]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number
+
+[11]: http://geojson.org/geojson-spec.html#point
+
+[12]: https://github.com/amenadiel/google-maps-documentation/blob/master/docs/Marker.md
+
+[13]: Feature<Point>
+
+[14]: https://github.com/amenadiel/google-maps-documentation/blob/master/docs/Marker.md
+
+[15]: https://github.com/amenadiel/google-maps-documentation/blob/master/docs/Polyline.md
+
+[16]: Feature.<LineString>
+
+[17]: https://github.com/amenadiel/google-maps-documentation/blob/master/docs/Polyline.md
+
+[18]: http://geojson.org/geojson-spec.html#linestring
+
+[19]: https://github.com/amenadiel/google-maps-documentation/blob/master/docs/Polygon.md
+
+[20]: http://geojson.org/geojson-spec.html#geometry
+
+[21]: http://geojson.org/geojson-spec.html#feature-collection-objects

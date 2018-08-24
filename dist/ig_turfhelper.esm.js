@@ -1,7 +1,7 @@
 
 /*
  * turf-google-maps
- * version 0.9.5
+ * version v0.9.6
  * MIT Licensed
  * Felipe Figueroa (amenadiel@gmail.com)
  * https://github.com/HuasoFoundries/turf-google-maps

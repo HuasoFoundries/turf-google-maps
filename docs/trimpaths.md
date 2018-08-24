@@ -5,45 +5,59 @@
 Takes two coordinates and returns the distance between them, in degrees
 (it is an ugly approach but still valid when applied to really close coordinates)
 
-**Parameters**
+### Parameters
 
--   `coord1` **[Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[number](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number)>** An array indicating a coordinate [lng, lat]
--   `coord2` **[Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[number](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number)>** An array indicating a coordinate [lng, lat]
+-   `coord1` **[Array][1]&lt;[number][2]>** An array indicating a coordinate [lng, lat]
+-   `coord2` **[Array][1]&lt;[number][2]>** An array indicating a coordinate [lng, lat]
 
-Returns **[number](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number)** the distance between the points, in degrees
+Returns **[number][2]** the distance between the points, in degrees
 
 ## findLineIntersection
 
 Finds out if two segments intersect each other
 
-**Parameters**
+### Parameters
 
--   `line1Start` **[Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[number](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number)>** [description]
--   `line1End` **[Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[number](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number)>** [description]
--   `line2Start` **[Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[number](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number)>** [description]
--   `line2End` **[Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[number](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number)>** [description]
+-   `line1Start` **[Array][1]&lt;[number][2]>** [description]
+-   `line1End` **[Array][1]&lt;[number][2]>** [description]
+-   `line2Start` **[Array][1]&lt;[number][2]>** [description]
+-   `line2End` **[Array][1]&lt;[number][2]>** [description]
 
-Returns **[Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)** [description]
+Returns **[Array][1]** [description]
 
 ## traverseRings
 
 Takes two rings and finds their instersection points. 
 If the rings are the same, the second ring is iterated skipping points already checked in the first one
 
-**Parameters**
+### Parameters
 
--   `ring1` **Array.Array&lt;[number](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number)>** Array of coordinates [lng, lat]
+-   `ring1` **Array.Array&lt;[number][2]>** Array of coordinates [lng, lat]
 -   `ring2`  
 
-Returns **[Object](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object)** an object containing
+Returns **[Object][3]** an object containing
 
 ## trimPaths
 
-Finds the [points](http://geojson.org/geojson-spec.html#point) where two [linestrings](http://geojson.org/geojson-spec.html#linestring) intersect each other
+Finds the [points][4] where two [linestrings][5] intersect each other
 
-**Parameters**
+### Parameters
 
--   `arrayLatLng1` **[Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[google.maps.LatLng](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/LatLng.md)>** array de posiciones [google.maps.LatLng](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/LatLng.md)
--   `arrayLatLng2` **[Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[google.maps.LatLng](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/LatLng.md)>** array de posiciones [google.maps.LatLng](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/LatLng.md)
+-   `arrayLatLng1` **[Array][1]&lt;[google.maps.LatLng][6]>** array de posiciones [google.maps.LatLng][7]
+-   `arrayLatLng2` **[Array][1]&lt;[google.maps.LatLng][6]>** array de posiciones [google.maps.LatLng][7]
 
-Returns **[Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)** an array with [line1 trimmed at intersection,line2 trimmed at intersection,intersection ]
+Returns **[Array][1]** an array with [line1 trimmed at intersection,line2 trimmed at intersection,intersection ]
+
+[1]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array
+
+[2]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number
+
+[3]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object
+
+[4]: http://geojson.org/geojson-spec.html#point
+
+[5]: http://geojson.org/geojson-spec.html#linestring
+
+[6]: https://github.com/amenadiel/google-maps-documentation/blob/master/docs/LatLng.md
+
+[7]: https://github.com/amenadiel/google-maps-documentation/blob/master/docs/LatLng.md
