@@ -24,6 +24,7 @@ import {
 }
 from 'lodash-es/reduce.js';
 
+import turf_area from '@turf/area';
 
 import {
     area as turf_area,
@@ -219,6 +220,15 @@ function polygonToFeaturePolygonCollection(polygon) {
     return FeatureCollection;
 }
 
+/**
+ * Receives an object and returns a GeoJson Feature of type Polygon
+ * @param  {google.maps.Polygon|Feature.Polygon|Geometry} object object whose area will be calculated
+ * @return {Number} object's area
+ */
+function area(object) {
+    var polygonFeature = polygonToFeaturePolygon(object);
+    return turf_area(polygonFeature);
+}
 
 export {
     debug,
