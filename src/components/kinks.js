@@ -1,13 +1,15 @@
+ import turk_kinks from '@turf/kinks';
+
  import {
- 	kinks as turk_kinks
- } from '../turf.js';
+    Wicket
+ } from './wicket_helper.js';
 
 
  import {
- 	polygonToFeaturePolygon
+    polygonToFeaturePolygon
  } from './utils.js';
 
-
+ /* eslint-disable max-len*/
  /**
   * Takes an array of points, google.maps.Polygon or Feature<Polygon> and returns {@link Point|points} at all self-intersections.
   *
@@ -17,20 +19,21 @@
   *
   */
  export function kinks(object) {
- 	var Feature;
- 	if (object instanceof google.maps.Polyline || object instanceof google.maps.Polygon) {
- 		var geometry = Wicket().fromObject(object).toJson();
- 		Feature = {
- 			type: "Feature",
- 			properties: {},
- 			geometry: geometry
- 		};
- 	} else if (object.type && object.type === 'Feature' && object.geometry) {
- 		Feature = object;
- 	} else {
- 		Feature = polygonToFeaturePolygon(object);
- 	}
+    var Feature;
+    if (object instanceof google.maps.Polyline || object instanceof google.maps.Polygon) {
+        var geometry = Wicket().fromObject(object).toJson();
+        Feature = {
+            type: "Feature",
+            properties: {},
+            geometry: geometry
+        };
+    } else if (object.type && object.type === 'Feature' && object.geometry) {
+        Feature = object;
+    } else {
+        Feature = polygonToFeaturePolygon(object);
+    }
 
 
- 	return turk_kinks(Feature);
+    return turk_kinks(Feature);
  }
+ /* eslint-enable max-len*/

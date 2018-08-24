@@ -1,8 +1,4 @@
-import {
-	inside as turf_inside
-} from '../turf.js';
-
-
+import turf_inside from '@turf/boolean-point-in-polygon';
 import {
 	default as _each
 } from 'lodash-es/forEach.js';

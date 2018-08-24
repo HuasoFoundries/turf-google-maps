@@ -3,52 +3,57 @@ import {
 } from './wicket_helper.js';
 
 
+import turf_simplify from '@turf/simplify';
 import {
 	toCoords
-} from './coords_to_latlng.js'
+} from './coords_to_latlng.js';
+
 import {
 	polygonToFeaturePolygon,
 	debug,
 	warn
 } from './utils.js';
 
-
 import {
-	simplify as turf_simplify,
 	lineString as turf_linestring
-} from '../turf.js';
+} from '@turf/helpers';
 
 
 /**
  * Simplifies an array of coordinates
  * @param  {Array.<google.maps.LatLng>|Array.<google.maps.LatLngLiteral>} coordArray Array of coordinates
- * @param  {number} tolerance   [description]
- * @param  {boolean} highQuality [description]
- * @return {Array.<Number>}  Array de coordenadas [lng,lat]
+ * @param  {object}  options - options to pass to the simplification function
+ * @param  {mumber}  options.tolerance   simplification tolerance
+ * @param  {boolean} options.highQuality - higher quality simplification (but slower)
+ * @param  {boolean} options.mutate - allows GeoJSON input to be mutated (much faster)
+ *
+ * @return {Array.Array.<Number>}  Array of coordinates [lng,lat]
  */
 export function simplifyPointArray(coordArray, options) {
+	options = options || {};
 	options.tolerance = options.tolerance || 0.00001;
-	options.highQuality = options.highQuality || false;
 	var Feature = turf_linestring(toCoords(coordArray));
 
 	var simplifiedgeom = turf_simplify(Feature, options);
-
-	//debug('simplifyPointArray', 'geometry is', Feature.geometry, 'simplifiedgeom is', simplifiedgeom);
-
 	return simplifiedgeom.geometry.coordinates;
+}
 
-};
-
+/* eslint-disable max-len*/
 /**
  * Simplified a Feature, google.maps.Polygon or google.maps.Polyline
  * @param  {google.maps.Polygon|google.maps.Polyline|Array.<google.maps.LatLng>|Feature.<Polygon>|Feature.<LineString>} object feature to be simplified
- * @param  {string} output either 'feature', 'geometry' or 'object' (google maps). Case insensitive. Defaults to feature
- * @param  {mumber} tolerance   simplification tolerance
- * @param  {boolean} highQuality [description]
- * @return {Feature|Geometry} whether or not to spend more time to create a higher-quality simplification with a different algorithm
+ * @param  {string}  output either 'feature', 'geometry' or 'object' (google maps). Case insensitive. Defaults to feature
+ * @param  {object}  options - options to pass to the simplification function
+ * @param  {mumber}  options.tolerance   simplification tolerance
+ * @param  {boolean} options.highQuality - higher quality simplification (but slower)
+ * @param  {boolean} options.mutate - allows GeoJSON input to be mutated (much faster)
+ *
+ * @return {Feature|Geometry|google.maps.Polygon|google.maps.Polyline} simplified Feature or Geometry
  */
 export function simplifyFeature(object, output, options) {
 
+	options = options || {};
+	options.tolerance = options.tolerance || 0.00001;
 	output = (output || 'feature').toLowerCase();
 
 	var Feature;
@@ -88,4 +93,5 @@ export function simplifyFeature(object, output, options) {
 		return Feature;
 	}
 
-};
+}
+/* eslint-enable max-len*/

@@ -1,13 +1,13 @@
 (function (QUnit) {
 
 
-    QUnit.module("turfHelper area");
+    QUnit.module("turfUtils  area");
 
 
-    QUnit.test('turfHelper.area should be of type function', function (assert) {
-        assert.equal(typeof turfHelper.area, 'function', 'turfHelper.area should be of type function');
+    QUnit.test('turfUtils.area should be of type function', function (assert) {
+        assert.equal(typeof turfUtils.area, 'function', 'turfUtils.area should be of type function');
     });
-    QUnit.test('turfHelper.area converts a google.maps.Polygon into a Feature with Polygon geometry', function (assert) {
+    QUnit.test('turfUtils.area converts a google.maps.Polygon into a Feature with Polygon geometry', function (assert) {
         var done = assert.async();
 
         var runtest = function (gmaps) {
@@ -72,12 +72,12 @@
             };
 
 
-            var result = Math.round(turfHelper.area(featurePolygon));
+            var result = Math.round(turfUtils.area(featurePolygon));
 
-            var result2 = Math.round(turfHelper.area(gmPolygon));
+            var result2 = Math.round(turfUtils.area(gmPolygon));
 
-            assert.equal(result, 2292087, 'turfHelper.area calculates correct area for a Feature Polygon');
-            assert.equal(result2, 2292087, 'turfHelper.area calculates correct area for a google.maps.Polygon');
+            assert.equal(result, 2292087, 'turfUtils.area calculates correct area for a Feature Polygon');
+            assert.equal(result2, 2292087, 'turfUtils.area calculates correct area for a google.maps.Polygon');
             done();
         };
 
@@ -85,9 +85,9 @@
         if (window.gmaps.then) {
             window.gmaps.then(function (gmaps) {
                 runtest(gmaps);
-            })
+            });
         } else {
             runtest(window.gmaps);
         }
     });
-})(QUnit);
+}(QUnit));

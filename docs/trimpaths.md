@@ -3,6 +3,7 @@
 ## diffCoords
 
 Takes two coordinates and returns the distance between them, in degrees
+(it is an ugly approach but still valid when applied to really close coordinates)
 
 **Parameters**
 
@@ -11,9 +12,9 @@ Takes two coordinates and returns the distance between them, in degrees
 
 Returns **[number](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number)** the distance between the points, in degrees
 
-## lineIntersects
+## findLineIntersection
 
-Determina si dos lineas se intersectan
+Finds out if two segments intersect each other
 
 **Parameters**
 
@@ -21,31 +22,20 @@ Determina si dos lineas se intersectan
 -   `line1End` **[Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[number](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number)>** [description]
 -   `line2Start` **[Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[number](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number)>** [description]
 -   `line2End` **[Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[number](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number)>** [description]
--   `useOldMethod` **[boolean](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Boolean)** if true, use old method instead of turf_line_intersect
 
 Returns **[Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)** [description]
 
 ## traverseRings
 
-Takes two rings and finds their instersection points. If the rings are the same, the second ring is iterated skipping points already checked in the first one
+Takes two rings and finds their instersection points. 
+If the rings are the same, the second ring is iterated skipping points already checked in the first one
 
 **Parameters**
 
 -   `ring1` **Array.Array&lt;[number](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number)>** Array of coordinates [lng, lat]
 -   `ring2`  
--   `useOldMethod` **[boolean](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Boolean)** if true, use old method instead of turf_line_intersect
 
 Returns **[Object](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object)** an object containing
-
-## polylineToFeatureLinestring
-
-[polylineToFeatureLinestring description]
-
-**Parameters**
-
--   `polyline` **[Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[google.maps.LatLng](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/LatLng.md)>** [description]
-
-Returns **Feature.Polyline** [description]
 
 ## trimPaths
 
@@ -55,6 +45,5 @@ Finds the [points](http://geojson.org/geojson-spec.html#point) where two [linest
 
 -   `arrayLatLng1` **[Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[google.maps.LatLng](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/LatLng.md)>** array de posiciones [google.maps.LatLng](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/LatLng.md)
 -   `arrayLatLng2` **[Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[google.maps.LatLng](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/LatLng.md)>** array de posiciones [google.maps.LatLng](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/LatLng.md)
--   `useOldMethod` **[boolean](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Boolean)** if true,use old method instead of turf_line_intersect
 
 Returns **[Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)** an array with [line1 trimmed at intersection,line2 trimmed at intersection,intersection ]

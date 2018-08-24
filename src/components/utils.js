@@ -24,19 +24,20 @@ import {
 }
 from 'lodash-es/reduce.js';
 
+import turf_area from '@turf/area';
+
 
 import {
-    area as turf__area,
     lineString as turf_linestring
-} from '../turf.js';
+} from '@turf/helpers';
 
 
 var debug = console.debug.bind(console, '%c turfHelper' + ':', "color:#00CC00;font-weight:bold;"),
-    warn = console.debug.bind(console, '%c turfHelper' + ':', "color:orange;font-weight:bold;");
+    warn = console.warn.bind(console, '%c turfHelper' + ':', "color:orange;font-weight:bold;");
 
 
 /**
- * Transforma un array de gmaps.LatLng en un Feature.Polygon
+ * Transforms an array of {@link google.maps.LatLng} into a {@link Feature.<Polygon>}
  * @param  {Array.<google.maps.LatLng>} LatLngArray [description]
  * @return {Feature.<Polygon>}             [description]
  */
@@ -61,7 +62,7 @@ function arrayToFeaturePolygon(LatLngArray) {
  * @return {Feature.<Point>} a Point type Feature
  */
 function latlngToFeaturePoint(LatLng) {
-    var coords = toCoord([LatLng])[0],
+    var coords = toCoords([LatLng])[0],
         feature = {
             type: "Feature",
             geometry: {
@@ -93,15 +94,16 @@ function markerToFeaturePoint(marker) {
         };
 
     return Feature;
-};
+}
+
 
 /**
- * [polylineToFeatureLinestring description]
+ * Converts a {@link google.maps.Polyline} into a  {@link Feature.<LineString>}
  * @param  {Array.<google.maps.LatLng>|google.maps.Polyline} objeto array of positions or a google.maps.Polyline
  * @return {Feature.<LineString>}          [description]
  */
 function polylineToFeatureLinestring(objeto) {
-    var vertices
+    var vertices;
     if (objeto instanceof google.maps.Polyline) {
         vertices = toCoords(objeto.getPath().getArray());
     } else {
@@ -113,7 +115,7 @@ function polylineToFeatureLinestring(objeto) {
 
 
 /**
- * Receives an object and returns a GeoJson Feature of type Polygon
+ * Receives an object and returns a {@link Feature.<Polygon>}
  * @param  {google.maps.Polygon|Array.<google.maps.LatLng>|Feature.Polygon|Geometry} object object to transform into a Feature.Polygon
  * @return {Feature.Polygon}        [description]
  */
@@ -129,7 +131,7 @@ function polygonToFeaturePolygon(object) {
         ring = toCoords(object, true);
         polygonFeature = arrayToFeaturePolygon(ring);
 
-    } else if (!!(object && object.constructor === Array)) {
+    } else if (!!(object && object.constructor === Array)) { // eslint-disable-line
 
         ring = toCoords(object, true);
         polygonFeature = arrayToFeaturePolygon(ring);
@@ -152,18 +154,9 @@ function polygonToFeaturePolygon(object) {
     return polygonFeature;
 }
 
-/**
- * Receives an object and returns a GeoJson Feature of type Polygon
- * @param  {google.maps.Polygon|Feature.Polygon|Geometry} object object whose area will be calculated
- * @return {Number} object's area
- */
-function area(object) {
-    var polygonFeature = polygonToFeaturePolygon(object);
-    return turf__area(polygonFeature);
-}
 
 /**
- * Transforma un array de gmaps.LatLng en un featurecollection geoJson
+ * Converts an array of google.maps.LatLng into a FeatureCollection
  * donde cada Feature es un punto del array de entrada
  * @param  {Array<google.maps.LatLng>|google.maps.MVCArray} latLngArray array de posiciones {@link google.maps.LatLng}
  * @return {FeatureCollection}             geojson FeatureCollection
@@ -192,7 +185,7 @@ function arrayToFeaturePoints(latLngArray) {
 
 
 /**
- * Convierte un gmaps.Polygon en un FeatureCollection de puntos
+ * Converts a google.maps.Polygon into a FeatureCollection of points
  * @param  {google.maps.Polygon} polygon [description]
  * @return {FeatureCollection.<Point>}         [description]
  */
@@ -218,6 +211,7 @@ function polygonToFeaturePolygonCollection(polygon) {
 
     return FeatureCollection;
 }
+
 
 /**
  * Receives an object and returns a GeoJson Feature of type Polygon

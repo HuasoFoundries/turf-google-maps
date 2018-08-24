@@ -1,59 +1,76 @@
 {
-    "parser":"babel-eslint",
+ "parser": "babel-eslint",
     "extends": "eslint:recommended",
-    "env": {
+
+    "env":
+    {
         "browser": true,
         "node": true,
         "es6": true,
-        "jquery":true,
-        "amd":true
+        "jquery": true,
+        "amd": true
 
     },
-    "globals":{
-        "google":true,
-        "SystemJS":true,
-        "globalvars":false,
-        "__moduleName":false,
-        "globalmap":false,
-        "expect":false,
-        "self":false,
-        "DEBUG":true
-    },
-    
-
-    "ecmaFeatures": {
-        "arrowFunctions": true,
-        "binaryLiterals": true,
-        "blockBindings": true,
-        "classes": true,
-        "defaultParams": true,
-        "destructuring": true,
-        "forOf": true,
-        "generators": true,
-        "modules": true,
-        "objectLiteralComputedProperties": true,
-        "objectLiteralDuplicateProperties": true,
-        "objectLiteralShorthandMethods": true,
-        "objectLiteralShorthandProperties": true,
-        "octalLiterals": true,
-        "regexUFlag": true,
-        "regexYFlag": true,
-        "spread": true,
-        "superInFunctions": true,
-        "templateStrings": true,
-        "unicodeCodePointEscapes": true,
-        "globalReturn": true,
-        "jsx": true
+    "globals":
+    {
+        "FB": true,
+        "requirejs": true,
+        "System": true,
+        "SystemJS": true,
+        "google": true,
+        "Bloodhound": true,
+        "Handlebars": true,
+        "globalmap": true,
+        "globalvars": false,
+        "Intercom": false,
+        "ga": false,
+        "QUnit": false,
+        "Promise": false,
+        "Modernizr": false,
+        "Clipboard": false,
+        "turfHelper":false,
+        "turfUtils":false,
+        "turfSubset":false
     },
 
-    "rules": {
+    "parserOptions":
+    {
+        "ecmaVersion": 2017,
+        "ecmaFeatures":
+        {
+            "arrowFunctions": true,
+            "binaryLiterals": true,
+            "blockBindings": true,
+            "classes": true,
+            "defaultParams": true,
+            "destructuring": true,
+            "forOf": true,
+            "generators": true,
+            "modules": true,
+            "objectLiteralComputedProperties": true,
+            "objectLiteralDuplicateProperties": true,
+            "objectLiteralShorthandMethods": true,
+            "objectLiteralShorthandProperties": true,
+            "octalLiterals": true,
+            "regexUFlag": true,
+            "regexYFlag": true,
+            "spread": true,
+            "superInFunctions": true,
+            "templateStrings": true,
+            "unicodeCodePointEscapes": true,
+            "globalReturn": true
+        }
+    },
+
+    "rules":
+    {
 
         //
         //Possible Errors
         //
         // The following rules point out areas where you might have made mistakes.
         //
-        "comma-dangle": 2, // disallow or enforce trailing commas
+        "comma-dangle": 0, // disallow or enforce trailing commas
         "no-cond-assign": 2, // disallow assignment in conditional expressions
         "no-console": 0, // disallow use of console (off by default in the node environment)
         "no-constant-condition": 2, // disallow use of constant expressions in conditions
@@ -63,7 +80,7 @@
         "no-dupe-keys": 2, // disallow duplicate keys when creating object literals
         "no-duplicate-case": 2, // disallow a duplicate case label.
         "no-empty": 2, // disallow empty statements
-        
+
         "no-ex-assign": 2, // disallow assigning to the exception in a catch block
         "no-extra-boolean-cast": 2, // disallow double-negation boolean casts in a boolean context
         "no-extra-parens": 0, // disallow unnecessary parentheses (off by default)
@@ -78,7 +95,7 @@
         "no-sparse-arrays": 2, // disallow sparse arrays
         "no-unreachable": 2, // disallow unreachable statements after a return, throw, continue, or break statement
         "use-isnan": 2, // disallow comparisons with the value NaN
-        "valid-jsdoc": 0, // Ensure JSDoc comments are valid (off by default)
+        "valid-jsdoc": 1, // Ensure JSDoc comments are valid (off by default)
         "valid-typeof": 2, // Ensure that the results of typeof are compared against a valid string
 
         //
@@ -94,12 +111,11 @@
         "default-case": 2, // require default case in switch statements (off by default)
         "dot-notation": 2, // encourages use of dot notation whenever possible
         "eqeqeq": 2, // require the use of === and !==
-        "guard-for-in": 0, // make sure for-in loops have an if statement (off by default)
+        "guard-for-in": 2, // make sure for-in loops have an if statement (off by default)
         "no-alert": 0, // disallow the use of alert, confirm, and prompt
         "no-caller": 2, // disallow use of arguments.caller or arguments.callee
         "no-div-regex": 2, // disallow division operators explicitly at beginning of regular expression (off by default)
         "no-else-return": 0, // disallow else after a return in an if (off by default)
-        //"no-empty-label": 2, // disallow use of labels for anything other then loops and switches
         "no-eq-null": 2, // disallow comparisons to null without a type-checking operator (off by default)
         "no-eval": 2, // disallow use of eval()
         "no-extend-native": 2, // disallow adding to native types
@@ -117,10 +133,10 @@
         "no-new": 2, // disallow use of new operator when not part of the assignment or comparison
         "no-new-func": 2, // disallow use of new operator for Function object
         "no-new-wrappers": 2, // disallows creating new instances of String,Number, and Boolean
-        "no-octal": 2, // disallow use of octal literals
+        "no-octal": 0, // disallow use of octal literals
         "no-octal-escape": 2, // disallow use of octal escape sequences in string literals, such as var foo = "Copyright \251";
         "no-param-reassign": 0, // disallow reassignment of function parameters (off by default)
-        "no-process-env": 2, // disallow use of process.env (off by default)
+        "no-process-env": 0, // disallow use of process.env (off by default)
         "no-proto": 2, // disallow usage of __proto__ property
         "no-redeclare": 2, // disallow declaring the same variable more then once
         "no-return-assign": 2, // disallow use of assignment in return statement
@@ -130,7 +146,8 @@
         "no-throw-literal": 2, // restrict what can be thrown as an exception (off by default)
         "no-unused-expressions": 2, // disallow usage of expressions in statement position
         "no-void": 2, // disallow use of void operator (off by default)
-        "no-warning-comments": [0, {
+        "no-warning-comments": [0,
+        {
             "terms": ["todo", "fixme"],
             "location": "start"
         }], // disallow usage of configurable warning terms in comments": 2, // e.g. TODO or FIXME (off by default)
@@ -171,7 +188,8 @@
         "indent": [0, "tab"], // this option sets a specific tab width for your code (off by default)
         "brace-style": 1, // enforce one true brace style (off by default)
         "camelcase": 0, // require camel case names
-        "comma-spacing": [1, {
+        "comma-spacing": [1,
+        {
             "before": false,
             "after": true
         }], // enforce spacing before and after comma
@@ -180,12 +198,14 @@
         "eol-last": 1, // enforce newline at the end of file, with no multiple empty lines
         "func-names": 0, // require function expressions to have a name (off by default)
         "func-style": 0, // enforces use of function declarations or expressions (off by default)
-        "key-spacing": [1, {
+        "key-spacing": [1,
+        {
             "beforeColon": false,
             "afterColon": true
         }], // enforces spacing between keys and values in object literal properties
         "max-nested-callbacks": [1, 4], // specify the maximum depth callbacks can be nested (off by default)
-        "new-cap": [1, {
+        "new-cap": [1,
+        {
             newIsCap: true,
             capIsNew: false
         }], // require a capital letter for constructors
@@ -195,7 +215,8 @@
         "no-inline-comments": 0, // disallow comments inline after code (off by default)
         "no-lonely-if": 1, // disallow if as the only statement in an else block (off by default)
         "no-mixed-spaces-and-tabs": 1, // disallow mixed spaces and tabs for indentation
-        "no-multiple-empty-lines": [1, {
+        "no-multiple-empty-lines": [1,
+        {
             "max": 2
         }], // disallow multiple empty lines (off by default)
         "no-nested-ternary": 1, // disallow nested ternary expressions (off by default)
@@ -204,27 +225,33 @@
         "no-ternary": 0, // disallow the use of ternary operators (off by default)
         "no-trailing-spaces": 1, // disallow trailing whitespace at the end of lines
         "no-underscore-dangle": 0, // disallow dangling underscores in identifiers
-        //"one-var": [1, "never"], // allow just one var statement per function (off by default)
+        //"one-var": ["warn", { "initialized": "never" }], // allow just one var statement per function (off by default)
         "operator-assignment": [0, "never"], // require assignment operator shorthand where possible or prohibit it entirely (off by default)
         "padded-blocks": [0, "always"], // enforce padding within blocks (off by default)
         "quote-props": [0, "as-needed"], // require quotes around object literal property names (off by default)
         "quotes": [0, "single"], // specify whether double or single quotes should be used
         "semi": [1, "always"], // require or disallow use of semicolons instead of ASI
-        "semi-spacing": [1, {
+        "semi-spacing": [1,
+        {
             "before": false,
             "after": true
         }], // enforce spacing before and after semicolons
         "sort-vars": 0, // sort variables within the same declaration block (off by default)
-        "keyword-spacing": [1, "always"], // require a space after certain keywords (off by default)
+
+
+
+
         "space-before-blocks": [1, "always"], // require or disallow space before blocks (off by default)
-        "space-before-function-paren": [1, {
+        "space-before-function-paren": [1,
+        {
             "anonymous": "always",
             "named": "never"
         }], // require or disallow space before function opening parenthesis (off by default)
-        
+
         //"space-infix-ops": [1], // require spaces around operators
         //"space-return-throw-case": [1, "always"], // require a space after return, throw, and case
-        "space-unary-ops": [1, {
+        "space-unary-ops": [1,
+        {
             "words": true,
             "nonwords": false
         }], // Require or disallow spaces before/after unary operators (words on by default, nonwords off by default)
@@ -247,11 +274,11 @@
         //
         "max-depth": [2, 3], // specify the maximum depth that blocks can be nested (off by default)
         "max-len": [1, 150, 2], // specify the maximum length of a line in your program (off by default)
-        "max-params": [1, 15], // limits the number of parameters that can be used in the function declaration. (off by default)
+        "max-params": [1, 10], // limits the number of parameters that can be used in the function declaration. (off by default)
         "max-statements": 0, // specify the maximum number of statement allowed in a function (off by default)
         "no-bitwise": 1, // disallow use of bitwise operators (off by default)
-        "no-plusplus": 0,// disallow use of unary operators, ++ and -- (off by default)
+        "no-plusplus": 0, // disallow use of unary operators, ++ and -- (off by default)
 
-       
+
     }
 }
