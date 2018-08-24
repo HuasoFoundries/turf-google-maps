@@ -24,6 +24,8 @@ import {
 }
 from 'lodash-es/reduce.js';
 
+import turf_area from '@turf/area';
+
 
 import {
     lineString as turf_linestring
@@ -60,7 +62,7 @@ function arrayToFeaturePolygon(LatLngArray) {
  * @return {Feature.<Point>} a Point type Feature
  */
 function latlngToFeaturePoint(LatLng) {
-    var coords = toCoord([LatLng])[0],
+    var coords = toCoords([LatLng])[0],
         feature = {
             type: "Feature",
             geometry: {
@@ -92,16 +94,16 @@ function markerToFeaturePoint(marker) {
         };
 
     return Feature;
-};
+}
 
 
 /**
- * Converts a {@link google.maps.Polyline} into a  {@link Feature.<LineString>} 
+ * Converts a {@link google.maps.Polyline} into a  {@link Feature.<LineString>}
  * @param  {Array.<google.maps.LatLng>|google.maps.Polyline} objeto array of positions or a google.maps.Polyline
  * @return {Feature.<LineString>}          [description]
  */
 function polylineToFeatureLinestring(objeto) {
-    var vertices
+    var vertices;
     if (objeto instanceof google.maps.Polyline) {
         vertices = toCoords(objeto.getPath().getArray());
     } else {
@@ -129,7 +131,7 @@ function polygonToFeaturePolygon(object) {
         ring = toCoords(object, true);
         polygonFeature = arrayToFeaturePolygon(ring);
 
-    } else if (!!(object && object.constructor === Array)) {
+    } else if (!!(object && object.constructor === Array)) { // eslint-disable-line
 
         ring = toCoords(object, true);
         polygonFeature = arrayToFeaturePolygon(ring);
@@ -211,9 +213,20 @@ function polygonToFeaturePolygonCollection(polygon) {
 }
 
 
+/**
+ * Receives an object and returns a GeoJson Feature of type Polygon
+ * @param  {google.maps.Polygon|Feature.Polygon|Geometry} object object whose area will be calculated
+ * @return {Number} object's area
+ */
+function area(object) {
+    var polygonFeature = polygonToFeaturePolygon(object);
+    return turf_area(polygonFeature);
+}
+
 export {
     debug,
     warn,
+    area,
     arrayToFeaturePolygon,
     polygonToFeaturePolygonCollection,
     arrayToFeaturePoints,

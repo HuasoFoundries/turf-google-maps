@@ -70,3 +70,13 @@ Converts a google.maps.Polygon into a FeatureCollection of points
 -   `polygon` **[google.maps.Polygon](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/Polygon.md)** [description]
 
 Returns **[FeatureCollection](http://geojson.org/geojson-spec.html#feature-collection-objects)&lt;[Point](http://geojson.org/geojson-spec.html#point)>** [description]
+
+## area
+
+Receives an object and returns a GeoJson Feature of type Polygon
+
+**Parameters**
+
+-   `object` **([google.maps.Polygon](https://github.com/amenadiel/google-maps-documentation/blob/master/docs/Polygon.md) | Feature.Polygon | [Geometry](http://geojson.org/geojson-spec.html#geometry))** object whose area will be calculated
+
+Returns **[Number](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number)** object's area

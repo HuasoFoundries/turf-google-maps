@@ -24,11 +24,13 @@ var input = "src/ig_turfhelper.js",
 			format: "umd",
 			name: 'turfHelper',
 			exports: 'named',
+			extend: false,
 			banner
 		},
 		{
 			file: "dist/ig_turfhelper.esm.js",
 			format: "es",
+			extend: false,
 			banner
 		}
 	],
@@ -84,6 +86,7 @@ if (process.env.UTILS) {
 		name: 'turfUtils',
 		sourcemap: true,
 		exports: 'named',
+		extend: false,
 		banner
 	}];
 	plugins.push(uglify());
@@ -92,7 +95,7 @@ if (process.env.UTILS) {
 export default {
 
 	input: input,
-	extend: true,
+
 
 	plugins: plugins,
 	output: output

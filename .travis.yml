@@ -1,9 +1,11 @@
 language: node_js
+cache:
+  directories:
+    - node_modules
+    - jspm_packages
 node_js:
-  - "6.1"
+  - "8.11.3"
 install:
-  - make install && npm i -D jspm@beta
+  - make install
 script:
-  - make build
-after_success:
   - make test  
