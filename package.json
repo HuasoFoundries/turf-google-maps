@@ -22,7 +22,7 @@
   "author": "amenadiel@gmail.com",
   "license": "MIT",
   "engines": {
-    "node": "^6.11.2"
+    "node": "> 8 || ^6.11.2"
   },
   "bugs": {
     "url": "https://github.com/HuasoFoundries/turf-google-maps/issues"
