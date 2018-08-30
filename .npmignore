@@ -14,3 +14,15 @@ node_modules
 coverage
 *.tgz
 *.xml
+docs
+test
+Makefile
+package-lock.json
+karma.conf.js
+generate_docs.js
+rollup.config.js
+.babelrc
+.eslintignore
+.eslintrc
+.travis.yml
+src

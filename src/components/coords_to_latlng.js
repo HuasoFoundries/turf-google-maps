@@ -52,7 +52,7 @@ function toCoord(LatLng) {
 
 /* eslint-disable max-len */
 /**
- * Transforms an array of coordinates to an array of [Lng, Lat]
+ * Transforms an array of {@link google.maps.LatLng} or {@link google.maps.LatLngLiteral} to an array of Positions
  * @param {Array.<google.maps.LatLng>|Array.<google.maps.LatLngLiteral>} arrayLatLng Array of {@link google.maps.LatLng} or {@link google.maps.LatLngLiteral}
  * @param {bool} [closeRing=false] optionally, ensure the passed coordinate array forms a closed ring
  * @return {Array.<Position>} an array of {@link Position}

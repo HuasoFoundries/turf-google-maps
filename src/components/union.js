@@ -7,7 +7,7 @@ import {
 
 /**
  * Takes two or more polygons and returns a combined polygon or multipolygon
- * @param  {google.maps.Polygon|Array.<google.maps.LatLng>|Feature.Polygon} polygons N objects to combine
+ * @param  {google.maps.Polygon|Array.<google.maps.LatLng>|Feature.<Polygon>} polygons N objects to combine
  * @return {Feature.<Polygon>|Feature.<MultiPolygon>}  result of the union. If inputs are disjoint, returns a Feature.Multipolygon
  */
 export function union(...polygons) {

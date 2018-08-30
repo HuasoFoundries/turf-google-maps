@@ -127,10 +127,10 @@ function traverseRings(ring1, ring2) {
 
 
 /**
- * Finds the {@link Point|points} where two {@link LineString|linestrings} intersect each other
+ * Finds the {@link Point|points} where two {@link google.maps.Polyline} intersect each other
  * @param  {Array.<google.maps.LatLng>} arrayLatLng1 array de posiciones {@link google.maps.LatLng}
  * @param  {Array.<google.maps.LatLng>} arrayLatLng2 array de posiciones {@link google.maps.LatLng}
- * @return {Array}        an array with [line1 trimmed at intersection,line2 trimmed at intersection,intersection]
+ * @return {Array.<Array.<google.maps.LatLngLiteral>>}  an array with [line1 trimmed at intersection,line2 trimmed at intersection,intersection]
  */
 function trimPaths(arrayLatLng1, arrayLatLng2) {
 
