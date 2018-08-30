@@ -1,6 +1,6 @@
 import {
 	Wicket
-} from './wicket_helper.js';
+} from './utils.js';
 import {
 	toCoords
 } from './coords_to_latlng.js';

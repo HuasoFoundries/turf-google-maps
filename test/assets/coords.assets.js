@@ -131,6 +131,48 @@ testAssets.convertedFeature = {
 	}
 };
 
+
+testAssets.pointsFC = {
+	"type": "FeatureCollection",
+	"features": [{
+			"type": "Feature",
+			"geometry": {
+				"type": "Point",
+				coordinates: [-49.4384765625, -8.79822545902]
+			}
+		},
+		{
+			"type": "Feature",
+			"geometry": {
+				"type": "Point",
+				coordinates: [-39.7705078125, -8.79822545902]
+			}
+		},
+		{
+			"type": "Feature",
+			"geometry": {
+				"type": "Point",
+				coordinates: [-39.7705078125, 0.48339270279]
+			}
+		},
+		{
+			"type": "Feature",
+			"geometry": {
+				"type": "Point",
+				coordinates: [-49.4384765625, 0.48339270279]
+			}
+		},
+		{
+			"type": "Feature",
+			"geometry": {
+				"type": "Point",
+				coordinates: [-49.4384765625, -8.79822545902]
+			}
+		},
+	]
+};
+
+
 testAssets.convertedPolyline = {
 	"geometry": {
 		"coordinates": [

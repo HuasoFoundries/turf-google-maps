@@ -2,22 +2,21 @@
 
 ## toLatLngs
 
-Transforma un array de LatLng en un array de coordenadas [lng,lat]
+Transforms an array of Positions into array of google.maps.LatLngLiteral
 
 ### Parameters
 
--   `coordinates`  
--   `arrayLatLng` **[Array][1]&lt;[Position][2]>** [description]
+-   `coordinates` **[Array][1]&lt;[Position][2]>** an array of positions
 
 Returns **[Array][1]&lt;[google.maps.LatLngLiteral][3]>** array of [google.maps.LatLngLiteral][4]
 
 ## toCoords
 
-Transforms an array of coordinates to an array of [Lng, Lat]
+Transforms an array of [google.maps.LatLng][5] or [google.maps.LatLngLiteral][4] to an array of Positions
 
 ### Parameters
 
--   `arrayLatLng` **([Array][1]&lt;[google.maps.LatLng][5]> | [Array][1]&lt;[google.maps.LatLngLiteral][3]>)** Array of [google.maps.LatLng][6] or [google.maps.LatLngLiteral][4]
+-   `arrayLatLng` **([Array][1]&lt;[google.maps.LatLng][6]> | [Array][1]&lt;[google.maps.LatLngLiteral][3]>)** Array of [google.maps.LatLng][5] or [google.maps.LatLngLiteral][4]
 -   `closeRing` **bool** optionally, ensure the passed coordinate array forms a closed ring (optional, default `false`)
 
 Returns **[Array][1]&lt;[Position][2]>** an array of [Position][7]

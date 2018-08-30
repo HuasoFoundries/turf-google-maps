@@ -1,4 +1,4 @@
-(function (window, QUnit, undefined) {
+(function (window, QUnit) {
 
   QUnit.config.noglobals = false;
 
@@ -6,6 +6,8 @@
   var history = window.history;
   var pushState = history.pushState;
   var replaceState = history.replaceState;
+
+
   //QUnit.config.autostart = false;
   //QUnit.config.reorder = true;
 
@@ -24,4 +26,4 @@
   });
 
 
-})(window, QUnit);
+}(window, QUnit));

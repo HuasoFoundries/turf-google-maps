@@ -1,7 +1,4 @@
 import {
-	default as _filter
-} from 'lodash-es/filter.js';
-import {
 	default as _max
 } from 'lodash-es/max.js';
 import {
@@ -42,7 +39,8 @@ from 'lodash-es/isEqual.js';
  * (it is an ugly approach but still valid when applied to really close coordinates)
  * @param  {Array<number>} coord1 An array indicating a coordinate [lng, lat]
  * @param  {Array<number>} coord2 An array indicating a coordinate [lng, lat]
- * @return {number}        the distance between the points, in degrees 
+ * @return {number}        the distance between the points, in degrees
+ * @private
  */
 function diffCoords(coord1, coord2) {
 	var vector = [Math.abs(coord1[0] - coord2[0]), Math.abs(coord1[1] - coord2[1])];
@@ -51,11 +49,12 @@ function diffCoords(coord1, coord2) {
 
 /**
  * Finds out if two segments intersect each other
- * @param  {Array.<number>} line1Start [description]
- * @param  {Array.<number>} line1End   [description]
- * @param  {Array.<number>} line2Start [description]
- * @param  {Array.<number>} line2End   [description]
- * @return {Array}             [description]
+ * @param  {Position} line1Start coordinates of first line start
+ * @param  {Position} line1End   coordinates of first line end
+ * @param  {Position} line2Start coordinates of second line start
+ * @param  {Position} line2End   coordinates of second line end
+ * @return {Position|Boolean} coordinates of the intersection, if any, or false
+ * @private
  */
 function findLineIntersection(line1Start, line1End, line2Start, line2End) {
 
@@ -74,11 +73,12 @@ function findLineIntersection(line1Start, line1End, line2Start, line2End) {
 }
 
 /**
- * Takes two rings and finds their instersection points. 
+ * Takes two rings and finds their instersection points.
  * If the rings are the same, the second ring is iterated skipping points already checked in the first one
- * @param  {Array.Array<number>} ring1 Array of coordinates [lng, lat]
- * @param  {Array.Array<number>} ring1 Array of coordinates [lng, lat]
- * @return {Object}       an object containing
+ * @param  {Array.<Position>} ring1 Array of coordinates [lng, lat]
+ * @param  {Array.<Position>} ring2 Array of coordinates [lng, lat]
+ * @return {FeatureCollection}   an FeatureCollection containing the line intersections
+ * @private
  */
 function traverseRings(ring1, ring2) {
 	var intersections = turf_featurecollection([]);
@@ -123,14 +123,14 @@ function traverseRings(ring1, ring2) {
 		}
 	}
 	return intersections;
-};
+}
 
 
 /**
- * Finds the {@link Point|points} where two {@link LineString|linestrings} intersect each other
+ * Finds the {@link Point|points} where two {@link google.maps.Polyline} intersect each other
  * @param  {Array.<google.maps.LatLng>} arrayLatLng1 array de posiciones {@link google.maps.LatLng}
  * @param  {Array.<google.maps.LatLng>} arrayLatLng2 array de posiciones {@link google.maps.LatLng}
- * @return {Array}        an array with [line1 trimmed at intersection,line2 trimmed at intersection,intersection ] 
+ * @return {Array.<Array.<google.maps.LatLngLiteral>>}  an array with [line1 trimmed at intersection,line2 trimmed at intersection,intersection]
  */
 function trimPaths(arrayLatLng1, arrayLatLng2) {
 
@@ -155,7 +155,7 @@ function trimPaths(arrayLatLng1, arrayLatLng2) {
 		//console.log('first_segment_with_kinks', JSON.stringify(first_segment_with_kinks));
 
 		// All the intersections which belong to the first segment with a kink of the first ring
-		var kinks_in_first_segment = _filter(intersections.features, function (kink) {
+		var kinks_in_first_segment = intersections.features.filter(function (kink) {
 			return kink.properties.position1 === first_segment_with_kinks.properties.position1;
 		});
 
@@ -187,8 +187,8 @@ function trimPaths(arrayLatLng1, arrayLatLng2) {
 	}
 	return [];
 
-};
+}
 
 export {
 	trimPaths
-}
+};

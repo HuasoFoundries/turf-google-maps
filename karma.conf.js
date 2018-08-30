@@ -20,6 +20,7 @@ module.exports = function (config) {
 		// list of files / patterns to load in the browser
 		files: [
 			'test/assets/*.assets.js',
+			'test/assets/*.helper.js',
 			'test/vendor/object-assign-polyfill.js',
 			'test/vendor/prototype-bind-polyfill.js',
 			'test/vendor/jsts-polyfills.js',
@@ -31,7 +32,7 @@ module.exports = function (config) {
 			process.env.MINIFY ? 'dist/ig_subset.min.js' : 'dist/ig_subset.js',
 			'test/specs/setup/*.js',
 			'test/specs/*.test.js',
-			'https://maps.googleapis.com/maps/api/js?callback=__google_maps_callback__&v=3.exp&libraries=visualization,places,drawing,geometry&key=AIzaSyCsQ6i68i9hQ90ic34cSdnROS_WcMCVksM' // eslint-disable-line max-len
+			'https://maps.googleapis.com/maps/api/js?callback=__google_maps_callback__&v=3.33&libraries=visualization,places,drawing,geometry&key=AIzaSyCsQ6i68i9hQ90ic34cSdnROS_WcMCVksM' // eslint-disable-line max-len
 		]
 	});
 

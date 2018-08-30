@@ -10,14 +10,4 @@
     });
 
 
-    QUnit.test('pointInPolygon should be of type function', function (assert) {
-        assert.equal(typeof turfHelper.pointInPolygon, 'function', 'pointInPolygon should be of type function');
-    });
-
-
-    QUnit.test('union should be of type function', function (assert) {
-        assert.equal(typeof turfHelper.union, 'function', 'union should be of type function');
-    });
-
-
 }(QUnit));

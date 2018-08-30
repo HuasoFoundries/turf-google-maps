@@ -10,6 +10,52 @@ const documentation = require('documentation');
 
 var folders = ['src/components'];
 var fileArray = [];
+var readmeLinks = {
+    along: {
+        label: 'along',
+        description: 'Takes a google.maps.Polyline and returns a Feature of type Point at a specified distance along the line.' // eslint-disable-line max-len
+    },
+    buffer: {
+        label: 'buffer',
+        description: 'Takes a google.maps.Polyline or google.maps.Polygon and returna a Feature of type Polygon or MultiPolygon surrounding the former at a specified distance' // eslint-disable-line max-len
+    },
+    concave: {
+        label: 'concave',
+        description: 'Takes a set of gooogle.maps.LatLng or google.maps.LatLngLiteral and returns a concave hull Feature of type Polygon or MultiPolygon' // eslint-disable-line max-len
+    },
+    coords_to_latlng: {
+        label: 'coords_to_latlng',
+        description: 'Different helper methods to transform gooogle.maps.LatLng or google.maps.LatLngLiteral to GeoJSON positions or viceversa' // eslint-disable-line max-len
+    },
+    kinks: {
+        label: 'kinks',
+        description: 'Takes a google.maps.Polygon and returns a FeatureCollection of Points representing the polygon self intersections' // eslint-disable-line max-len
+    },
+    point_in_polygon: {
+        label: 'point_in_polygon',
+        description: 'Takes an array of google.maps.Marker and a Polygon or MultiPolygon, returning an object containing with markers fall inside or outside it' // eslint-disable-line max-len
+    },
+    simplify_things: {
+        label: 'simplify_things',
+        description: 'Takes a google.maps.Polygon or google.maps.Polyline and returns a simplified version given a certain tolerance. Uses Douglas-Peucker algorithm' // eslint-disable-line max-len
+    },
+    trimpaths: {
+        label: 'trimpaths',
+        description: 'Takes two google.maps.Polyline and returns an array of coordinates [path of trimmed polyline1, path of trimmed polyline2, intersection point]' // eslint-disable-line max-len
+    },
+    union: {
+        label: 'union',
+        description: 'Takes two or more google.maps.Polygon and returns a Feature of type Polygon or MultiPolygon with their union' // eslint-disable-line max-len
+    },
+    unkink: {
+        label: 'unkink',
+        description: 'Takes a google.maps.Polygon with self intersections and returns a FeatureCollection of polygons without self intersections' // eslint-disable-line max-len
+    },
+    utils: {
+        label: 'utils',
+        description: 'Several utility functions to transform back and forth google.maps objects and Feature of their corresponding type' // eslint-disable-line max-len
+    },
+};
 
 folders.forEach(function (foldername) {
     let folderpath = path.join(__dirname, foldername) + path.sep;
@@ -52,7 +98,8 @@ const paths = {
     'google.maps.Polyline': 'https://github.com/amenadiel/google-maps-documentation/blob/master/docs/Polyline.md',
     'google.maps.Rectangle': 'https://github.com/amenadiel/google-maps-documentation/blob/master/docs/Rectangle.md',
     'Wkt.Wkt': 'https://github.com/arthur-e/Wicket',
-    'Wkt': 'https://github.com/arthur-e/Wicket'
+    'Wkt': 'https://github.com/arthur-e/Wicket',
+    'Wicket': 'https://github.com/arthur-e/Wicket'
 };
 
 function generateDocs(fileObj, callback) {
@@ -65,6 +112,15 @@ function generateDocs(fileObj, callback) {
             paths
         });
     }).then(output => {
+        let label = `${fileObj.filename}`,
+            link = `docs/${fileObj.subfolder}/${fileObj.filename}.md`;
+
+        readmeLinks[label] = readmeLinks[label] || {
+            label: label,
+            description: '' // eslint-disable-line max-len
+        };
+
+        readmeLinks[label].link = link;
 
         return fs.writeFileAsync(`${__dirname}/docs/${fileObj.filename}.md`, output);
     }).then(function () {
@@ -99,4 +155,22 @@ Promise.reduce(fileArray, function (total, fileObj) {
 }, 0).then(function (total) {
     console.log();
     console.log('Processed ' + total + ' files');
+    return fs.readFileAsync(path.resolve(`${__dirname}/README.md`));
+}).then((content) => {
+    let readmeString = content.toString('UTF8').split('## API')[0].trim();
+    readmeString += `
+
+## API
+
+`;
+    Object.values(readmeLinks).forEach((linkObj) => {
+        readmeString += `
+### ${linkObj.label}
+
+${linkObj.description}
+
+See [${linkObj.label}](${linkObj.link}).
+`;
+    });
+    return fs.writeFileAsync(path.resolve(`${__dirname}/README.md`), readmeString);
 });

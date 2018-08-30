@@ -1,28 +1,11 @@
-import {
-    Wicket
-} from './wicket_helper.js';
+import Wkt from 'wicket';
+import 'wicket/wicket-gmap3.js';
 
-
-import {
-    default as _map
-} from 'lodash-es/map.js';
-
-import {
-    default as _each
-} from 'lodash-es/forEach.js';
 
 import {
     toCoords
 } from './coords_to_latlng.js';
 
-import {
-    default as _size
-} from 'lodash-es/size.js';
-
-import {
-    default as _reduce
-}
-from 'lodash-es/reduce.js';
 
 import turf_area from '@turf/area';
 
@@ -36,6 +19,14 @@ var debug = console.debug.bind(console, '%c turfHelper' + ':', "color:#00CC00;fo
     warn = console.warn.bind(console, '%c turfHelper' + ':', "color:orange;font-weight:bold;");
 
 
+/**
+ * Factory that returns a new instance of {@link Wicket}
+ *
+ * @return {Wkt}  new instance of {@link Wicket}
+ */
+function Wicket() {
+    return new Wkt.Wkt();
+}
 /**
  * Transforms an array of {@link google.maps.LatLng} into a {@link Feature.<Polygon>}
  * @param  {Array.<google.maps.LatLng>} LatLngArray [description]
@@ -191,31 +182,17 @@ function arrayToFeaturePoints(latLngArray) {
 
 
 /**
- * Converts a google.maps.Polygon into a FeatureCollection of points
- * @param  {google.maps.Polygon} polygon [description]
+ * Converts a google.maps.Polygon or google.maps.Polyline into a FeatureCollection of points
+ * @param  {google.maps.Polygon|google.maps.Polyline} googleObject the google.maps object to convert
  * @return {FeatureCollection.<Point>}         [description]
  */
-function polygonToFeaturePolygonCollection(polygon) {
-    var geojsonPolygon = polygonToFeaturePolygon(polygon);
+function polygonToFeaturePolygonCollection(googleObject) {
+    let latLngArray;
+    if (googleObject instanceof google.maps.Polygon || googleObject instanceof google.maps.Polyline) {
+        latLngArray = googleObject.getPath().getArray();
+    }
 
-    var vertexToFeature = function (vertex) {
-        return {
-            type: "Feature",
-            geometry: {
-                type: "Point",
-                coordinates: vertex
-            }
-        };
-    };
-
-    var FeatureCollection = {
-        type: "FeatureCollection",
-        features: _map(geojsonPolygon.coordinates[0], vertexToFeature)
-    };
-
-    FeatureCollection.features.push(vertexToFeature(geojsonPolygon.coordinates[0][0]));
-
-    return FeatureCollection;
+    return arrayToFeaturePoints(latLngArray);
 }
 
 
@@ -233,6 +210,7 @@ export {
     debug,
     warn,
     area,
+    Wicket,
     arrayToFeaturePolygon,
     polygonToFeaturePolygonCollection,
     arrayToFeaturePoints,

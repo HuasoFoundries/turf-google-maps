@@ -6,8 +6,7 @@ Takes two or more polygons and returns a combined polygon or multipolygon
 
 ### Parameters
 
--   `poly1` **([google.maps.Polygon][1] \| [Array][2]&lt;[google.maps.LatLng][3]> | Feature.Polygon)** object to transform into a Feature.Polygon
--   `poly2` **([google.maps.Polygon][1] \| [Array][2]&lt;[google.maps.LatLng][3]> | Feature.Polygon)** object to transform into a Feature.Polygon
+-   `polygons` **([google.maps.Polygon][1] \| [Array][2]&lt;[google.maps.LatLng][3]> | [Feature][4]&lt;[Polygon][5]>)** N objects to combine
 
 Returns **([Feature][4]&lt;[Polygon][5]> | [Feature][4]&lt;[MultiPolygon][6]>)** result of the union. If inputs are disjoint, returns a Feature.Multipolygon
 

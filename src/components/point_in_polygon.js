@@ -1,11 +1,9 @@
 import turf_inside from '@turf/boolean-point-in-polygon';
-import {
-	default as _each
-} from 'lodash-es/forEach.js';
 
 import {
 	markerToFeaturePoint
 } from './utils.js';
+/* eslint-disable max-len */
 /**
  * Filters an array of points returning those who falls inside a given {@link Polygon}
  * @param {Array<google.maps.Marker>} sourceArray array of {@link google.maps.Marker}
@@ -13,6 +11,7 @@ import {
  * @return {{pointsInside:Array<google.maps.Marker>, pointsOutside:Array<google.maps.Marker>}} an object with the points that fall inside and outside the polygon
  */
 export function pointInPolygon(sourceArray, geojsonPolygon) {
+	/* eslint-enable max-len */
 	var pointsInside = [];
 	var pointsOutside = [];
 
@@ -24,7 +23,7 @@ export function pointInPolygon(sourceArray, geojsonPolygon) {
 		};
 	}
 	if (geojsonPolygon.geometry.type === 'Polygon' || geojsonPolygon.geometry.type === 'Multipolygon') {
-		_each(sourceArray, function (item) {
+		sourceArray.forEach((item) => {
 
 			var Point = markerToFeaturePoint(item);
 			//console.zlog('Point is', Point);
@@ -40,4 +39,4 @@ export function pointInPolygon(sourceArray, geojsonPolygon) {
 		pointsInside: pointsInside,
 		pointsOutside: pointsOutside
 	};
-};
+}

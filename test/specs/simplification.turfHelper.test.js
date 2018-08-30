@@ -43,7 +43,7 @@
             });
 
             var simplified_result_geom = result.geometry.coordinates[0].map(function (point) {
-                return [Math.round(point[0] * 1000000000) / 1000000000, Math.round(point[1] * 1000000000) / 1000000000];
+                return roundCoord(point, 9);
             });
             result.geometry.coordinates = [
                 simplified_result_geom
@@ -87,7 +87,7 @@
             });
 
             var simplified_result_geom = result.geometry.coordinates.map(function (point) {
-                return [Math.round(point[0] * 1000000000) / 1000000000, Math.round(point[1] * 1000000000) / 1000000000];
+                return roundCoord(point, 9);
             });
             result.geometry.coordinates = simplified_result_geom;
 
