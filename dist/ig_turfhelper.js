@@ -29096,11 +29096,15 @@
 	    };
 	}
 
-	function union$1(poly1, poly2) {
-	  var featurePolygon1 = polygonToFeaturePolygon(poly1),
-	      featurePolygon2 = polygonToFeaturePolygon(poly2),
-	      FeatureUnion = union(featurePolygon1, featurePolygon2);
-	  return FeatureUnion;
+	function union$1() {
+		for (var _len = arguments.length, polygons = Array(_len), _key = 0; _key < _len; _key++) {
+			polygons[_key] = arguments[_key];
+		}
+		var polyArray = polygons.map(function (polygon) {
+			return polygonToFeaturePolygon(polygon);
+		}),
+		    FeatureUnion = union.apply(union, polyArray);
+		return FeatureUnion;
 	}
 
 	function bbox$1(geojson) {

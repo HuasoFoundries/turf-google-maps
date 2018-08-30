@@ -31,7 +31,9 @@
         "turfHelper":false,
         "turfUtils":false,
         "turfSubset":false,
-        "testAssets":true
+        "testAssets":true,
+        "roundCoord":true,
+        "roundLatLng":true
     },
 
     "parserOptions":

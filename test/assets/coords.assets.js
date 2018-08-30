@@ -131,33 +131,6 @@ testAssets.convertedFeature = {
 	}
 };
 
-testAssets.squareFeature = {
-	"type": "Feature",
-	"properties": {},
-	"geometry": {
-		"type": "Polygon",
-		"coordinates": [
-			[
-				[1, 1],
-				[1, 2],
-				[2, 2],
-				[2, 1],
-				[1, 1]
-			]
-		]
-
-	}
-};
-
-testAssets.latLngInside = {
-	lat: 1.4,
-	lng: 1.5
-};
-testAssets.latLngOutside = {
-	lat: 2.4,
-	lng: 2.5
-};
-
 
 testAssets.pointsFC = {
 	"type": "FeatureCollection",

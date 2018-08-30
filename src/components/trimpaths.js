@@ -40,6 +40,7 @@ from 'lodash-es/isEqual.js';
  * @param  {Array<number>} coord1 An array indicating a coordinate [lng, lat]
  * @param  {Array<number>} coord2 An array indicating a coordinate [lng, lat]
  * @return {number}        the distance between the points, in degrees
+ * @private
  */
 function diffCoords(coord1, coord2) {
 	var vector = [Math.abs(coord1[0] - coord2[0]), Math.abs(coord1[1] - coord2[1])];
@@ -48,11 +49,12 @@ function diffCoords(coord1, coord2) {
 
 /**
  * Finds out if two segments intersect each other
- * @param  {Array.<number>} line1Start [description]
- * @param  {Array.<number>} line1End   [description]
- * @param  {Array.<number>} line2Start [description]
- * @param  {Array.<number>} line2End   [description]
- * @return {Array}             [description]
+ * @param  {Position} line1Start coordinates of first line start
+ * @param  {Position} line1End   coordinates of first line end
+ * @param  {Position} line2Start coordinates of second line start
+ * @param  {Position} line2End   coordinates of second line end
+ * @return {Position|Boolean} coordinates of the intersection, if any, or false
+ * @private
  */
 function findLineIntersection(line1Start, line1End, line2Start, line2End) {
 
@@ -73,9 +75,10 @@ function findLineIntersection(line1Start, line1End, line2Start, line2End) {
 /**
  * Takes two rings and finds their instersection points.
  * If the rings are the same, the second ring is iterated skipping points already checked in the first one
- * @param  {Array.Array<number>} ring1 Array of coordinates [lng, lat]
- * @param  {Array.Array<number>} ring2 Array of coordinates [lng, lat]
- * @return {Object}       an object containing
+ * @param  {Array.<Position>} ring1 Array of coordinates [lng, lat]
+ * @param  {Array.<Position>} ring2 Array of coordinates [lng, lat]
+ * @return {FeatureCollection}   an FeatureCollection containing the line intersections
+ * @private
  */
 function traverseRings(ring1, ring2) {
 	var intersections = turf_featurecollection([]);
