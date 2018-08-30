@@ -46,7 +46,6 @@ import {
 
 Which might help you perform some tree shaking in your build stage.
 
-
 ## API
 
 
