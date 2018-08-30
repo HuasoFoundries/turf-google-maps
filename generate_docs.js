@@ -52,7 +52,8 @@ const paths = {
     'google.maps.Polyline': 'https://github.com/amenadiel/google-maps-documentation/blob/master/docs/Polyline.md',
     'google.maps.Rectangle': 'https://github.com/amenadiel/google-maps-documentation/blob/master/docs/Rectangle.md',
     'Wkt.Wkt': 'https://github.com/arthur-e/Wicket',
-    'Wkt': 'https://github.com/arthur-e/Wicket'
+    'Wkt': 'https://github.com/arthur-e/Wicket',
+    'Wicket': 'https://github.com/arthur-e/Wicket'
 };
 
 function generateDocs(fileObj, callback) {

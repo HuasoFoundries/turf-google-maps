@@ -1,13 +1,11 @@
 import {
     toCoords
 } from './coords_to_latlng.js';
-import {
-    Wicket
-} from './wicket_helper.js';
+
 import turf_buffer from '@turf/buffer';
 
-
 import {
+    Wicket,
     polygonToFeaturePolygon,
     debug,
     warn

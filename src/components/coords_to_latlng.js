@@ -1,11 +1,6 @@
-import {
-	default as _map
-} from 'lodash-es/map.js';
-
-
 /**
  * Converts a coordinate pair into a {@link google.maps.LatLngLiteral}
- * @param  {Position|google.maps.LatLngLiteral|google.maps.LatLng} position a coordinate pair 
+ * @param  {Position|google.maps.LatLngLiteral|google.maps.LatLng} position a coordinate pair, google.maps LatLng or google.maps.LatLngLiteral
  * @return {google.maps.LatLngLiteral}     a {@link google.maps.LatLngLiteral}
  * @private
  */
@@ -26,16 +21,19 @@ function toLatLng(position) {
 }
 
 /**
- * Transforma un array de LatLng en un array de coordenadas [lng,lat]
- * @param {Array.<Position>} arrayLatLng [description]
+ * Transforms an array of Positions into array of google.maps.LatLngLiteral
+ * @param {Array.<Position>} coordinates an array of positions
  * @return {Array.<google.maps.LatLngLiteral>} array of {@link google.maps.LatLngLiteral}
  */
 function toLatLngs(coordinates) {
-	return _map(coordinates, toLatLng);
+	return coordinates.map((coord) => {
+		return toLatLng(coord);
+	});
+
 }
 
 /**
- * Transforms a {@link google.maps.LatLng} or {@link google.maps.LatLngLiteral}
+ * Transforms a {@link google.maps.LatLng} or {@link google.maps.LatLngLiteral} into a Position
  * @param  {google.maps.LatLng|google.maps.LatLngLiteral|Position} LatLng a coordinate to transform
  * @return {Position}   a coordinate pair
  * @private
@@ -48,10 +46,11 @@ function toCoord(LatLng) {
 	} else if (LatLng.length && LatLng.length >= 2) {
 		return LatLng;
 	} else {
-		throw new Error('google.maps is not present in the global scope')
+		throw new Error('input must be an instance of google.maps.LatLng, google.maps.LatLngLiteral or Position');
 	}
 }
 
+/* eslint-disable max-len */
 /**
  * Transforms an array of coordinates to an array of [Lng, Lat]
  * @param {Array.<google.maps.LatLng>|Array.<google.maps.LatLngLiteral>} arrayLatLng Array of {@link google.maps.LatLng} or {@link google.maps.LatLngLiteral}
@@ -59,9 +58,11 @@ function toCoord(LatLng) {
  * @return {Array.<Position>} an array of {@link Position}
  */
 function toCoords(arrayLatLng, closeRing) {
+	/* eslint-enable max-len */
 
-
-	var ring = _map(arrayLatLng, toCoord);
+	var ring = arrayLatLng.map((latLng) => {
+		return toCoord(latLng);
+	});
 
 
 	if (closeRing === true) {

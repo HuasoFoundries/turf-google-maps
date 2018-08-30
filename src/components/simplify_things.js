@@ -1,14 +1,10 @@
-import {
-	Wicket
-} from './wicket_helper.js';
-
-
 import turf_simplify from '@turf/simplify';
 import {
 	toCoords
 } from './coords_to_latlng.js';
 
 import {
+	Wicket,
 	polygonToFeaturePolygon,
 	debug,
 	warn

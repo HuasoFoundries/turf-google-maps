@@ -1,6 +1,6 @@
 import resolve from "rollup-plugin-node-resolve";
 import commonjs from "rollup-plugin-commonjs";
-import alias from 'rollup-plugin-alias';
+//import alias from 'rollup-plugin-alias';
 import babel from 'rollup-plugin-babel';
 import replace from 'rollup-plugin-replace';
 import cleanup from 'rollup-plugin-cleanup';
@@ -41,13 +41,11 @@ var input = "src/ig_turfhelper.js",
 				'node_modules/simplify-js/**',
 				'node_modules/rbush/**',
 				'node_modules/@turf/**',
-				'node_modules/quickselect/**'
+				'node_modules/quickselect/**',
+				'node_modules/wicket/**'
 			]
 		}),
-		alias({
-			'lodash-es': 'node_modules/lodash-es',
 
-		}),
 		replace({
 			const: 'var',
 			let: 'var',

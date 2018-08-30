@@ -1,12 +1,9 @@
  import turk_kinks from '@turf/kinks';
 
- import {
-    Wicket
- } from './wicket_helper.js';
-
 
  import {
-    polygonToFeaturePolygon
+  Wicket,
+  polygonToFeaturePolygon
  } from './utils.js';
 
  /* eslint-disable max-len*/
@@ -19,21 +16,21 @@
   *
   */
  export function kinks(object) {
-    var Feature;
-    if (object instanceof google.maps.Polyline || object instanceof google.maps.Polygon) {
-        var geometry = Wicket().fromObject(object).toJson();
-        Feature = {
-            type: "Feature",
-            properties: {},
-            geometry: geometry
-        };
-    } else if (object.type && object.type === 'Feature' && object.geometry) {
-        Feature = object;
-    } else {
-        Feature = polygonToFeaturePolygon(object);
-    }
+  var Feature;
+  if (object instanceof google.maps.Polyline || object instanceof google.maps.Polygon) {
+    var geometry = Wicket().fromObject(object).toJson();
+    Feature = {
+      type: "Feature",
+      properties: {},
+      geometry: geometry
+    };
+  } else if (object.type && object.type === 'Feature' && object.geometry) {
+    Feature = object;
+  } else {
+    Feature = polygonToFeaturePolygon(object);
+  }
 
 
-    return turk_kinks(Feature);
+  return turk_kinks(Feature);
  }
  /* eslint-enable max-len*/
