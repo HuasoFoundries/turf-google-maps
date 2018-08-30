@@ -17,7 +17,7 @@ var readmeLinks = {
     },
     buffer: {
         label: 'buffer',
-        description: 'Takes a google.maps.Polyline or google.maps.Polygon and returna a Feature of type Polygon or MultiPolygon surrounding the former at a specified distance' // eslint-disable-line max-len
+        description: 'Takes a google.maps.Polyline or google.maps.Polygon and returns a Feature of type Polygon or MultiPolygon surrounding the former at a specified distance' // eslint-disable-line max-len
     },
     concave: {
         label: 'concave',
@@ -113,7 +113,7 @@ function generateDocs(fileObj, callback) {
         });
     }).then(output => {
         let label = `${fileObj.filename}`,
-            link = `docs/${fileObj.subfolder}/${fileObj.filename}.md`;
+            link = `docs/${fileObj.filename}.md`;
 
         readmeLinks[label] = readmeLinks[label] || {
             label: label,
