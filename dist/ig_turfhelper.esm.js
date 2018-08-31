@@ -1,7 +1,7 @@
 
 /*
  * turf-google-maps
- * version v0.9.11
+ * version v0.9.12
  * MIT Licensed
  * Felipe Figueroa (amenadiel@gmail.com)
  * https://github.com/HuasoFoundries/turf-google-maps
@@ -28903,32 +28903,6 @@ extend(LengthIndexedLine.prototype, {
 	}
 });
 
-function union() {
-    var reader = new GeoJSONReader();
-    var result = reader.read(JSON.stringify(arguments[0].geometry));
-    for (var i = 1; i < arguments.length; i++) {
-        result = UnionOp.union(result, reader.read(JSON.stringify(arguments[i].geometry)));
-    }
-    var writer = new GeoJSONWriter();
-    result = writer.write(result);
-    return {
-        type: 'Feature',
-        geometry: result,
-        properties: arguments[0].properties
-    };
-}
-
-function union$1() {
-	for (var _len = arguments.length, polygons = Array(_len), _key = 0; _key < _len; _key++) {
-		polygons[_key] = arguments[_key];
-	}
-	var polyArray = polygons.map(function (polygon) {
-		return polygonToFeaturePolygon(polygon);
-	}),
-	    FeatureUnion = union.apply(union, polyArray);
-	return FeatureUnion;
-}
-
 function feature$6(geometry, properties, options) {
     options = options || {};
     if (!isObject$4(options)) throw new Error('options is invalid');
@@ -29091,19 +29065,6 @@ function intersect(poly1, poly2) {
   var writer = new GeoJSONWriter();
   var geom = writer.write(intersection);
   return feature$6(geom);
-}
-
-function intersect_polygons(polygon1, polygon2) {
-	if (!(polygon1 instanceof google.maps.Polygon && polygon2 instanceof google.maps.Polygon)) {
-		debug('polygon1', polygon1);
-		debug('polygon2', polygon2);
-		warn('you must pass only google.maps.Polygons');
-		return null;
-	}
-	var feature1 = polygonToFeaturePolygon(polygon1),
-	    feature2 = polygonToFeaturePolygon(polygon2),
-	    intersection = intersect(feature1, feature2);
-	return intersection;
 }
 
 function coordEach$4(geojson, callback, excludeWrapCoord) {
@@ -31033,34 +30994,69 @@ function defineProjection(geojson) {
     return geoTransverseMercator().center(coords).rotate(rotate).scale(earthRadius$8);
 }
 
+function union() {
+    var reader = new GeoJSONReader();
+    var result = reader.read(JSON.stringify(arguments[0].geometry));
+    for (var i = 1; i < arguments.length; i++) {
+        result = UnionOp.union(result, reader.read(JSON.stringify(arguments[i].geometry)));
+    }
+    var writer = new GeoJSONWriter();
+    result = writer.write(result);
+    return {
+        type: 'Feature',
+        geometry: result,
+        properties: arguments[0].properties
+    };
+}
+
+function union$1() {
+	for (var _len = arguments.length, polygons = Array(_len), _key = 0; _key < _len; _key++) {
+		polygons[_key] = arguments[_key];
+	}
+	var polyArray = polygons.map(function (polygon) {
+		return polygonToFeaturePolygon(polygon);
+	}),
+	    FeatureUnion = union.apply(union, polyArray);
+	return FeatureUnion;
+}
 function createbuffer(object, output, radius, options) {
-    options = options || {};
-    options.units = options.units || 'meters';
-    output = (output || 'feature').toLowerCase();
-    var Feature;
-    if (object instanceof google.maps.Polyline || object instanceof google.maps.Polygon || object instanceof google.maps.Marker || object instanceof google.maps.LatLng) {
-        var geometry = Wicket().fromObject(object).toJson();
-        Feature = {
-            type: "Feature",
-            properties: {},
-            geometry: geometry
-        };
-    } else if (object.type && object.type === 'Feature' && object.geometry) {
-        Feature = object;
-    } else {
-        Feature = polygonToFeaturePolygon(object);
-    }
-    var buffered = buffer$1(Feature, radius, options);
-    if (buffered.type === 'FeatureCollection') {
-        buffered = buffered.features[0];
-    }
-    if (output === 'geometry') {
-        return buffered.geometry;
-    } else if (output === 'object') {
-        return Wicket().fromJson(buffered.geometry).toObject();
-    } else {
-        return buffered;
-    }
+	options = options || {};
+	options.units = options.units || 'meters';
+	output = (output || 'feature').toLowerCase();
+	var Feature;
+	if (object instanceof google.maps.Polyline || object instanceof google.maps.Polygon || object instanceof google.maps.Marker || object instanceof google.maps.LatLng) {
+		var geometry = Wicket().fromObject(object).toJson();
+		Feature = {
+			type: "Feature",
+			properties: {},
+			geometry: geometry
+		};
+	} else if (object.type && object.type === 'Feature' && object.geometry) {
+		Feature = object;
+	} else {
+		Feature = polygonToFeaturePolygon(object);
+	}
+	var buffered = buffer$1(Feature, radius, options);
+	if (buffered.type === 'FeatureCollection') {
+		buffered = buffered.features[0];
+	}
+	if (output === 'geometry') {
+		return buffered.geometry;
+	} else if (output === 'object') {
+		return Wicket().fromJson(buffered.geometry).toObject();
+	} else {
+		return buffered;
+	}
+}
+function intersect_polygons(polygon1, polygon2) {
+	if (!(polygon1 instanceof google.maps.Polygon && polygon2 instanceof google.maps.Polygon)) {
+		warn('you must pass only google.maps.Polygons');
+		return null;
+	}
+	var feature1 = polygonToFeaturePolygon(polygon1),
+	    feature2 = polygonToFeaturePolygon(polygon2),
+	    intersection = intersect(feature1, feature2);
+	return intersection;
 }
 
 function booleanPointInPolygon(point, polygon, options) {

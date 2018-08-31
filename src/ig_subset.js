@@ -32,17 +32,13 @@ import {
 import {
     along
 } from './components/along.js';
-import {
-    union
-} from './components/union.js';
 
 import {
-    intersect_polygons
-} from './components/intersect_polygons.js';
-
-import {
+    intersect_polygons,
+    union,
     createbuffer
-} from './components/buffer.js';
+} from './components/operations.js';
+
 import {
     pointInPolygon
 } from './components/point_in_polygon.js';

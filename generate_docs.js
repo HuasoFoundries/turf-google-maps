@@ -15,10 +15,7 @@ var readmeLinks = {
         label: 'along',
         description: 'Takes a google.maps.Polyline and returns a Feature of type Point at a specified distance along the line.' // eslint-disable-line max-len
     },
-    buffer: {
-        label: 'buffer',
-        description: 'Takes a google.maps.Polyline or google.maps.Polygon and returns a Feature of type Polygon or MultiPolygon surrounding the former at a specified distance' // eslint-disable-line max-len
-    },
+
     concave: {
         label: 'concave',
         description: 'Takes a set of gooogle.maps.LatLng or google.maps.LatLngLiteral and returns a concave hull Feature of type Polygon or MultiPolygon' // eslint-disable-line max-len
@@ -43,9 +40,9 @@ var readmeLinks = {
         label: 'trimpaths',
         description: 'Takes two google.maps.Polyline and returns an array of coordinates [path of trimmed polyline1, path of trimmed polyline2, intersection point]' // eslint-disable-line max-len
     },
-    union: {
-        label: 'union',
-        description: 'Takes two or more google.maps.Polygon and returns a Feature of type Polygon or MultiPolygon with their union' // eslint-disable-line max-len
+    operations: {
+        label: 'operations',
+        description: 'Operations to obtain the union, intersection of buffers of google.maps.Polygon objects' // eslint-disable-line max-len
     },
     unkink: {
         label: 'unkink',
