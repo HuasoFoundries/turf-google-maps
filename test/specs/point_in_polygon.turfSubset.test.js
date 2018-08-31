@@ -21,7 +21,7 @@
                 position: testAssets.latLngOutside
             });
 
-            var result = turfSubset.pointInPolygon([gmMarkerIn, gmMarkerOut], testAssets.squareFeature);
+            var result = turfSubset.pointInPolygon([gmMarkerIn, gmMarkerOut], testAssets.squareFeature1);
 
 
             assert.equal(result.pointsInside[0].getPosition().toString(), gmMarkerIn.getPosition().toString(), 'find point inside polygon');

@@ -15,8 +15,8 @@ import {
 } from '@turf/helpers';
 
 
-var debug = console.debug.bind(console, '%c turfHelper' + ':', "color:#00CC00;font-weight:bold;"),
-    warn = console.warn.bind(console, '%c turfHelper' + ':', "color:orange;font-weight:bold;");
+var debug = console.debug.bind(console, 'turfHelper:'),
+    warn = console.warn.bind(console, 'turfHelper:');
 
 
 /**
@@ -118,6 +118,7 @@ var validTypes = ['Point',
  */
 function polygonToFeaturePolygon(object) {
     var ring, polygonFeature;
+
 
     if (object.type === 'Feature') {
         polygonFeature = object;

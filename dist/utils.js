@@ -1182,8 +1182,8 @@
 	    return !isNaN(num) && num !== null && !Array.isArray(num);
 	}
 
-	var debug = console.debug.bind(console, '%c turfHelper' + ':', "color:#00CC00;font-weight:bold;"),
-	    warn = console.warn.bind(console, '%c turfHelper' + ':', "color:orange;font-weight:bold;");
+	var debug = console.debug.bind(console, 'turfHelper:'),
+	    warn = console.warn.bind(console, 'turfHelper:');
 	function Wicket() {
 	    return new wicket.Wkt();
 	}

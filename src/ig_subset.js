@@ -35,6 +35,11 @@ import {
 import {
     union
 } from './components/union.js';
+
+import {
+    intersect_polygons
+} from './components/intersect_polygons.js';
+
 import {
     createbuffer
 } from './components/buffer.js';
@@ -58,25 +63,27 @@ import {
 export {
     along,
     createbuffer,
+    intersect_polygons,
     kinks,
+    pointInPolygon,
     polygonToFeaturePolygon,
     simplifyFeature,
     toCoords,
     toLatLngs,
     union,
     unkink,
-    pointInPolygon
 };
 
 export default {
     along,
     createbuffer,
+    intersect_polygons,
     kinks,
+    pointInPolygon,
     polygonToFeaturePolygon,
     simplifyFeature,
     toCoords,
     toLatLngs,
     union,
     unkink,
-    pointInPolygon
 };

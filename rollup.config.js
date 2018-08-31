@@ -1,6 +1,6 @@
 import resolve from "rollup-plugin-node-resolve";
 import commonjs from "rollup-plugin-commonjs";
-//import alias from 'rollup-plugin-alias';
+import alias from 'rollup-plugin-alias';
 import babel from 'rollup-plugin-babel';
 import replace from 'rollup-plugin-replace';
 import cleanup from 'rollup-plugin-cleanup';
@@ -35,13 +35,16 @@ var input = "src/ig_turfhelper.js",
 		}
 	],
 	plugins = [
-
+		alias({
+			'turf-jsts': "node_modules/jsts-es/index.js"
+		}),
 		commonjs({
 			include: [
 				'node_modules/simplify-js/**',
 				'node_modules/rbush/**',
 				'node_modules/@turf/**',
 				'node_modules/quickselect/**',
+				'node_modules/tinyqueue/**',
 				'node_modules/wicket/**'
 			]
 		}),
@@ -92,6 +95,7 @@ export default {
 
 	input: input,
 	plugins: plugins,
-	output: output
+	output: output,
+	onwarn: function () {}
 
 };

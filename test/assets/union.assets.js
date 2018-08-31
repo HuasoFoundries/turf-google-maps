@@ -1,7 +1,7 @@
 window.testAssets = window.testAssets || {};
 var testAssets = window.testAssets;
 
-testAssets.squareFeature = {
+testAssets.squareFeature1 = {
 	"type": "Feature",
 	"properties": {},
 	"geometry": {
@@ -17,6 +17,43 @@ testAssets.squareFeature = {
 		]
 
 	}
+};
+
+testAssets.squareFeature2 = {
+	"type": "Feature",
+	"properties": {},
+	"geometry": {
+		"type": "Polygon",
+		"coordinates": [
+			[
+				[1.5, 1.5],
+				[1.5, 2.5],
+				[2.5, 2.5],
+				[2.5, 1.5],
+				[1.5, 1.5]
+			]
+		]
+
+	}
+};
+
+
+testAssets.intersectedFeature = {
+	"geometry": {
+		"coordinates": [
+			[
+				[1.5, 2],
+				[2, 2],
+				[2, 1.5],
+				[1.5, 1.5],
+				[1.5, 2]
+			]
+		],
+
+		"type": "Polygon"
+	},
+	"properties": {},
+	"type": "Feature"
 };
 
 testAssets.unionPath1 = [

@@ -36,9 +36,16 @@ import {
 import {
     along
 } from './components/along.js';
+
 import {
     union
 } from './components/union.js';
+
+import {
+    intersect_polygons
+} from './components/intersect_polygons.js';
+
+
 import {
     createbuffer
 } from './components/buffer.js';
@@ -64,39 +71,41 @@ import {
  * @type {Object}
  */
 export {
-    area,
     along,
+    area,
     arrayToFeaturePoints,
+    concave,
     createbuffer,
+    intersect_polygons,
+    kinks,
     pointInPolygon,
     polygonToFeaturePolygon,
     polylineToFeatureLinestring,
     simplifyFeature,
     simplifyPointArray,
-    toLatLngs,
     toCoords,
+    toLatLngs,
     trimPaths,
-    kinks,
-    unkink,
     union,
-    concave
+    unkink,
 };
 
 export default {
-    area,
     along,
+    area,
     arrayToFeaturePoints,
+    concave,
     createbuffer,
+    intersect_polygons,
+    kinks,
     pointInPolygon,
     polygonToFeaturePolygon,
     polylineToFeatureLinestring,
     simplifyFeature,
     simplifyPointArray,
-    toLatLngs,
     toCoords,
+    toLatLngs,
     trimPaths,
     union,
-    kinks,
     unkink,
-    concave,
 };

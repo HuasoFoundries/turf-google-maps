@@ -19,11 +19,12 @@ module.exports = function (config) {
 
 		// list of files / patterns to load in the browser
 		files: [
+			'node_modules/babel-polyfill/browser.js',
 			'test/assets/*.assets.js',
 			'test/assets/*.helper.js',
-			'test/vendor/object-assign-polyfill.js',
+			/*'test/vendor/object-assign-polyfill.js',
 			'test/vendor/prototype-bind-polyfill.js',
-			'test/vendor/jsts-polyfills.js',
+			'test/vendor/jsts-polyfills.js',*/
 			'test/vendor/bluebird.js',
 			'test/vendor/gmaps.js',
 			'test/vendor/jquery.js',
