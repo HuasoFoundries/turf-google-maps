@@ -55,6 +55,27 @@ testAssets.intersectedFeature = {
 	"properties": {},
 	"type": "Feature"
 };
+testAssets.disjointPath = [{
+		lng: 10,
+		lat: 10
+	},
+	{
+		lng: 10,
+		lat: 20
+	},
+	{
+		lng: 20,
+		lat: 20
+	},
+	{
+		lng: 20,
+		lat: 10
+	},
+	{
+		lng: 10,
+		lat: 10
+	}
+];
 
 testAssets.unionPath1 = [
 

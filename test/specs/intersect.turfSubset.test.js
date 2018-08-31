@@ -36,6 +36,34 @@
 		}
 	});
 
+	QUnit.test('return null as intersection of two disjoint google.maps.Polygons', function (assert) {
+		var done = assert.async();
+
+		var runtest = function (gmaps) {
+
+			var gmPolygon1 = new gmaps.Polygon({
+				path: testAssets.unionPath1
+			});
+			var gmPolygon2 = new gmaps.Polygon({
+				path: testAssets.disjointPath
+			});
+
+			var result = turfSubset.intersect_polygons(gmPolygon1, gmPolygon2);
+
+			assert.deepEqual(result, null, 'return null as intersection of two disjoint google.maps.Polygons');
+			done();
+		};
+
+
+		if (window.gmaps.then) {
+			window.gmaps.then(function (gmaps) {
+				runtest(gmaps);
+			});
+		} else {
+			runtest(window.gmaps);
+		}
+	});
+
 	QUnit.skip('find the correct intersection of two Feature.Polygons', function (assert) {
 		var done = assert.async();
 

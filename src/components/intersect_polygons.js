@@ -17,8 +17,6 @@ export function intersect_polygons(polygon1, polygon2) {
 
 
 	if (!(polygon1 instanceof google.maps.Polygon && polygon2 instanceof google.maps.Polygon)) {
-		debug('polygon1', polygon1);
-		debug('polygon2', polygon2);
 		warn('you must pass only google.maps.Polygons');
 		return null;
 	}
