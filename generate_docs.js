@@ -28,10 +28,6 @@ var readmeLinks = {
         label: 'kinks',
         description: 'Takes a google.maps.Polygon and returns a FeatureCollection of Points representing the polygon self intersections' // eslint-disable-line max-len
     },
-    point_in_polygon: {
-        label: 'point_in_polygon',
-        description: 'Takes an array of google.maps.Marker and a Polygon or MultiPolygon, returning an object containing with markers fall inside or outside it' // eslint-disable-line max-len
-    },
     simplify_things: {
         label: 'simplify_things',
         description: 'Takes a google.maps.Polygon or google.maps.Polyline and returns a simplified version given a certain tolerance. Uses Douglas-Peucker algorithm' // eslint-disable-line max-len

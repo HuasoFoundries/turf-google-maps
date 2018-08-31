@@ -73,12 +73,6 @@ Takes a google.maps.Polygon and returns a FeatureCollection of Points representi
 
 See [kinks](docs/kinks.md).
 
-### point_in_polygon
-
-Takes an array of google.maps.Marker and a Polygon or MultiPolygon, returning an object containing with markers fall inside or outside it
-
-See [point_in_polygon](docs/point_in_polygon.md).
-
 ### simplify_things
 
 Takes a google.maps.Polygon or google.maps.Polyline and returns a simplified version given a certain tolerance. Uses Douglas-Peucker algorithm

@@ -14,6 +14,7 @@
  */
 import {
     polylineToFeatureLinestring,
+    pointInPolygon,
     polygonToFeaturePolygon,
     arrayToFeaturePoints,
     area
@@ -42,10 +43,6 @@ import {
     union,
     createbuffer
 } from './components/operations.js';
-
-import {
-    pointInPolygon
-} from './components/point_in_polygon.js';
 
 import {
     kinks,

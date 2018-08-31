@@ -1,7 +1,7 @@
 
 /*
  * turf-google-maps
- * version v0.9.12
+ * version v0.9.13
  * MIT Licensed
  * Felipe Figueroa (amenadiel@gmail.com)
  * https://github.com/HuasoFoundries/turf-google-maps
@@ -1296,6 +1296,93 @@ function isObject$1(input) {
     return !!input && input.constructor === Object;
 }
 
+function getCoord(obj) {
+    if (!obj) throw new Error('obj is required');
+    var coordinates = getCoords(obj);
+    if (coordinates.length > 1 && isNumber$1(coordinates[0]) && isNumber$1(coordinates[1])) {
+        return coordinates;
+    } else {
+        throw new Error('Coordinate is not a valid Point');
+    }
+}
+function getCoords(obj) {
+    if (!obj) throw new Error('obj is required');
+    var coordinates;
+    if (obj.length) {
+        coordinates = obj;
+    } else if (obj.coordinates) {
+        coordinates = obj.coordinates;
+    } else if (obj.geometry && obj.geometry.coordinates) {
+        coordinates = obj.geometry.coordinates;
+    }
+    if (coordinates) {
+        containsNumber(coordinates);
+        return coordinates;
+    }
+    throw new Error('No valid coordinates');
+}
+function containsNumber(coordinates) {
+    if (coordinates.length > 1 && isNumber$1(coordinates[0]) && isNumber$1(coordinates[1])) {
+        return true;
+    }
+    if (Array.isArray(coordinates[0]) && coordinates[0].length) {
+        return containsNumber(coordinates[0]);
+    }
+    throw new Error('coordinates must only contain numbers');
+}
+function getType(geojson, name) {
+    if (!geojson) throw new Error((name || 'geojson') + ' is required');
+    if (geojson.geometry && geojson.geometry.type) return geojson.geometry.type;
+    if (geojson.type) return geojson.type;
+    throw new Error((name || 'geojson') + ' is invalid');
+}
+
+function booleanPointInPolygon(point, polygon, options) {
+    options = options || {};
+    if ((typeof options === 'undefined' ? 'undefined' : _typeof(options)) !== 'object') throw new Error('options is invalid');
+    var ignoreBoundary = options.ignoreBoundary;
+    if (!point) throw new Error('point is required');
+    if (!polygon) throw new Error('polygon is required');
+    var pt = getCoord(point);
+    var polys = getCoords(polygon);
+    var type = polygon.geometry ? polygon.geometry.type : polygon.type;
+    var bbox = polygon.bbox;
+    if (bbox && inBBox(pt, bbox) === false) return false;
+    if (type === 'Polygon') polys = [polys];
+    for (var i = 0, insidePoly = false; i < polys.length && !insidePoly; i++) {
+        if (inRing(pt, polys[i][0], ignoreBoundary)) {
+            var inHole = false;
+            var k = 1;
+            while (k < polys[i].length && !inHole) {
+                if (inRing(pt, polys[i][k], !ignoreBoundary)) {
+                    inHole = true;
+                }
+                k++;
+            }
+            if (!inHole) insidePoly = true;
+        }
+    }
+    return insidePoly;
+}
+function inRing(pt, ring, ignoreBoundary) {
+    var isInside = false;
+    if (ring[0][0] === ring[ring.length - 1][0] && ring[0][1] === ring[ring.length - 1][1]) ring = ring.slice(0, ring.length - 1);
+    for (var i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+        var xi = ring[i][0],
+            yi = ring[i][1];
+        var xj = ring[j][0],
+            yj = ring[j][1];
+        var onBoundary = pt[1] * (xi - xj) + yi * (xj - pt[0]) + yj * (pt[0] - xi) === 0 && (xi - pt[0]) * (xj - pt[0]) <= 0 && (yi - pt[1]) * (yj - pt[1]) <= 0;
+        if (onBoundary) return !ignoreBoundary;
+        var intersect = yi > pt[1] !== yj > pt[1] && pt[0] < (xj - xi) * (pt[1] - yi) / (yj - yi) + xi;
+        if (intersect) isInside = !isInside;
+    }
+    return isInside;
+}
+function inBBox(pt, bbox) {
+    return bbox[0] <= pt[0] && bbox[1] <= pt[1] && bbox[2] >= pt[0] && bbox[3] >= pt[1];
+}
+
 var debug = console.debug.bind(console, 'turfHelper:'),
     warn = console.warn.bind(console, 'turfHelper:');
 function Wicket() {
@@ -1380,6 +1467,31 @@ function arrayToFeaturePoints(latLngArray) {
 function area$1(object) {
     var polygonFeature = polygonToFeaturePolygon(object);
     return area(polygonFeature);
+}
+function pointInPolygon(sourceArray, geojsonPolygon) {
+    var pointsInside = [];
+    var pointsOutside = [];
+    if (geojsonPolygon.type !== 'Feature') {
+        geojsonPolygon = {
+            "type": "Feature",
+            "properties": {},
+            "geometry": geojsonPolygon
+        };
+    }
+    if (geojsonPolygon.geometry.type === 'Polygon' || geojsonPolygon.geometry.type === 'Multipolygon') {
+        sourceArray.forEach(function (item) {
+            var Point = markerToFeaturePoint(item);
+            if (booleanPointInPolygon(Point, geojsonPolygon)) {
+                pointsInside.push(item);
+            } else {
+                pointsOutside.push(item);
+            }
+        });
+    }
+    return {
+        pointsInside: pointsInside,
+        pointsOutside: pointsOutside
+    };
 }
 
 function tin(points, z) {
@@ -1617,47 +1729,6 @@ function deepSlice(coords) {
     return coords.map(function (coord) {
         return deepSlice(coord);
     });
-}
-
-function getCoord(obj) {
-    if (!obj) throw new Error('obj is required');
-    var coordinates = getCoords(obj);
-    if (coordinates.length > 1 && isNumber$1(coordinates[0]) && isNumber$1(coordinates[1])) {
-        return coordinates;
-    } else {
-        throw new Error('Coordinate is not a valid Point');
-    }
-}
-function getCoords(obj) {
-    if (!obj) throw new Error('obj is required');
-    var coordinates;
-    if (obj.length) {
-        coordinates = obj;
-    } else if (obj.coordinates) {
-        coordinates = obj.coordinates;
-    } else if (obj.geometry && obj.geometry.coordinates) {
-        coordinates = obj.geometry.coordinates;
-    }
-    if (coordinates) {
-        containsNumber(coordinates);
-        return coordinates;
-    }
-    throw new Error('No valid coordinates');
-}
-function containsNumber(coordinates) {
-    if (coordinates.length > 1 && isNumber$1(coordinates[0]) && isNumber$1(coordinates[1])) {
-        return true;
-    }
-    if (Array.isArray(coordinates[0]) && coordinates[0].length) {
-        return containsNumber(coordinates[0]);
-    }
-    throw new Error('coordinates must only contain numbers');
-}
-function getType(geojson, name) {
-    if (!geojson) throw new Error((name || 'geojson') + ' is required');
-    if (geojson.geometry && geojson.geometry.type) return geojson.geometry.type;
-    if (geojson.type) return geojson.type;
-    throw new Error((name || 'geojson') + ' is invalid');
 }
 
 function coordEach$1(geojson, callback, excludeWrapCoord) {
@@ -31057,78 +31128,6 @@ function intersect_polygons(polygon1, polygon2) {
 	    feature2 = polygonToFeaturePolygon(polygon2),
 	    intersection = intersect(feature1, feature2);
 	return intersection;
-}
-
-function booleanPointInPolygon(point, polygon, options) {
-    options = options || {};
-    if ((typeof options === 'undefined' ? 'undefined' : _typeof(options)) !== 'object') throw new Error('options is invalid');
-    var ignoreBoundary = options.ignoreBoundary;
-    if (!point) throw new Error('point is required');
-    if (!polygon) throw new Error('polygon is required');
-    var pt = getCoord(point);
-    var polys = getCoords(polygon);
-    var type = polygon.geometry ? polygon.geometry.type : polygon.type;
-    var bbox = polygon.bbox;
-    if (bbox && inBBox(pt, bbox) === false) return false;
-    if (type === 'Polygon') polys = [polys];
-    for (var i = 0, insidePoly = false; i < polys.length && !insidePoly; i++) {
-        if (inRing(pt, polys[i][0], ignoreBoundary)) {
-            var inHole = false;
-            var k = 1;
-            while (k < polys[i].length && !inHole) {
-                if (inRing(pt, polys[i][k], !ignoreBoundary)) {
-                    inHole = true;
-                }
-                k++;
-            }
-            if (!inHole) insidePoly = true;
-        }
-    }
-    return insidePoly;
-}
-function inRing(pt, ring, ignoreBoundary) {
-    var isInside = false;
-    if (ring[0][0] === ring[ring.length - 1][0] && ring[0][1] === ring[ring.length - 1][1]) ring = ring.slice(0, ring.length - 1);
-    for (var i = 0, j = ring.length - 1; i < ring.length; j = i++) {
-        var xi = ring[i][0],
-            yi = ring[i][1];
-        var xj = ring[j][0],
-            yj = ring[j][1];
-        var onBoundary = pt[1] * (xi - xj) + yi * (xj - pt[0]) + yj * (pt[0] - xi) === 0 && (xi - pt[0]) * (xj - pt[0]) <= 0 && (yi - pt[1]) * (yj - pt[1]) <= 0;
-        if (onBoundary) return !ignoreBoundary;
-        var intersect = yi > pt[1] !== yj > pt[1] && pt[0] < (xj - xi) * (pt[1] - yi) / (yj - yi) + xi;
-        if (intersect) isInside = !isInside;
-    }
-    return isInside;
-}
-function inBBox(pt, bbox) {
-    return bbox[0] <= pt[0] && bbox[1] <= pt[1] && bbox[2] >= pt[0] && bbox[3] >= pt[1];
-}
-
-function pointInPolygon(sourceArray, geojsonPolygon) {
-	var pointsInside = [];
-	var pointsOutside = [];
-	if (geojsonPolygon.type !== 'Feature') {
-		geojsonPolygon = {
-			"type": "Feature",
-			"properties": {},
-			"geometry": geojsonPolygon
-		};
-	}
-	if (geojsonPolygon.geometry.type === 'Polygon' || geojsonPolygon.geometry.type === 'Multipolygon') {
-		sourceArray.forEach(function (item) {
-			var Point = markerToFeaturePoint(item);
-			if (booleanPointInPolygon(Point, geojsonPolygon)) {
-				pointsInside.push(item);
-			} else {
-				pointsOutside.push(item);
-			}
-		});
-	}
-	return {
-		pointsInside: pointsInside,
-		pointsOutside: pointsOutside
-	};
 }
 
 function kinks(featureIn) {

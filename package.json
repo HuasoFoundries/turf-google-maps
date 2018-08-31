@@ -1,6 +1,6 @@
 {
   "name": "turf-google-maps",
-  "version": "0.9.12",
+  "version": "0.9.13",
   "description": "A bridge to use Turf along with google Maps API",
   "scripts": {
     "test": "karma start",
@@ -8,10 +8,7 @@
     "minify": "npm run minify:utils && npm run minify:ig_subset && npm run minify:turfhelper",
     "minify:utils": "uglifyjs  dist/utils.js -c passes=2 -m --source-map -o dist/utils.min.js",
     "minify:ig_subset": "uglifyjs  dist/ig_subset.js -c passes=2 -m --source-map -o dist/ig_subset.min.js",
-    "minify:turfhelper": "uglifyjs  dist/ig_turfhelper.js -c passes=2 -m --source-map -o dist/ig_turfhelper.min.js",
-    "terser:utils": "terser  dist/utils.js -c  passes=2 -m --source-map -o dist/utils.min2.js",
-    "terser:ig_subset": "terser  dist/ig_subset.js -c passes=2  -m --source-map -o dist/ig_subset.min2.js",
-    "terser:turfhelper": "terser  dist/ig_turfhelper.esm.js -c passes=2  -m --source-map -o dist/ig_turfhelper.min2.js"
+    "minify:turfhelper": "uglifyjs  dist/ig_turfhelper.js -c passes=2 -m --source-map -o dist/ig_turfhelper.min.js"
   },
   "repository": {
     "type": "git",

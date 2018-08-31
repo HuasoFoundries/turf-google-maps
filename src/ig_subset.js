@@ -16,6 +16,7 @@
 
 
 import {
+    pointInPolygon,
     polygonToFeaturePolygon
 } from './components/utils.js';
 
@@ -39,9 +40,6 @@ import {
     createbuffer
 } from './components/operations.js';
 
-import {
-    pointInPolygon
-} from './components/point_in_polygon.js';
 
 import {
     kinks,

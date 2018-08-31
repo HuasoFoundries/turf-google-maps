@@ -87,6 +87,17 @@ Receives an object and returns a GeoJson Feature of type Polygon
 
 Returns **[Number][12]** object's area
 
+## pointInPolygon
+
+Filters an array of points returning those who falls inside a given [Polygon][24]
+
+### Parameters
+
+-   `sourceArray` **[Array][5]&lt;[google.maps.Marker][16]>** array of [google.maps.Marker][14]
+-   `geojsonPolygon` **([Polygon][8] | Multipolygon)** the polygon thay may contain the points
+
+Returns **{pointsInside: [Array][5]&lt;[google.maps.Marker][16]>, pointsOutside: [Array][5]&lt;[google.maps.Marker][16]>}** an object with the points that fall inside and outside the polygon
+
 [1]: #wicket
 
 [2]: https://github.com/arthur-e/Wicket
@@ -132,3 +143,5 @@ Returns **[Number][12]** object's area
 [22]: http://geojson.org/geojson-spec.html#geometry
 
 [23]: http://geojson.org/geojson-spec.html#feature-collection-objects
+
+[24]: http://geojson.org/geojson-spec.html#polygon
