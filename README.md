@@ -114,3 +114,9 @@ See [unkink](docs/unkink.md).
 Several utility functions to transform back and forth google.maps objects and Feature of their corresponding type
 
 See [utils](docs/utils.md).
+
+### intersect_polygons
+
+
+
+See [intersect_polygons](docs/intersect_polygons.md).
