@@ -43,7 +43,7 @@
   "devDependencies": {
     "@turf/along": "^5.0.4",
     "@turf/area": "^5.1.5",
-    "@turf/boolean-point-in-polygon": "^5.0.4",
+    "@turf/boolean-point-in-polygon": "^6.3.0",
     "@turf/buffer": "^5.0.4",
     "@turf/concave": "^5.0.4",
     "@turf/helpers": "^5.0.4",
